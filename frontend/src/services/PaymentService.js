@@ -1,7 +1,7 @@
 // /src/services/PaymentService.js - UPDATED VERSION (Database-only validation)
 import axios from 'axios';
 
-const API_BASE_URL = 'http://localhost:5000/api/v1';
+const API_BASE_URL = '/api/v1';
 
 console.log('🔗 PaymentService initialized with API_URL:', API_BASE_URL);
 
