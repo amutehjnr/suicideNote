@@ -59,7 +59,7 @@ const GuestCheckoutModal = ({
     }
 
     // Add callback URL
-    paymentData.callback_url = `${window.location.origin}/payment-callback`;
+    // paymentData.callback_url = `${window.location.origin}/payment-callback`;
 
     console.log('📤 Sending payment data:', paymentData);
 

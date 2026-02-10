@@ -124,9 +124,8 @@ const PaymentService = {
 },
 
   /**
-   * Initialize payment
-   */
-  // In PaymentService.js - initializePayment method
+ * Initialize payment
+ */
 async initializePayment(paymentData) {
   try {
     console.log('📤 [PaymentService] Sending payment request:', paymentData);
@@ -144,6 +143,12 @@ async initializePayment(paymentData) {
       return { success: false, error: 'Valid amount is required' };
     }
     
+    // ⚠️ FIX: Use PRODUCTION callback URL
+    const isLocalhost = window.location.hostname.includes('localhost');
+    const callbackUrl = isLocalhost 
+      ? 'http://localhost:5173/payment-callback'
+      : 'https://suicidenote.onrender.com/payment-callback';
+    
     // Prepare the data for backend
     const backendData = {
       ebookId: paymentData.ebookId,
@@ -153,11 +158,12 @@ async initializePayment(paymentData) {
       affiliateCode: paymentData.affiliateCode || null,
       // ⚠️ FIX: Always provide a string for campaignName
       campaignName: paymentData.campaignName || 'direct-purchase', // Default value
-      callback_url: paymentData.callback_url || `${window.location.origin}/payment-callback`
+      callback_url: callbackUrl // ⚠️ UPDATED: Use dynamic callback URL
     };
     
     console.log('🔗 Endpoint:', `${API_BASE_URL}/payments/initialize`);
     console.log('📦 Sending to backend:', backendData);
+    console.log('📍 Callback URL:', callbackUrl);
     
     const response = await axios.post(
       `${API_BASE_URL}/payments/initialize`,
@@ -174,15 +180,16 @@ async initializePayment(paymentData) {
 
     console.log('✅ Backend response:', response.data);
     
-    // Fix port if needed
+    // ⚠️ FIX: Update authorization URL to point to production if needed
     if (response.data?.data?.authorizationUrl) {
       let authUrl = response.data.data.authorizationUrl;
       console.log('🔗 Original authorization URL:', authUrl);
       
-      if (authUrl.includes('localhost:3000')) {
-        authUrl = authUrl.replace('localhost:3000', 'localhost:5173');
+      // If we're on production but get a localhost URL, fix it
+      if (!isLocalhost && authUrl.includes('localhost:3000')) {
+        authUrl = authUrl.replace('localhost:3000', 'suicidenote.onrender.com');
         response.data.data.authorizationUrl = authUrl;
-        console.log('✅ Fixed authorization URL:', authUrl);
+        console.log('✅ Fixed authorization URL for production:', authUrl);
       }
     }
     
