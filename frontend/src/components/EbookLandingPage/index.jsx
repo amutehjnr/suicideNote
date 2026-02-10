@@ -122,65 +122,79 @@ const EbookLandingPage = () => {
   });
 
   // Initialize and check for payment callback
-  useEffect(() => {
-    const initialize = async () => {
-      // Check for payment callback in URL
-      const urlParams = new URLSearchParams(window.location.search);
-      const reference = urlParams.get('reference') || urlParams.get('trxref');
-      
-      if (reference) {
-        // Clean URL
-        window.history.replaceState({}, document.title, window.location.pathname);
-        
-        try {
-          toast.loading('Verifying your payment...');
-          const result = await PaymentService.verifyPayment(reference);
-          
-          if (result.success) {
-            // Store purchase data
-            const purchaseData = {
-              purchase: result.data,
-              accessCode: result.data.accessCode || "SN-" + Math.random().toString(36).substring(2, 10).toUpperCase(),
-              timestamp: new Date().toISOString()
-            };
-            localStorage.setItem('recent_purchase', JSON.stringify(purchaseData));
-            
-            // Store access code for reading
-            if (result.data.accessCode) {
-              localStorage.setItem(`ebook_access_suicide-note-2026`, result.data.accessCode);
-            }
-            
-            // Redirect to thank you page
-            if (window.location.hostname === 'localhost') {
-              navigate('/thank-you');
-            } else {
-                window.location.href = 'https://suicidenote.onrender.com/thank-you';
-            }            
-            return;
-          }
-        } catch (error) {
-          console.error('Payment verification error:', error);
-        }
-      }
-      
-      // Check existing access
-      const savedCode = localStorage.getItem(`ebook_access_suicide-note-2026`);
-      if (savedCode) {
-        setHasAccess(true);
-      }
-      
-      // Track affiliate click if present in URL
-      const affiliateCode = urlParams.get('ref');
-      if (affiliateCode) {
-        PaymentService.trackAffiliateClick(affiliateCode);
-      }
-      
-      // Fetch real data in background
-      fetchRealData();
-    };
+useEffect(() => {
+  const initialize = async () => {
+    // Check for payment callback in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const reference = urlParams.get('reference') || urlParams.get('trxref');
     
-    initialize();
-  }, [navigate]);
+    console.log('🔍 Payment callback detected:', { reference, fullUrl: window.location.href });
+    
+    if (reference) {
+      // ⚠️ IMMEDIATELY clean the URL to prevent re-triggering
+      window.history.replaceState({}, document.title, window.location.pathname);
+      
+      try {
+        toast.loading('Verifying your payment...');
+        const result = await PaymentService.verifyPayment(reference);
+        
+        if (result.success) {
+          // Store purchase data
+          const purchaseData = {
+            purchase: result.data,
+            accessCode: result.data.accessCode || "SN-" + Math.random().toString(36).substring(2, 10).toUpperCase(),
+            timestamp: new Date().toISOString()
+          };
+          localStorage.setItem('recent_purchase', JSON.stringify(purchaseData));
+          
+          // Store access code for reading
+          if (result.data.accessCode) {
+            localStorage.setItem(`ebook_access_suicide-note-2026`, result.data.accessCode);
+          }
+          
+          console.log('✅ Payment verified, redirecting to thank you page');
+          
+          // ⚠️ CRITICAL: FORCE REDIRECT to production thank you page
+          // Clear any pending toasts
+          toast.dismiss();
+          
+          // Add small delay to ensure localStorage is saved
+          setTimeout(() => {
+            // ⚠️ ALWAYS redirect to production, no matter what
+            window.location.href = 'https://suicidenote.onrender.com/thank-you';
+          }, 300);
+          
+          return;
+        } else {
+          toast.error('Payment verification failed. Please contact support.');
+        }
+      } catch (error) {
+        console.error('Payment verification error:', error);
+        toast.error('Failed to verify payment. Please try again.');
+      } finally {
+        toast.dismiss();
+      }
+    }
+    
+    // Only run these if NOT in a payment callback
+    // Check existing access
+    const savedCode = localStorage.getItem(`ebook_access_suicide-note-2026`);
+    if (savedCode) {
+      setHasAccess(true);
+    }
+    
+    // Track affiliate click if present in URL
+    const affiliateCode = urlParams.get('ref');
+    if (affiliateCode) {
+      PaymentService.trackAffiliateClick(affiliateCode);
+    }
+    
+    // Fetch real data in background
+    fetchRealData();
+  };
+  
+  initialize();
+}, [navigate]);
 
   // Fetch real data from API
   const fetchRealData = async () => {
@@ -338,7 +352,18 @@ useEffect(() => {
     if (!storedCode && !stateCode) {
       console.error('🚫 [Reader] No access code found - redirecting to homepage');
       toast.error('Access denied. Please enter a valid access code.');
-      navigate('/');
+      
+      // ✅ PATCH: Force redirect to production homepage
+      // Clear any localhost references
+      const currentHost = window.location.hostname;
+      
+      if (currentHost.includes('localhost') || currentHost.includes('5173')) {
+        // We're on localhost - redirect to production
+        window.location.href = 'https://suicidenote.onrender.com';
+      } else {
+        // Already on production - redirect to homepage
+        navigate('/');
+      }
       return;
     }
     
@@ -346,13 +371,20 @@ useEffect(() => {
     if (storedCode && stateCode && storedCode !== stateCode) {
       console.error('🚫 [Reader] Access code mismatch - redirecting');
       toast.error('Access verification failed. Please try again.');
-      if (window.location.hostname.includes('localhost')) {
-        navigate('/');
-      } else {
+      
+      // ✅ PATCH: Force redirect to production homepage
+      const currentHost = window.location.hostname;
+      
+      if (currentHost.includes('localhost') || currentHost.includes('5173')) {
         window.location.href = 'https://suicidenote.onrender.com';
+      } else {
+        navigate('/');
       }
       return;
     }
+    
+    // ✅ If we get here, access is valid
+    console.log('✅ [Reader] Access granted, loading content...');
   };
   
   checkAccess();
