@@ -13,6 +13,7 @@ console.log('🚀 Starting server...');
 
 // ================== DATABASE ==================
 require('./config/database');
+const distPath = path.join(__dirname, '../dist');
 
 // ================== ROUTES ==================
 const authRoutes = require('./routes/auth.routes');
@@ -124,6 +125,18 @@ app.get('/health', (req, res) => {
     timestamp: new Date().toISOString(),
   });
 });
+
+// ================== FRONTEND STATIC ==================
+app.use(express.static(distPath));
+
+// SPA fallback (React / Vite / Vue)
+app.get('*', (req, res, next) => {
+  if (req.originalUrl.startsWith('/api')) return next();
+  if (req.originalUrl.startsWith('/health')) return next();
+
+  res.sendFile(path.join(distPath, 'index.html'));
+});
+
 
 // ================== 404 ==================
 app.use('*', (req, res) => {
