@@ -151,7 +151,11 @@ const EbookLandingPage = () => {
             }
             
             // Redirect to thank you page
-            navigate('/thank-you');
+            if (window.location.hostname === 'localhost') {
+              navigate('/thank-you');
+            } else {
+                window.location.href = 'https://suicidenote.onrender.com/thank-you';
+            }            
             return;
           }
         } catch (error) {
@@ -342,7 +346,11 @@ useEffect(() => {
     if (storedCode && stateCode && storedCode !== stateCode) {
       console.error('🚫 [Reader] Access code mismatch - redirecting');
       toast.error('Access verification failed. Please try again.');
-      navigate('/');
+      if (window.location.hostname.includes('localhost')) {
+        navigate('/');
+      } else {
+        window.location.href = 'https://suicidenote.onrender.com';
+      }
       return;
     }
   };
