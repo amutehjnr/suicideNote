@@ -1,0 +1,78 @@
+/* Shared component styles */
+.badge {
+  display: inline-block;
+  padding: 0.25rem 1rem;
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.badge-red {
+  background-color: var(--color-red-light);
+  color: var(--color-red);
+}
+
+.badge-green {
+  background-color: var(--color-green-light);
+  color: var(--color-green);
+}
+
+.badge-yellow {
+  background-color: var(--color-yellow-light);
+  color: var(--color-yellow);
+}
+
+.card {
+  background-color: var(--color-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-lg);
+  padding: 1.5rem;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius-lg);
+  font-size: 1rem;
+  transition: all 0.3s;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-blue);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.rating {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.star {
+  color: var(--color-yellow);
+  fill: var(--color-yellow);
+}
+
+.pro-tip {
+  background-color: var(--color-yellow-light);
+  border-left: 4px solid var(--color-yellow);
+  padding: 1rem;
+  border-radius: var(--radius);
+  margin: 1rem 0;
+}
+
+.warning-box {
+  background-color: var(--color-yellow-light);
+  border-left: 4px solid var(--color-yellow);
+  padding: 1rem;
+  border-radius: var(--radius);
+}
+
+.success-box {
+  background-color: var(--color-green-light);
+  border-left: 4px solid var(--color-green);
+  padding: 1rem;
+  border-radius: var(--radius);
+}

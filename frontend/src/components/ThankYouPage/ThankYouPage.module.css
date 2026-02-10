@@ -1,0 +1,830 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--color-green-light) 0%, var(--color-white) 20%, var(--color-blue-light) 100%);
+}
+
+/* Header */
+.header {
+  background-color: var(--color-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.headerContent {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 0;
+}
+
+.logoIcon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-green);
+}
+
+.logoText {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-gray-900);
+}
+
+/* Main Content */
+.mainContent {
+  padding: 3rem 0;
+}
+
+/* Success Card */
+.successCard {
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.successHeader {
+  background: linear-gradient(to right, var(--color-green), var(--color-green-dark));
+  padding: 3rem 2rem;
+  text-align: center;
+  color: var(--color-white);
+}
+
+.successCheck {
+  width: 5rem;
+  height: 5rem;
+  background-color: var(--color-white);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+}
+
+.checkIcon {
+  width: 3rem;
+  height: 3rem;
+  color: var(--color-green);
+}
+
+.successTitle {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+}
+
+.successSubtitle {
+  font-size: 1.25rem;
+  color: var(--color-green-light);
+}
+
+/* Access Section */
+.accessSection {
+  padding: 2rem;
+}
+
+.accessCard {
+  background: linear-gradient(135deg, var(--color-blue-light) 0%, #e0e7ff 100%);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  border: 2px solid #bfdbfe;
+  margin-bottom: 1.5rem;
+}
+
+.accessTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.codeDisplay {
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.codeText {
+  font-family: 'Courier New', monospace;
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-blue);
+  letter-spacing: 0.1em;
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--color-blue);
+  color: var(--color-white);
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+}
+
+.copyButton:hover {
+  background-color: #1d4ed8;
+}
+
+.copyIcon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+.startReadingButton {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-lg);
+}
+
+.bookIcon, .arrowIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.codeNote {
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+  margin-top: 1rem;
+}
+
+.warningText {
+  font-size: 0.875rem;
+  color: var(--color-gray-700);
+}
+
+/* Affiliate Card */
+.affiliateCard {
+  background: linear-gradient(to right, var(--color-green), var(--color-green-dark));
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-2xl);
+  overflow: hidden;
+  margin-bottom: 2rem;
+}
+
+.affiliateContent {
+  padding: 2rem;
+}
+
+.affiliateTitle {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--color-white);
+  margin-bottom: 1rem;
+}
+
+.affiliateSubtitle {
+  font-size: 1.25rem;
+  color: var(--color-green-light);
+}
+
+/* Value Proposition */
+.valueProposition {
+  background-color: var(--color-white);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  margin-bottom: 2rem;
+}
+
+.valueContent {
+  display: grid;
+  gap: 2rem;
+}
+
+.valueTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin-bottom: 1rem;
+}
+
+.valueList {
+  list-style: none;
+}
+
+.valueItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.checkCircle {
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: var(--color-green-light);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.smallCheckIcon {
+  width: 1rem;
+  height: 1rem;
+  color: var(--color-green);
+}
+
+.highlightGreen {
+  color: var(--color-green);
+}
+
+.earningsCard {
+  background-color: var(--color-green-light);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+.earningsTitle {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin-bottom: 1rem;
+}
+
+.earningsList {
+  display: grid;
+  gap: 1rem;
+}
+
+.earningItem {
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+}
+
+.earningHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.earningLabel {
+  color: var(--color-gray-600);
+}
+
+.earningAmount {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-green);
+}
+
+.earningNote {
+  font-size: 0.75rem;
+  color: var(--color-gray-500);
+}
+
+.premiumEarning {
+  background: linear-gradient(to right, var(--color-green), var(--color-green-dark));
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  color: var(--color-white);
+}
+
+.premiumLabel {
+  font-weight: 600;
+}
+
+.premiumAmount {
+  font-size: 2rem;
+  font-weight: 800;
+}
+
+.premiumNote {
+  font-size: 0.75rem;
+  color: var(--color-green-light);
+}
+
+/* Social Proof */
+.socialProof {
+  background-color: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(8px);
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.socialContent {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.socialAvatar {
+  width: 4rem;
+  height: 4rem;
+  background-color: var(--color-green-dark);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-white);
+  font-weight: 700;
+  font-size: 1.5rem;
+  flex-shrink: 0;
+}
+
+.socialText {
+  color: var(--color-white);
+  font-style: italic;
+  margin-bottom: 0.5rem;
+  font-size: 1.125rem;
+}
+
+.highlightYellow {
+  color: var(--color-yellow);
+  font-weight: 700;
+}
+
+.socialAuthor {
+  color: var(--color-green-light);
+  font-weight: 600;
+}
+
+.socialStats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  color: var(--color-green-light);
+  font-size: 0.875rem;
+}
+
+/* Calculator */
+.calculatorTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.calculatorContent {
+  max-width: 28rem;
+  margin: 0 auto;
+}
+
+.sliderLabel {
+  display: block;
+  color: var(--color-gray-700);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.sliderContainer {
+  margin: 2rem 0;
+}
+
+.slider {
+  width: 100%;
+  height: 0.5rem;
+  background-color: var(--color-gray-200);
+  border-radius: var(--radius-full);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.5rem;
+  height: 1.5rem;
+  background-color: var(--color-green);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.sliderLabels {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.875rem;
+  color: var(--color-gray-500);
+  margin-top: 0.5rem;
+}
+
+.earningsDisplay {
+  background: linear-gradient(to right, var(--color-green), var(--color-green-dark));
+  border-radius: var(--radius-xl);
+  padding: 1.5rem;
+  color: var(--color-white);
+  text-align: center;
+}
+
+.earningsAmount {
+  font-size: 3rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.earningsText {
+  color: var(--color-green-light);
+}
+
+.yearlyEarnings {
+  font-size: 0.875rem;
+  color: var(--color-green-light);
+  margin-top: 0.5rem;
+}
+
+/* Signup Form */
+.formTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.signupForm {
+  max-width: 28rem;
+  margin: 0 auto 2rem;
+}
+
+.emailInput {
+  margin-bottom: 1rem;
+  padding: 1rem;
+  font-size: 1rem;
+}
+
+.generateButton {
+  width: 100%;
+  padding: 1.25rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-xl);
+}
+
+.dollarIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.formNote {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--color-gray-500);
+  margin-top: 0.75rem;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.statCard {
+  background-color: var(--color-green-light);
+  border-radius: var(--radius-lg);
+  padding: 1rem;
+  text-align: center;
+}
+
+.statIcon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-green);
+  margin-bottom: 0.5rem;
+}
+
+.statText {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-900);
+}
+
+/* Generated Link */
+.generatedLinkSection {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.successMessage {
+  background: linear-gradient(to right, var(--color-green), var(--color-green-dark));
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  text-align: center;
+  color: var(--color-white);
+}
+
+.bigCheckIcon {
+  width: 4rem;
+  height: 4rem;
+  margin-bottom: 1rem;
+}
+
+.successHeading {
+  font-size: 2rem;
+  font-weight: 800;
+  margin-bottom: 0.5rem;
+}
+
+.linkContainer {
+  background-color: var(--color-gray-50);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+.linkLabel {
+  display: block;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+  margin-bottom: 0.5rem;
+}
+
+.linkDisplay {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.linkCode {
+  flex: 1;
+  background-color: var(--color-white);
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius);
+  font-family: 'Courier New', monospace;
+  color: var(--color-green);
+  font-size: 0.875rem;
+  word-break: break-all;
+}
+
+.copyLinkButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background-color: var(--color-green);
+  color: var(--color-white);
+  padding: 0.75rem 1.5rem;
+  border-radius: var(--radius);
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s;
+  white-space: nowrap;
+}
+
+.copyLinkButton:hover {
+  background-color: var(--color-green-dark);
+}
+
+/* Sharing Guide */
+.sharingGuide {
+  background-color: var(--color-blue-light);
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+}
+
+.guideTitle {
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin-bottom: 1rem;
+}
+
+.socialGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+}
+
+.socialItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+}
+
+.twitterIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #1da1f2;
+}
+
+.whatsappIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #25d366;
+}
+
+.facebookIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #1877f2;
+}
+
+.emailIcon {
+  width: 1.5rem;
+  height: 1.5rem;
+  color: #ea4335;
+}
+
+.socialName {
+  font-weight: 600;
+  color: var(--color-gray-900);
+  margin-bottom: 0.25rem;
+}
+
+.socialDescription {
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+}
+
+.tipText {
+  font-size: 0.875rem;
+  color: var(--color-gray-700);
+}
+
+/* Email Confirmation */
+.emailConfirmation {
+  background: linear-gradient(to right, var(--color-green-light), var(--color-blue-light));
+  border-radius: var(--radius-lg);
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.confirmationText {
+  color: var(--color-gray-700);
+  margin-bottom: 1rem;
+}
+
+.userEmail {
+  font-family: 'Courier New', monospace;
+  color: var(--color-green);
+  font-weight: 600;
+}
+
+.confirmationNote {
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+}
+
+/* Why Section */
+.whyTitle {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--color-gray-900);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.whyGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.whyCard {
+  text-align: center;
+  padding: 1.5rem;
+}
+
+.whyIcon {
+  width: 4rem;
+  height: 4rem;
+  background-color: var(--color-gray-100);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1rem;
+}
+
+.purpleIcon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-purple);
+}
+
+.blueIcon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-blue);
+}
+
+.greenIcon {
+  width: 2rem;
+  height: 2rem;
+  color: var(--color-green);
+}
+
+.whyCardTitle {
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin-bottom: 0.5rem;
+}
+
+.whyCardText {
+  color: var(--color-gray-600);
+  font-size: 0.875rem;
+}
+
+/* Final CTA */
+.finalCTA {
+  background-color: var(--color-gray-50);
+  border-radius: var(--radius-xl);
+  padding: 2rem;
+  text-align: center;
+}
+
+.finalTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-gray-900);
+  margin-bottom: 1rem;
+}
+
+.finalSubtitle {
+  color: var(--color-gray-600);
+  margin-bottom: 1.5rem;
+}
+
+.readingButton {
+  padding: 1rem 2rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  box-shadow: var(--shadow-lg);
+}
+
+/* Footer */
+.footer {
+  background-color: var(--color-gray-900);
+  color: var(--color-white);
+  padding: 2rem 1rem;
+  margin-top: 3rem;
+}
+
+.footerContent {
+  text-align: center;
+}
+
+.footerText {
+  color: var(--color-gray-400);
+  margin-bottom: 0.5rem;
+}
+
+.copyright {
+  color: var(--color-gray-500);
+  font-size: 0.875rem;
+}
+
+/* Responsive Styles */
+@media (max-width: 768px) {
+  .successTitle {
+    font-size: 2rem;
+  }
+  
+  .affiliateTitle {
+    font-size: 2rem;
+  }
+  
+  .codeText {
+    font-size: 1.5rem;
+  }
+  
+  .valueContent {
+    grid-template-columns: 1fr;
+  }
+  
+  .socialContent {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+  
+  .statsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .socialGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .whyGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .linkDisplay {
+    flex-direction: column;
+  }
+  
+  .copyLinkButton {
+    width: 100%;
+  }
+}
+
+@media (min-width: 768px) {
+  .valueContent {
+    grid-template-columns: 1fr 1fr;
+  }
+}

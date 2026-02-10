@@ -1,0 +1,240 @@
+/* GuestCheckoutModal.module.css */
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.modalContainer {
+  background-color: var(--color-white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-2xl);
+  width: 100%;
+  max-width: 28rem;
+  max-height: 90vh;
+  overflow: hidden;
+  animation: slideUp 0.3s ease-out;
+}
+
+.modalContent {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem 1.5rem 0.5rem;
+  position: relative;
+}
+
+.closeButton {
+  position: absolute;
+  left: 1.5rem;
+  top: 1.5rem;
+  background: none;
+  border: none;
+  color: var(--color-gray-500);
+  cursor: pointer;
+  padding: 0.5rem;
+  border-radius: var(--radius);
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  color: var(--color-gray-700);
+  background-color: var(--color-gray-100);
+}
+
+.closeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modalTitle {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--color-gray-900);
+  text-align: center;
+  flex: 1;
+  margin: 0;
+}
+
+.priceSection {
+  padding: 1.5rem;
+  text-align: center;
+  background: linear-gradient(135deg, var(--color-red-light) 0%, rgba(239, 68, 68, 0.1) 100%);
+  border-bottom: 1px solid var(--color-gray-200);
+}
+
+.priceTag {
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--color-red);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.priceDescription {
+  font-size: 1rem;
+  color: var(--color-gray-600);
+  margin: 0;
+}
+
+.stepContent {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.formGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.formGroup label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-gray-700);
+}
+
+.formGroup input {
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--color-gray-300);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  color: var(--color-gray-900);
+  transition: all 0.2s;
+  background-color: var(--color-white);
+}
+
+.formGroup input:focus {
+  outline: none;
+  border-color: var(--color-red);
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+.formGroup input:disabled {
+  background-color: var(--color-gray-100);
+  color: var(--color-gray-500);
+  cursor: not-allowed;
+}
+
+.formGroup input::placeholder {
+  color: var(--color-gray-400);
+}
+
+.stepContent button {
+  background: linear-gradient(135deg, var(--color-red) 0%, var(--color-red-dark) 100%);
+  color: var(--color-white);
+  border: none;
+  border-radius: var(--radius-lg);
+  padding: 1rem 2rem;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.stepContent button:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-lg);
+}
+
+.stepContent button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.stepContent button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .modalContainer {
+    max-width: 100%;
+    margin: 0;
+    border-radius: var(--radius-lg);
+  }
+  
+  .modalHeader {
+    padding: 1rem 1rem 0.5rem;
+  }
+  
+  .closeButton {
+    left: 1rem;
+    top: 1rem;
+  }
+  
+  .modalTitle {
+    font-size: 1.25rem;
+    padding-right: 2rem;
+  }
+  
+  .priceSection {
+    padding: 1rem;
+  }
+  
+  .priceTag {
+    font-size: 2.5rem;
+  }
+  
+  .stepContent {
+    padding: 1rem;
+  }
+  
+  .formGroup input {
+    padding: 0.75rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .modalContainer {
+    max-width: 32rem;
+  }
+}

@@ -1,0 +1,352 @@
+/* App.css */
+:root {
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --secondary: #f8fafc;
+  --text: #1e293b;
+  --text-light: #64748b;
+  --border: #e2e8f0;
+  --success: #10b981;
+  --error: #ef4444;
+  --shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --radius: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+/* Header Styles */
+.header {
+  background: white;
+  border-bottom: 1px solid var(--border);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 1.25rem;
+}
+
+.logo-icon {
+  color: var(--primary);
+}
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+}
+
+.nav-link {
+  text-decoration: none;
+  color: var(--text-light);
+  transition: color 0.2s;
+}
+
+.nav-link:hover {
+  color: var(--primary);
+}
+
+.btn-buy {
+  background: var(--primary);
+  color: white;
+  padding: 0.5rem 1.5rem;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.btn-buy:hover {
+  background: var(--primary-dark);
+}
+
+.mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+/* Access Form */
+.access-form {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.access-form input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  margin-bottom: 1rem;
+}
+
+.access-form input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.access-form button {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.access-form button:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.access-form button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.error-text {
+  color: var(--error);
+  font-size: 0.875rem;
+  margin-bottom: 1rem;
+}
+
+/* Sales Page */
+.sales-page section {
+  padding: 3rem 0;
+}
+
+.sales-page .hero {
+  text-align: center;
+  padding-top: 4rem;
+  padding-bottom: 4rem;
+}
+
+.sales-page h1 {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+  line-height: 1.2;
+}
+
+.sales-page .subtitle {
+  font-size: 1.25rem;
+  color: var(--text-light);
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.sales-page .story,
+.sales-page .benefits,
+.sales-page .preview,
+.sales-page .purchase,
+.sales-page .faq {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.sales-page .benefits ul {
+  list-style: none;
+  margin: 1.5rem 0;
+}
+
+.sales-page .benefits li {
+  padding: 0.5rem 0;
+  position: relative;
+  padding-left: 1.5rem;
+}
+
+.sales-page .benefits li:before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--success);
+  font-weight: bold;
+}
+
+.sales-page .price {
+  font-size: 2rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin: 1rem 0;
+}
+
+/* Footer */
+.site-footer {
+  background: var(--secondary);
+  padding: 3rem 0;
+  text-align: center;
+  margin-top: 4rem;
+}
+
+.footer-links {
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  margin-top: 1rem;
+}
+
+.footer-links a {
+  color: var(--text-light);
+  text-decoration: none;
+}
+
+.footer-links a:hover {
+  color: var(--primary);
+}
+
+/* Reader */
+.reader {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+
+.reader-content {
+  background: white;
+  padding: 3rem;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  min-height: 500px;
+  margin-bottom: 2rem;
+}
+
+.reader-content p {
+  font-size: 1.125rem;
+  line-height: 1.8;
+}
+
+.reader-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 0;
+}
+
+.reader-controls button {
+  padding: 0.5rem 1.5rem;
+  background: var(--primary);
+  color: white;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.reader-controls button:hover:not(:disabled) {
+  background: var(--primary-dark);
+}
+
+.reader-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Affiliate Card */
+.affiliate-card {
+  background: white;
+  border-radius: var(--radius);
+  padding: 2rem;
+  box-shadow: var(--shadow);
+  max-width: 500px;
+  margin: 2rem auto;
+}
+
+.affiliate-card input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  font-family: monospace;
+  margin: 1rem 0;
+  background: var(--secondary);
+}
+
+.affiliate-note {
+  margin: 0.5rem 0;
+  color: var(--text-light);
+}
+
+/* Ebook Preview */
+.ebook-preview {
+  display: grid;
+  gap: 2rem;
+  margin: 2rem 0;
+}
+
+.preview-page {
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.preview-page img {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
+.preview-note {
+  text-align: center;
+  color: var(--text-light);
+  font-style: italic;
+  margin-top: 1rem;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sales-page h1 {
+    font-size: 2rem;
+  }
+  
+  .nav {
+    display: none;
+  }
+  
+  .mobile-menu-btn {
+    display: block;
+  }
+  
+  .reader-content {
+    padding: 1.5rem;
+    min-height: 300px;
+  }
+  
+  .footer-links {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
