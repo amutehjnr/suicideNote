@@ -191,7 +191,7 @@ async verifyPayment(reference) {
   try {
     winston.info('🔍 Verifying payment with reference:', reference);
     
-    // Find purchase
+    // Find purchase with populated fields
     const purchase = await Purchase.findOne({ 
       $or: [
         { paystackReference: reference },
@@ -233,26 +233,41 @@ async verifyPayment(reference) {
       isActive: true,
     });
 
-    // ✅ SEND ACCESS CODE TO EMAIL - ADD THIS SECTION
+    // ✅ SEND ACCESS CODE TO EMAIL - WITH BETTER LOGGING
+    console.log('📧 Attempting to send email to:', purchase.user?.email);
+    console.log('📧 Access code:', accessCode.code);
+    console.log('📧 Ebook:', purchase.ebook?.title);
+    
     try {
       if (purchase.user && purchase.user.email) {
-        await emailService.sendAccessCodeEmail(
+        const emailService = require('./email.service');
+        const emailResult = await emailService.sendAccessCodeEmail(
           purchase.user.email,
           purchase.user.name || purchase.user.email.split('@')[0],
           accessCode.code,
           purchase.ebook
         );
-        winston.info(`✅ Access code email sent to: ${purchase.user.email}`);
+        
+        if (emailResult) {
+          console.log('✅ Email sent successfully to:', purchase.user.email);
+          winston.info(`✅ Access code email sent to: ${purchase.user.email}`);
+        } else {
+          console.log('❌ Email sending returned false');
+        }
+      } else {
+        console.log('❌ No user email found');
       }
     } catch (emailError) {
-      // Log but don't fail the verification if email fails
+      console.error('🔥 Email sending error:', emailError);
+      console.error('Error stack:', emailError.stack);
+      // Log but don't fail the verification
       winston.error('❌ Failed to send access code email:', emailError.message);
     }
 
     // ✅ Update purchase with AccessCode ObjectId
     purchase.status = 'completed';
     purchase.paidAt = new Date();
-    purchase.accessCode = accessCode._id; // Save ObjectId reference
+    purchase.accessCode = accessCode._id;
     
     if (response.data.data.authorization) {
       purchase.paymentDetails = {
@@ -266,13 +281,6 @@ async verifyPayment(reference) {
     }
     
     await purchase.save();
-
-    winston.info('✅ Payment verified successfully:', {
-      purchaseId: purchase._id,
-      status: purchase.status,
-      accessCode: accessCode.code,
-      email: purchase.user?.email
-    });
 
     // Update user's purchased ebooks
     if (purchase.user) {
@@ -305,7 +313,7 @@ async verifyPayment(reference) {
         },
         paymentStatus: purchase.status,
         verifiedData: response.data.data,
-        accessCode: accessCode.code, // Return the actual code string
+        accessCode: accessCode.code,
         accessCodeId: accessCode._id
       },
     };
