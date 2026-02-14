@@ -7,6 +7,7 @@ const Affiliate = require('../models/Affiliate.model');
 const winston = require('winston');
 const crypto = require('crypto');
 const AccessCode = require('../models/AccessCode.model');
+const emailService = require('./email.service');
 
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
@@ -232,6 +233,22 @@ async verifyPayment(reference) {
       isActive: true,
     });
 
+    // ✅ SEND ACCESS CODE TO EMAIL - ADD THIS SECTION
+    try {
+      if (purchase.user && purchase.user.email) {
+        await emailService.sendAccessCodeEmail(
+          purchase.user.email,
+          purchase.user.name || purchase.user.email.split('@')[0],
+          accessCode.code,
+          purchase.ebook
+        );
+        winston.info(`✅ Access code email sent to: ${purchase.user.email}`);
+      }
+    } catch (emailError) {
+      // Log but don't fail the verification if email fails
+      winston.error('❌ Failed to send access code email:', emailError.message);
+    }
+
     // ✅ Update purchase with AccessCode ObjectId
     purchase.status = 'completed';
     purchase.paidAt = new Date();
@@ -265,8 +282,8 @@ async verifyPayment(reference) {
           if (!user.purchasedEbooks) {
             user.purchasedEbooks = [];
           }
-          if (!user.purchasedEbooks.includes(purchase.ebook)) {
-            user.purchasedEbooks.push(purchase.ebook);
+          if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
+            user.purchasedEbooks.push(purchase.ebook._id);
             await user.save();
           }
         }
