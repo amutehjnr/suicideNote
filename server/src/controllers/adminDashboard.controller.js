@@ -202,6 +202,7 @@ const adminDashboardController = {
             box-shadow: 0 5px 20px rgba(0,0,0,0.1);
             padding: 15px;
             min-width: 200px;
+            z-index: 1000;
           }
 
           .profile-info.show {
@@ -394,6 +395,16 @@ const adminDashboardController = {
             color: #ff4757;
           }
 
+          .status-badge.active {
+            background: #00b89420;
+            color: #00b894;
+          }
+
+          .status-badge.inactive {
+            background: #ff475720;
+            color: #ff4757;
+          }
+
           .action-btn {
             padding: 5px 10px;
             border: none;
@@ -411,6 +422,11 @@ const adminDashboardController = {
           .action-btn.edit {
             background: #00b89420;
             color: #00b894;
+          }
+
+          .action-btn.delete {
+            background: #ff475720;
+            color: #ff4757;
           }
 
           /* Loading */
@@ -434,6 +450,67 @@ const adminDashboardController = {
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
           }
+
+          /* Modal */
+          .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+          }
+
+          .modal.show {
+            display: flex;
+          }
+
+          .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+          }
+
+          .modal-content h3 {
+            margin-bottom: 20px;
+          }
+
+          .modal-content input, .modal-content textarea, .modal-content select {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+          }
+
+          .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+          }
+
+          .modal-buttons button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+          }
+
+          .modal-buttons button.primary {
+            background: #667eea;
+            color: white;
+          }
+
+          .modal-buttons button.secondary {
+            background: #eee;
+            color: #333;
+          }
         </style>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
       </head>
@@ -449,51 +526,51 @@ const adminDashboardController = {
 
             <ul class="nav-menu">
               <li class="nav-item">
-                <a href="#" class="nav-link active" onclick="loadSection('dashboard')">
+                <a href="#" class="nav-link active" onclick="loadSection('dashboard', event)">
                   <i class="fas fa-home"></i>
                   <span>Dashboard</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadSection('transactions')">
+                <a href="#" class="nav-link" onclick="loadSection('transactions', event)">
                   <i class="fas fa-credit-card"></i>
                   <span>Transactions</span>
-                  <span class="badge" id="transactionBadge">12</span>
+                  <span class="badge" id="transactionBadge">0</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadSection('access-codes')">
+                <a href="#" class="nav-link" onclick="loadSection('access-codes', event)">
                   <i class="fas fa-key"></i>
                   <span>Access Codes</span>
-                  <span class="badge" id="accessCodeBadge">8</span>
+                  <span class="badge" id="accessCodeBadge">0</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadSection('users')">
+                <a href="#" class="nav-link" onclick="loadSection('users', event)">
                   <i class="fas fa-users"></i>
                   <span>Users</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadSection('affiliates')">
+                <a href="#" class="nav-link" onclick="loadSection('affiliates', event)">
                   <i class="fas fa-handshake"></i>
                   <span>Affiliates</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadSection('free-access')">
+                <a href="#" class="nav-link" onclick="loadSection('free-access', event)">
                   <i class="fas fa-gift"></i>
                   <span>Free Access</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="#" class="nav-link" onclick="loadSection('settings')">
+                <a href="#" class="nav-link" onclick="loadSection('settings', event)">
                   <i class="fas fa-cog"></i>
                   <span>Settings</span>
                 </a>
               </li>
               <li class="nav-item">
-                <a href="#" class="nav-link" onclick="signOut()">
+                <a href="#" class="nav-link" onclick="signOut(event)">
                   <i class="fas fa-sign-out-alt"></i>
                   <span>Sign Out</span>
                 </a>
@@ -507,24 +584,32 @@ const adminDashboardController = {
             <div class="top-bar">
               <div class="page-title">
                 <h1 id="pageTitle">Dashboard</h1>
-                <p id="pageSubtitle">Welcome back, ${req.admin.name}</p>
+                <p id="pageSubtitle">Welcome back, <span id="adminName"></span></p>
               </div>
               
               <div class="admin-profile">
                 <div class="notifications" onclick="toggleNotifications()">
                   <i class="far fa-bell"></i>
-                  <span class="notification-badge">3</span>
+                  <span class="notification-badge">0</span>
                 </div>
                 
                 <div class="profile-dropdown" onclick="toggleProfileMenu()">
-                  <div class="avatar">
-                    ${req.admin.name.charAt(0).toUpperCase()}
+                  <div class="avatar" id="adminAvatar">
+                    <span id="adminInitial"></span>
                   </div>
                   <div>
-                    <strong>${req.admin.name}</strong>
-                    <p style="font-size: 12px; color: #666;">${req.admin.role}</p>
+                    <strong id="adminFullName"></strong>
+                    <p style="font-size: 12px; color: #666;" id="adminRole"></p>
                   </div>
                   <i class="fas fa-chevron-down"></i>
+                </div>
+
+                <!-- Profile Dropdown Menu -->
+                <div class="profile-info" id="profileMenu">
+                  <a href="#" onclick="loadSection('profile', event)"><i class="fas fa-user"></i> My Profile</a>
+                  <a href="#" onclick="loadSection('settings', event)"><i class="fas fa-cog"></i> Settings</a>
+                  <hr>
+                  <a href="#" onclick="signOut(event)"><i class="fas fa-sign-out-alt"></i> Sign Out</a>
                 </div>
               </div>
             </div>
@@ -538,23 +623,89 @@ const adminDashboardController = {
           </div>
         </div>
 
+        <!-- Modal for Free Access -->
+        <div class="modal" id="freeAccessModal">
+          <div class="modal-content">
+            <h3>Send Free Access Code</h3>
+            <input type="email" id="freeEmail" placeholder="Email Address" required>
+            <input type="text" id="freeName" placeholder="Name (Optional)">
+            <textarea id="freeMessage" placeholder="Personal Message (Optional)" rows="3"></textarea>
+            <select id="freeEbook">
+              <option value="">Select Ebook</option>
+            </select>
+            <div class="modal-buttons">
+              <button class="secondary" onclick="closeFreeAccessModal()">Cancel</button>
+              <button class="primary" onclick="sendFreeAccess()">Send</button>
+            </div>
+          </div>
+        </div>
+
         <script>
+          // Helper function to get cookie
+          function getCookie(name) {
+            const value = \`; \${document.cookie}\`;
+            const parts = value.split(\`; \${name}=\`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+          }
+
+          // Admin data from server
+          const adminData = {
+            name: '${req.admin.name}',
+            role: '${req.admin.role}',
+            initial: '${req.admin.name.charAt(0).toUpperCase()}',
+            id: '${req.admin._id}'
+          };
+
           let currentSection = 'dashboard';
+          let currentPage = 1;
 
           // Load initial dashboard
           document.addEventListener('DOMContentLoaded', () => {
+            // Set admin info in the UI
+            document.getElementById('adminName').textContent = adminData.name;
+            document.getElementById('adminInitial').textContent = adminData.initial;
+            document.getElementById('adminFullName').textContent = adminData.name;
+            document.getElementById('adminRole').textContent = adminData.role;
+            
             loadDashboard();
+            loadEbooksForSelect();
           });
 
+          // Load ebooks for select dropdown
+          async function loadEbooksForSelect() {
+            try {
+              const response = await fetch('/api/v1/ebooks', {
+                headers: {
+                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
+                }
+              });
+              const data = await response.json();
+              
+              if (data.success) {
+                const select = document.getElementById('freeEbook');
+                data.data.forEach(ebook => {
+                  const option = document.createElement('option');
+                  option.value = ebook._id;
+                  option.textContent = ebook.title;
+                  select.appendChild(option);
+                });
+              }
+            } catch (error) {
+              console.error('Error loading ebooks:', error);
+            }
+          }
+
           // Load different sections
-          function loadSection(section) {
+          function loadSection(section, event) {
+            if (event) event.preventDefault();
             currentSection = section;
+            currentPage = 1;
             
             // Update active nav
             document.querySelectorAll('.nav-link').forEach(link => {
               link.classList.remove('active');
             });
-            event.currentTarget.classList.add('active');
+            if (event) event.currentTarget.classList.add('active');
 
             // Update page title
             const titles = {
@@ -564,11 +715,12 @@ const adminDashboardController = {
               users: 'Users',
               affiliates: 'Affiliates',
               'free-access': 'Free Access',
-              settings: 'Settings'
+              settings: 'Settings',
+              profile: 'My Profile'
             };
             
-            document.getElementById('pageTitle').textContent = titles[section];
-            document.getElementById('pageSubtitle').textContent = \`Welcome back, ${req.admin.name}\`;
+            document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
+            document.getElementById('pageSubtitle').textContent = \`Welcome back, \${adminData.name}\`;
 
             // Load section content
             switch(section) {
@@ -593,6 +745,9 @@ const adminDashboardController = {
               case 'settings':
                 loadSettings();
                 break;
+              case 'profile':
+                loadProfile();
+                break;
             }
           }
 
@@ -604,7 +759,7 @@ const adminDashboardController = {
             try {
               const response = await fetch('/api/v1/admin/dashboard/stats', {
                 headers: {
-                  'Authorization': \`Bearer ${req.cookies.admin_token}\`
+                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
                 }
               });
               
@@ -613,15 +768,19 @@ const adminDashboardController = {
               if (data.success) {
                 renderDashboard(data.data);
               } else {
-                content.innerHTML = '<p>Failed to load dashboard data</p>';
+                content.innerHTML = '<p style="text-align: center; padding: 50px;">Failed to load dashboard data</p>';
               }
             } catch (error) {
-              content.innerHTML = '<p>Error loading dashboard</p>';
+              content.innerHTML = '<p style="text-align: center; padding: 50px;">Error loading dashboard</p>';
             }
           }
 
           function renderDashboard(stats) {
             const content = document.getElementById('contentArea');
+            
+            // Update badges
+            document.getElementById('transactionBadge').textContent = stats.overview.totalPurchases || 0;
+            document.getElementById('accessCodeBadge').textContent = stats.overview.totalAccessCodes?.total || 0;
             
             content.innerHTML = \`
               <div class="stats-grid">
@@ -629,44 +788,32 @@ const adminDashboardController = {
                   <div class="stat-icon">
                     <i class="fas fa-users"></i>
                   </div>
-                  <div class="stat-value">\${stats.overview.totalUsers}</div>
+                  <div class="stat-value">\${stats.overview.totalUsers || 0}</div>
                   <div class="stat-label">Total Users</div>
-                  <div class="stat-change positive">
-                    <i class="fas fa-arrow-up"></i> 12% this month
-                  </div>
                 </div>
 
                 <div class="stat-card">
                   <div class="stat-icon">
                     <i class="fas fa-credit-card"></i>
                   </div>
-                  <div class="stat-value">\${stats.overview.totalPurchases}</div>
+                  <div class="stat-value">\${stats.overview.totalPurchases || 0}</div>
                   <div class="stat-label">Total Sales</div>
-                  <div class="stat-change positive">
-                    <i class="fas fa-arrow-up"></i> 8% this month
-                  </div>
                 </div>
 
                 <div class="stat-card">
                   <div class="stat-icon">
                     <i class="fas fa-naira-sign"></i>
                   </div>
-                  <div class="stat-value">₦\${stats.overview.totalRevenue.toLocaleString()}</div>
+                  <div class="stat-value">₦\${(stats.overview.totalRevenue || 0).toLocaleString()}</div>
                   <div class="stat-label">Total Revenue</div>
-                  <div class="stat-change positive">
-                    <i class="fas fa-arrow-up"></i> 15% this month
-                  </div>
                 </div>
 
                 <div class="stat-card">
                   <div class="stat-icon">
                     <i class="fas fa-key"></i>
                   </div>
-                  <div class="stat-value">\${stats.overview.totalAccessCodes.total}</div>
+                  <div class="stat-value">\${stats.overview.totalAccessCodes?.total || 0}</div>
                   <div class="stat-label">Access Codes</div>
-                  <div class="stat-change">
-                    \${stats.overview.totalAccessCodes.free} free, \${stats.overview.totalAccessCodes.paid} paid
-                  </div>
                 </div>
               </div>
 
@@ -676,7 +823,7 @@ const adminDashboardController = {
                     <h3>Revenue Overview</h3>
                     <select onchange="updateRevenueChart(this.value)">
                       <option value="week">This Week</option>
-                      <option value="month">This Month</option>
+                      <option value="month" selected>This Month</option>
                       <option value="year">This Year</option>
                     </select>
                   </div>
@@ -695,7 +842,7 @@ const adminDashboardController = {
                 <div class="table-card">
                   <div class="table-header">
                     <h3>Recent Transactions</h3>
-                    <a href="#" class="view-all" onclick="loadSection('transactions')">View All</a>
+                    <a href="#" class="view-all" onclick="loadSection('transactions', event)">View All</a>
                   </div>
                   <table>
                     <thead>
@@ -708,10 +855,10 @@ const adminDashboardController = {
                       </tr>
                     </thead>
                     <tbody>
-                      \${stats.recentTransactions.map(t => \`
+                      \${(stats.recentTransactions || []).map(t => \`
                         <tr>
                           <td>\${t.transactionReference?.substring(0, 8)}...</td>
-                          <td>\${t.user?.email || 'N/A'}</td>
+                          <td>\${t.user?.email?.split('@')[0] || 'N/A'}</td>
                           <td>₦\${t.amount}</td>
                           <td><span class="status-badge \${t.status}">\${t.status}</span></td>
                           <td>\${new Date(t.createdAt).toLocaleDateString()}</td>
@@ -724,7 +871,7 @@ const adminDashboardController = {
                 <div class="table-card">
                   <div class="table-header">
                     <h3>Recent Access Codes</h3>
-                    <a href="#" class="view-all" onclick="loadSection('access-codes')">View All</a>
+                    <a href="#" class="view-all" onclick="loadSection('access-codes', event)">View All</a>
                   </div>
                   <table>
                     <thead>
@@ -737,12 +884,12 @@ const adminDashboardController = {
                       </tr>
                     </thead>
                     <tbody>
-                      \${stats.recentAccessCodes.map(c => \`
+                      \${(stats.recentAccessCodes || []).map(c => \`
                         <tr>
                           <td>\${c.code}</td>
-                          <td>\${c.user?.email || 'N/A'}</td>
-                          <td>\${c.ebook?.title || 'N/A'}</td>
-                          <td><span class="status-badge \${c.isActive ? 'completed' : 'failed'}">\${c.isActive ? 'Active' : 'Inactive'}</span></td>
+                          <td>\${c.user?.email?.split('@')[0] || 'N/A'}</td>
+                          <td>\${c.ebook?.title?.substring(0, 15) || 'N/A'}</td>
+                          <td><span class="status-badge \${c.isActive ? 'active' : 'inactive'}">\${c.isActive ? 'Active' : 'Inactive'}</span></td>
                           <td>\${c.isFreeAccess ? 'Free' : 'Paid'}</td>
                         </tr>
                       \`).join('')}
@@ -753,11 +900,11 @@ const adminDashboardController = {
             \`;
 
             // Initialize charts
-            initRevenueChart(stats);
-            initPaymentChart(stats);
+            initRevenueChart();
+            initPaymentChart(stats.paymentMethods || []);
           }
 
-          function initRevenueChart(stats) {
+          function initRevenueChart() {
             const ctx = document.getElementById('revenueChart').getContext('2d');
             new Chart(ctx, {
               type: 'line',
@@ -784,9 +931,8 @@ const adminDashboardController = {
             });
           }
 
-          function initPaymentChart(stats) {
+          function initPaymentChart(methods) {
             const ctx = document.getElementById('paymentChart').getContext('2d');
-            const methods = stats.paymentMethods || [];
             
             new Chart(ctx, {
               type: 'doughnut',
@@ -817,7 +963,7 @@ const adminDashboardController = {
             try {
               const response = await fetch(\`/api/v1/admin/transactions?page=\${page}\`, {
                 headers: {
-                  'Authorization': \`Bearer ${req.cookies.admin_token}\`
+                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
                 }
               });
               
@@ -825,9 +971,11 @@ const adminDashboardController = {
               
               if (data.success) {
                 renderTransactions(data.data);
+              } else {
+                content.innerHTML = '<p style="text-align: center; padding: 50px;">Failed to load transactions</p>';
               }
             } catch (error) {
-              content.innerHTML = '<p>Error loading transactions</p>';
+              content.innerHTML = '<p style="text-align: center; padding: 50px;">Error loading transactions</p>';
             }
           }
 
@@ -839,12 +987,12 @@ const adminDashboardController = {
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                   <h2>All Transactions</h2>
                   <div>
-                    <input type="text" placeholder="Search..." style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-right: 10px;">
-                    <select style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;">
-                      <option>All Status</option>
-                      <option>Completed</option>
-                      <option>Pending</option>
-                      <option>Failed</option>
+                    <input type="text" id="searchInput" placeholder="Search..." style="padding: 10px; border: 1px solid #ddd; border-radius: 8px; margin-right: 10px;" onkeyup="searchTransactions()">
+                    <select id="statusFilter" style="padding: 10px; border: 1px solid #ddd; border-radius: 8px;" onchange="filterTransactions()">
+                      <option value="">All Status</option>
+                      <option value="completed">Completed</option>
+                      <option value="pending">Pending</option>
+                      <option value="failed">Failed</option>
                     </select>
                   </div>
                 </div>
@@ -861,7 +1009,7 @@ const adminDashboardController = {
                       <th>Actions</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody id="transactionsTableBody">
                     \${data.transactions.map(t => \`
                       <tr>
                         <td>\${t.transactionReference}</td>
@@ -893,62 +1041,244 @@ const adminDashboardController = {
             \`;
           }
 
-          // Sign Out
-          async function signOut() {
+          // Load Access Codes
+          async function loadAccessCodes(page = 1) {
+            const content = document.getElementById('contentArea');
+            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
             try {
-              await fetch('/api/v1/admin/auth/signout', {
+              const response = await fetch(\`/api/v1/admin/access-codes?page=\${page}\`, {
+                headers: {
+                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
+                }
+              });
+              
+              const data = await response.json();
+              
+              if (data.success) {
+                renderAccessCodes(data.data);
+              } else {
+                content.innerHTML = '<p style="text-align: center; padding: 50px;">Failed to load access codes</p>';
+              }
+            } catch (error) {
+              content.innerHTML = '<p style="text-align: center; padding: 50px;">Error loading access codes</p>';
+            }
+          }
+
+          function renderAccessCodes(data) {
+            const content = document.getElementById('contentArea');
+            
+            content.innerHTML = \`
+              <div style="background: white; padding: 25px; border-radius: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                  <h2>Access Codes</h2>
+                  <button class="primary" onclick="showFreeAccessModal()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    <i class="fas fa-gift"></i> Send Free Access
+                  </button>
+                </div>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>User</th>
+                      <th>Ebook</th>
+                      <th>Status</th>
+                      <th>Type</th>
+                      <th>Used</th>
+                      <th>Expires</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    \${data.accessCodes.map(c => \`
+                      <tr>
+                        <td>\${c.code}</td>
+                        <td>\${c.user?.email || 'N/A'}</td>
+                        <td>\${c.ebook?.title || 'N/A'}</td>
+                        <td><span class="status-badge \${c.isActive ? 'active' : 'inactive'}">\${c.isActive ? 'Active' : 'Inactive'}</span></td>
+                        <td>\${c.isFreeAccess ? 'Free' : 'Paid'}</td>
+                        <td>\${c.accessCount || 0}</td>
+                        <td>\${new Date(c.expiresAt).toLocaleDateString()}</td>
+                        <td>
+                          <button class="action-btn view" onclick="viewAccessCode('\${c._id}')">View</button>
+                          \${c.isActive ? \`
+                            <button class="action-btn delete" onclick="revokeAccessCode('\${c._id}')">Revoke</button>
+                          \` : ''}
+                        </td>
+                      </tr>
+                    \`).join('')}
+                  </tbody>
+                </table>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                  <p>Showing \${data.accessCodes.length} of \${data.pagination.total} access codes</p>
+                  <div>
+                    \${Array.from({ length: data.pagination.pages }, (_, i) => i + 1).map(p => \`
+                      <button onclick="loadAccessCodes(\${p})" style="padding: 5px 10px; margin: 0 5px; border: 1px solid #ddd; border-radius: 5px; background: \${p === data.pagination.page ? '#667eea' : 'white'}; color: \${p === data.pagination.page ? 'white' : '#333'};">\${p}</button>
+                    \`).join('')}
+                  </div>
+                </div>
+              </div>
+            \`;
+          }
+
+          // Load Users
+          async function loadUsers() {
+            const content = document.getElementById('contentArea');
+            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div><p style="text-align: center;">Users section coming soon...</p>';
+          }
+
+          // Load Affiliates
+          async function loadAffiliates() {
+            const content = document.getElementById('contentArea');
+            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div><p style="text-align: center;">Affiliates section coming soon...</p>';
+          }
+
+          // Load Free Access
+          async function loadFreeAccess() {
+            const content = document.getElementById('contentArea');
+            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div><p style="text-align: center;">Free Access section coming soon...</p>';
+          }
+
+          // Load Settings
+          async function loadSettings() {
+            const content = document.getElementById('contentArea');
+            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div><p style="text-align: center;">Settings section coming soon...</p>';
+          }
+
+          // Load Profile
+          async function loadProfile() {
+            const content = document.getElementById('contentArea');
+            content.innerHTML = \`
+              <div style="background: white; padding: 30px; border-radius: 15px;">
+                <h2>My Profile</h2>
+                <div style="margin-top: 20px;">
+                  <p><strong>Name:</strong> \${adminData.name}</p>
+                  <p><strong>Email:</strong> \${adminData.role === 'superadmin' ? '${req.admin.email}' : 'Hidden'}</p>
+                  <p><strong>Role:</strong> \${adminData.role}</p>
+                  <p><strong>ID:</strong> \${adminData.id}</p>
+                </div>
+              </div>
+            \`;
+          }
+
+          // Free Access Modal Functions
+          function showFreeAccessModal() {
+            document.getElementById('freeAccessModal').classList.add('show');
+          }
+
+          function closeFreeAccessModal() {
+            document.getElementById('freeAccessModal').classList.remove('show');
+            document.getElementById('freeEmail').value = '';
+            document.getElementById('freeName').value = '';
+            document.getElementById('freeMessage').value = '';
+          }
+
+          async function sendFreeAccess() {
+            const email = document.getElementById('freeEmail').value;
+            const name = document.getElementById('freeName').value;
+            const message = document.getElementById('freeMessage').value;
+            const ebookId = document.getElementById('freeEbook').value;
+
+            if (!email || !ebookId) {
+              alert('Email and Ebook are required');
+              return;
+            }
+
+            try {
+              const response = await fetch('/api/v1/admin/free-access/send', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
+                },
+                body: JSON.stringify({ email, name, ebookId, message })
+              });
+
+              const data = await response.json();
+              
+              if (data.success) {
+                alert('Free access code sent successfully!');
+                closeFreeAccessModal();
+                loadAccessCodes();
+              } else {
+                alert(data.error || 'Failed to send free access');
+              }
+            } catch (error) {
+              alert('Error sending free access');
+            }
+          }
+
+          // Utility Functions
+          function searchTransactions() {
+            // Implement search
+          }
+
+          function filterTransactions() {
+            // Implement filter
+          }
+
+          function viewTransaction(id) {
+            alert('View transaction: ' + id);
+          }
+
+          function refundTransaction(id) {
+            if (confirm('Are you sure you want to refund this transaction?')) {
+              alert('Refund processing for: ' + id);
+            }
+          }
+
+          function viewAccessCode(id) {
+            alert('View access code: ' + id);
+          }
+
+          function revokeAccessCode(id) {
+            if (confirm('Are you sure you want to revoke this access code?')) {
+              alert('Revoking access code: ' + id);
+            }
+          }
+
+          // Toggle functions
+          function toggleNotifications() {
+            alert('Notifications coming soon');
+          }
+
+          function toggleProfileMenu() {
+            const menu = document.getElementById('profileMenu');
+            menu.classList.toggle('show');
+          }
+
+          // Sign Out
+          async function signOut(event) {
+            if (event) event.preventDefault();
+            
+            try {
+              const response = await fetch('/api/v1/admin/auth/signout', {
                 method: 'POST'
               });
-              window.location.href = '/admin/signin';
+              
+              if (response.ok) {
+                window.location.href = '/admin/signin';
+              }
             } catch (error) {
               console.error('Sign out error:', error);
             }
           }
 
-          // Toggle profile menu
-          function toggleProfileMenu() {
-            const menu = document.querySelector('.profile-info');
-            menu.classList.toggle('show');
-          }
-
           // Close profile menu when clicking outside
           document.addEventListener('click', (e) => {
-            if (!e.target.closest('.profile-dropdown')) {
-              const menu = document.querySelector('.profile-info');
+            if (!e.target.closest('.profile-dropdown') && !e.target.closest('.profile-info')) {
+              const menu = document.getElementById('profileMenu');
               if (menu) menu.classList.remove('show');
             }
           });
         </script>
       </body>
       </html>
-    `;
+    \`;
     
     res.send(html);
-  },
-
-  // Additional methods for other sections
-  async getTransactionsPage(req, res) {
-    // Similar HTML for transactions page
-  },
-
-  async getAccessCodesPage(req, res) {
-    // Similar HTML for access codes page
-  },
-
-  async getUsersPage(req, res) {
-    // Similar HTML for users page
-  },
-
-  async getAffiliatesPage(req, res) {
-    // Similar HTML for affiliates page
-  },
-
-  async getFreeAccessPage(req, res) {
-    // Similar HTML for free access page
-  },
-
-  async getSettingsPage(req, res) {
-    // Similar HTML for settings page
   }
 };
 
