@@ -360,20 +360,25 @@ const adminAuthController = {
               const response = await fetch('/api/v1/admin/auth/signin', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password, remember })
+                body: JSON.stringify({ email, password, remember }),
+                credentials: 'include' // ✅ CRITICAL: This ensures cookies are saved
               });
 
               const data = await response.json();
               
               if (data.success) {
                 showAlert('Login successful! Redirecting...', 'success');
+                
+                // Small delay to ensure cookies are set
                 setTimeout(() => {
-                  window.location.href = '/admin/dashboard';
-                }, 1000);
+                  // Use the redirect from response or default to dashboard
+                  window.location.href = data.redirect || '/admin/dashboard';
+                }, 500);
               } else {
                 showAlert(data.error || 'Invalid credentials', 'error');
               }
             } catch (error) {
+              console.error('Login error:', error);
               showAlert('Network error. Please try again.', 'error');
             } finally {
               btnText.style.display = 'inline';
@@ -381,6 +386,12 @@ const adminAuthController = {
               submitBtn.disabled = false;
             }
           });
+
+          // Check if there's an error parameter in URL
+          const urlParams = new URLSearchParams(window.location.search);
+          if (urlParams.get('error') === 'session_expired') {
+            showAlert('Your session has expired. Please login again.', 'error');
+          }
         </script>
       </body>
       </html>
@@ -442,20 +453,26 @@ const adminAuthController = {
       const token = admin.generateAuthToken();
       const refreshToken = admin.generateRefreshToken();
 
-      // Set cookies
-      const cookieOptions = { ...ADMIN_COOKIE_OPTIONS };
-      if (remember) {
-        cookieOptions.maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-      }
+      // Set cookies with explicit options
+      const cookieOptions = {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000 // 7 days if remember, else 1 day
+      };
 
+      // Set cookies
       res.cookie('admin_token', token, cookieOptions);
       res.cookie('admin_refresh_token', refreshToken, cookieOptions);
 
       winston.info(`Admin logged in: ${admin.email}`);
 
+      // Return success with explicit redirect path
       return res.status(200).json({
         success: true,
         message: 'Login successful',
+        redirect: '/admin/dashboard', // ✅ Explicit redirect path
         data: {
           admin: {
             id: admin._id,
@@ -483,8 +500,9 @@ const adminAuthController = {
    */
   async signOut(req, res) {
     try {
-      res.clearCookie('admin_token');
-      res.clearCookie('admin_refresh_token');
+      // Clear cookies
+      res.clearCookie('admin_token', { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      res.clearCookie('admin_refresh_token', { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production' });
       
       return res.status(200).json({
         success: true,
@@ -722,10 +740,18 @@ const adminAuthController = {
 
       const newToken = admin.generateAuthToken();
       
-      res.cookie('admin_token', newToken, ADMIN_COOKIE_OPTIONS);
+      // Set new token cookie
+      res.cookie('admin_token', newToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'lax',
+        path: '/',
+        maxAge: 24 * 60 * 60 * 1000
+      });
 
       return res.status(200).json({
         success: true,
+        message: 'Token refreshed successfully',
         token: newToken
       });
 
@@ -768,7 +794,7 @@ const adminAuthController = {
       await admin.save();
 
       // Send reset email
-      const resetUrl = `${process.env.ADMIN_URL}/reset-password?token=${resetToken}`;
+      const resetUrl = `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
       
       await emailService.sendPasswordResetEmail(admin.email, resetUrl);
 
@@ -848,6 +874,22 @@ const adminAuthController = {
         error: 'Failed to fetch login history' 
       });
     }
+  },
+
+  /**
+   * Debug cookies (for troubleshooting)
+   */
+  async debugCookies(req, res) {
+    console.log('🍪 Debug cookies - Cookies:', req.cookies);
+    console.log('🍪 Debug cookies - Headers:', req.headers['cookie']);
+    
+    return res.status(200).json({
+      success: true,
+      cookies: req.cookies,
+      cookieHeader: req.headers['cookie'],
+      hasToken: !!req.cookies.admin_token,
+      hasRefreshToken: !!req.cookies.admin_refresh_token
+    });
   }
 };
 
