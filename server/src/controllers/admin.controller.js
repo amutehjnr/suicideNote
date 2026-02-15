@@ -618,6 +618,9 @@ async sendFreeAccessCode(req, res) {
       });
     }
 
+    // Generate a unique transaction reference for free access
+    const freeTransactionRef = `FREE-${Date.now()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`;
+
     // Create purchase record (free)
     const purchase = new Purchase({
       user: user._id,
@@ -626,9 +629,10 @@ async sendFreeAccessCode(req, res) {
       status: 'completed',
       paidAt: new Date(),
       isFreeAccess: true,
-      grantedBy: req.admin._id, // ✅ FIXED: Changed from req.user._id to req.admin._id
+      grantedBy: req.admin._id,
+      transactionReference: freeTransactionRef, // Add unique transaction reference
       metadata: {
-        grantedBy: req.admin.email, // ✅ FIXED: Changed from req.user.email to req.admin.email
+        grantedBy: req.admin.email,
         grantedAt: new Date().toISOString(),
         message: message || 'Free access granted',
         isFreeAccess: true
@@ -645,7 +649,7 @@ async sendFreeAccessCode(req, res) {
       expiresAt: new Date(Date.now() + (expiryDays || 365) * 24 * 60 * 60 * 1000),
       isActive: true,
       isFreeAccess: true,
-      grantedBy: req.admin._id, // ✅ FIXED: Changed from req.user._id to req.admin._id
+      grantedBy: req.admin._id,
       accessCount: 0
     });
 
