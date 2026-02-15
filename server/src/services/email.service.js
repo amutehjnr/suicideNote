@@ -612,7 +612,7 @@ class EmailService {
           <h1>🎁 You've Received Complimentary Access!</h1>
         </div>
         <div class="content">
-          <h2>Hello ${name},</h2>
+          <h2>Hello ${"sir/ma"},</h2>
           
           <div class="message-box">
             <p>${customMessage || 'We\'re pleased to offer you complimentary access to our ebook.'}</p>
