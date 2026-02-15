@@ -25,14 +25,14 @@ router.post('/auth/2fa/setup', adminAuthController.setup2FA);
 router.post('/auth/2fa/enable', adminAuthController.enable2FA);
 router.post('/auth/2fa/disable', adminAuthController.disable2FA);
 
-// Dashboard pages
-router.get('/dashboard', adminDashboardController.getDashboard);
-router.get('/transactions', adminDashboardController.getTransactionsPage);
-router.get('/access-codes', adminDashboardController.getAccessCodesPage);
-router.get('/users', adminDashboardController.getUsersPage);
-router.get('/affiliates', adminDashboardController.getAffiliatesPage);
-router.get('/free-access', adminDashboardController.getFreeAccessPage);
-router.get('/settings', adminDashboardController.getSettingsPage);
+// Dashboard pages - COMMENT OUT OR REMOVE THESE IF CONTROLLERS DON'T EXIST YET
+// router.get('/dashboard', adminDashboardController.getDashboard);
+// router.get('/transactions', adminDashboardController.getTransactionsPage);
+// router.get('/access-codes', adminDashboardController.getAccessCodesPage);
+// router.get('/users', adminDashboardController.getUsersPage);
+// router.get('/affiliates', adminDashboardController.getAffiliatesPage);
+// router.get('/free-access', adminDashboardController.getFreeAccessPage);
+// router.get('/settings', adminDashboardController.getSettingsPage);
 
 // API routes (from previous admin controller)
 router.get('/dashboard/stats', adminController.getDashboardStats);
@@ -51,9 +51,9 @@ router.get('/export', adminController.exportData);
 
 // Super admin only routes
 router.use(adminMiddleware.isSuperAdmin);
-router.get('/admins', adminController.getAllAdmins);
-router.post('/admins', adminController.createAdmin);
-router.put('/admins/:adminId', adminController.updateAdmin);
-router.delete('/admins/:adminId', adminController.deleteAdmin);
+// router.get('/admins', adminController.getAllAdmins);
+// router.post('/admins', adminController.createAdmin);
+// router.put('/admins/:adminId', adminController.updateAdmin);
+// router.delete('/admins/:adminId', adminController.deleteAdmin);
 
 module.exports = router;
