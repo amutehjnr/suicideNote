@@ -26,6 +26,14 @@ class EmailService {
     // Verify connection immediately
     this.verifyConnection();
   }
+  async verifyConnection() {
+    try {
+      await this.transporter.verify();
+      console.log('✅ SMTP connection verified successfully');
+    } catch (error) {
+      console.error('❌ SMTP connection failed:', error.message);
+    }
+  }
 
   async sendVerificationEmail(to, token, name = 'there') {
     const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
