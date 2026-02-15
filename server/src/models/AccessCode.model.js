@@ -31,6 +31,10 @@ const accessCodeSchema = new mongoose.Schema({
     type: Number,
     default: 0,
   },
+  isFreeAccess: {
+    type: Boolean,
+    default: false,
+  },
   lastAccessedAt: Date,
   expiresAt: {
     type: Date,

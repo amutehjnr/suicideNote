@@ -302,9 +302,9 @@ const adminController = {
   },
 
   /**
-   * Get all access codes with filtering
-   */
-  async getAllAccessCodes(req, res) {
+ * Get all access codes with filtering
+ */
+async getAllAccessCodes(req, res) {
   try {
     const { 
       page = 1, 
@@ -318,36 +318,69 @@ const adminController = {
 
     const query = {};
 
-    // Apply filters
-    if (isActive !== undefined) query.isActive = isActive === 'true';
-    if (isFreeAccess !== undefined) query.isFreeAccess = isFreeAccess === 'true';
-    if (ebookId) query.ebook = ebookId;
-    if (used !== undefined) {
+    // Apply filters - with proper handling
+    if (isActive !== undefined && isActive !== '') {
+      query.isActive = isActive === 'true';
+    }
+    
+    if (isFreeAccess !== undefined && isFreeAccess !== '') {
+      query.isFreeAccess = isFreeAccess === 'true';
+    }
+    
+    if (ebookId) {
+      query.ebook = ebookId;
+    }
+    
+    if (used !== undefined && used !== '') {
       if (used === 'true') {
         query.accessCount = { $gt: 0 };
-      } else {
+      } else if (used === 'false') {
         query.accessCount = 0;
       }
     }
     
-    if (email) {
-      const user = await User.findOne({ email: new RegExp(email, 'i') }).catch(err => null);
-      if (user) query.user = user._id;
+    // Email search - handle properly
+    if (email && email.trim() !== '') {
+      const user = await User.findOne({ email: new RegExp(email, 'i') }).lean();
+      if (user) {
+        query.user = user._id;
+      } else {
+        // If no user found with that email, return empty results
+        return res.status(200).json({
+          success: true,
+          data: {
+            accessCodes: [],
+            pagination: {
+              page: Number(page),
+              limit: Number(limit),
+              total: 0,
+              pages: 1
+            },
+            stats: {
+              totalAccesses: 0,
+              avgAccesses: 0,
+              expired: 0
+            }
+          }
+        });
+      }
     }
 
+    console.log('Access codes query:', JSON.stringify(query));
+
+    // Get access codes with proper population
     const accessCodes = await AccessCode.find(query)
       .populate('user', 'email name')
       .populate('ebook', 'title slug')
-      .populate('purchase')
-      .populate('grantedBy', 'email')
-      .populate('revokedBy', 'email')
+      .populate('purchase', 'transactionReference amount')
+      .populate('grantedBy', 'email name')
+      .populate('revokedBy', 'email name')
       .sort({ createdAt: -1 })
-      .skip((page - 1) * limit)
+      .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
-      .lean()
-      .catch(err => []);
+      .lean();
 
-    const total = await AccessCode.countDocuments(query).catch(err => 0);
+    const total = await AccessCode.countDocuments(query);
 
     // Get usage statistics
     const stats = await AccessCode.aggregate([
@@ -364,6 +397,9 @@ const adminController = {
       }}
     ]).catch(err => []);
 
+    // Log for debugging
+    console.log(`Found ${accessCodes.length} access codes out of ${total} total`);
+
     return res.status(200).json({
       success: true,
       data: {
@@ -372,7 +408,7 @@ const adminController = {
           page: Number(page),
           limit: Number(limit),
           total,
-          pages: Math.ceil(total / limit) || 1
+          pages: Math.ceil(total / Number(limit)) || 1
         },
         stats: stats[0] || {
           totalAccesses: 0,
