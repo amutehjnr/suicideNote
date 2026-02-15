@@ -728,6 +728,56 @@ const adminDashboardController = {
             }, 5000);
           }
 
+          // Check authentication status
+          async function checkAuth() {
+            const token = getCookie('admin_token');
+            console.log('🔑 Token from cookie:', token ? 'Present' : 'Missing');
+            
+            if (!token) {
+              console.log('❌ No token found, redirecting to login');
+              window.location.href = '/admin/signin';
+              return false;
+            }
+
+            try {
+              // Verify token by making a request to profile endpoint
+              const response = await fetch('/api/v1/admin/auth/profile', {
+                headers: {
+                  'Authorization': \`Bearer \${token}\`
+                }
+              });
+
+              if (response.status === 401) {
+                console.log('❌ Token invalid or expired, trying refresh...');
+                
+                // Try to refresh the token
+                const refreshResponse = await fetch('/api/v1/admin/auth/refresh', {
+                  method: 'POST',
+                  credentials: 'include'
+                });
+
+                if (refreshResponse.ok) {
+                  console.log('✅ Token refreshed successfully');
+                  return true;
+                } else {
+                  console.log('❌ Token refresh failed');
+                  window.location.href = '/admin/signin';
+                  return false;
+                }
+              }
+
+              if (response.ok) {
+                console.log('✅ Token is valid');
+                return true;
+              }
+
+              return false;
+            } catch (error) {
+              console.error('❌ Auth check error:', error);
+              return false;
+            }
+          }
+
           // Admin data from server
           const adminData = {
             name: '${req.admin.name}',
@@ -739,33 +789,40 @@ const adminDashboardController = {
 
           let currentSection = 'dashboard';
           let currentPage = 1;
+          let isRefreshing = false;
 
           // Load initial dashboard
-          document.addEventListener('DOMContentLoaded', () => {
+          document.addEventListener('DOMContentLoaded', async () => {
             // Set admin info in the UI
             document.getElementById('adminName').textContent = adminData.name;
             document.getElementById('adminInitial').textContent = adminData.initial;
             document.getElementById('adminFullName').textContent = adminData.name;
             document.getElementById('adminRole').textContent = adminData.role;
             
-            loadDashboard();
-            loadEbooksForSelect();
+            const isAuthenticated = await checkAuth();
+            if (isAuthenticated) {
+              loadDashboard();
+              loadEbooksForSelect();
+            }
           });
 
           // Load ebooks for select dropdown
           async function loadEbooksForSelect() {
             try {
               const token = getCookie('admin_token');
-              if (!token) {
-                window.location.href = '/admin/signin';
-                return;
-              }
+              if (!token) return;
 
               const response = await fetch('/api/v1/ebooks', {
                 headers: {
                   'Authorization': \`Bearer \${token}\`
                 }
               });
+              
+              if (response.status === 401) {
+                await checkAuth();
+                return;
+              }
+              
               const data = await response.json();
               
               if (data.success && data.data) {
@@ -785,8 +842,12 @@ const adminDashboardController = {
           }
 
           // Load different sections
-          function loadSection(section, event) {
+          async function loadSection(section, event) {
             if (event) event.preventDefault();
+            
+            const isAuthenticated = await checkAuth();
+            if (!isAuthenticated) return;
+            
             currentSection = section;
             currentPage = 1;
             
@@ -848,7 +909,7 @@ const adminDashboardController = {
             try {
               const token = getCookie('admin_token');
               if (!token) {
-                window.location.href = '/admin/signin';
+                await checkAuth();
                 return;
               }
 
@@ -859,7 +920,7 @@ const adminDashboardController = {
               });
               
               if (response.status === 401) {
-                window.location.href = '/admin/signin';
+                await checkAuth();
                 return;
               }
               
@@ -1067,7 +1128,7 @@ const adminDashboardController = {
             try {
               const token = getCookie('admin_token');
               if (!token) {
-                window.location.href = '/admin/signin';
+                await checkAuth();
                 return;
               }
 
@@ -1078,7 +1139,7 @@ const adminDashboardController = {
               });
               
               if (response.status === 401) {
-                window.location.href = '/admin/signin';
+                await checkAuth();
                 return;
               }
               
@@ -1165,7 +1226,7 @@ const adminDashboardController = {
             try {
               const token = getCookie('admin_token');
               if (!token) {
-                window.location.href = '/admin/signin';
+                await checkAuth();
                 return;
               }
 
@@ -1176,7 +1237,7 @@ const adminDashboardController = {
               });
               
               if (response.status === 401) {
-                window.location.href = '/admin/signin';
+                await checkAuth();
                 return;
               }
               
@@ -1259,7 +1320,7 @@ const adminDashboardController = {
             try {
               const token = getCookie('admin_token');
               if (!token) {
-                window.location.href = '/admin/signin';
+                await checkAuth();
                 return;
               }
 
@@ -1270,7 +1331,7 @@ const adminDashboardController = {
               });
               
               if (response.status === 401) {
-                window.location.href = '/admin/signin';
+                await checkAuth();
                 return;
               }
               
@@ -1360,6 +1421,11 @@ const adminDashboardController = {
                 }
               });
               
+              if (response.status === 401) {
+                await checkAuth();
+                return;
+              }
+              
               const data = await response.json();
               
               if (data.success) {
@@ -1441,7 +1507,7 @@ const adminDashboardController = {
             try {
               const token = getCookie('admin_token');
               if (!token) {
-                window.location.href = '/admin/signin';
+                await checkAuth();
                 return;
               }
 
@@ -1453,6 +1519,11 @@ const adminDashboardController = {
                 },
                 body: JSON.stringify({ email, name, ebookId, message })
               });
+
+              if (response.status === 401) {
+                await checkAuth();
+                return;
+              }
 
               const data = await response.json();
               
@@ -1523,6 +1594,9 @@ const adminDashboardController = {
               });
               
               if (response.ok) {
+                // Clear cookies
+                document.cookie = 'admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                document.cookie = 'admin_refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                 window.location.href = '/admin/signin';
               }
             } catch (error) {
