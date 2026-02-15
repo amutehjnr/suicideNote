@@ -12,6 +12,34 @@ const emailService = require('./email.service');
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
+// Helper function to send access code email
+async function sendAccessCodeEmail(purchase, accessCode) {
+  try {
+    console.log('📧 ===== SENDING ACCESS CODE EMAIL =====');
+    console.log('📧 To:', purchase.user?.email);
+    console.log('📧 Code:', accessCode.code);
+    console.log('📧 Ebook:', purchase.ebook?.title);
+    
+    if (!purchase.user || !purchase.user.email) {
+      console.log('❌ No user email found');
+      return false;
+    }
+    
+    const result = await emailService.sendAccessCodeEmail(
+      purchase.user.email,
+      purchase.user.name || purchase.user.email.split('@')[0],
+      accessCode.code,
+      purchase.ebook
+    );
+    
+    console.log('📧 Email send result:', result ? '✅ Success' : '❌ Failed');
+    return result;
+  } catch (error) {
+    console.error('🔥 Email helper error:', error.message);
+    return false;
+  }
+}
+
 const paymentService = {
   /**
    * Initialize Payment
@@ -184,153 +212,159 @@ const paymentService = {
    * Verify Payment
    * @param {string} reference
    */
- 
-
-// Then update verifyPayment function:
-async verifyPayment(reference) {
-  try {
-    winston.info('🔍 Verifying payment with reference:', reference);
-    
-    // Find purchase with populated fields
-    const purchase = await Purchase.findOne({ 
-      $or: [
-        { paystackReference: reference },
-        { transactionReference: reference }
-      ]
-    }).populate('ebook').populate('user');
-    
-    if (!purchase) {
-      winston.error('❌ Purchase not found for reference:', reference);
-      return { success: false, error: 'Purchase not found' };
-    }
-
-    // Verify with Paystack
-    const response = await axios.get(
-      `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, 
-      {
-        headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+  async verifyPayment(reference) {
+    try {
+      winston.info('🔍 Verifying payment with reference:', reference);
+      
+      // Find purchase with populated fields
+      const purchase = await Purchase.findOne({ 
+        $or: [
+          { paystackReference: reference },
+          { transactionReference: reference }
+        ]
+      }).populate('ebook').populate('user');
+      
+      if (!purchase) {
+        winston.error('❌ Purchase not found for reference:', reference);
+        return { success: false, error: 'Purchase not found' };
       }
-    );
 
-    if (!response.data.status || response.data.data.status !== 'success') {
-      purchase.status = 'failed';
+      // Check if already verified
+      if (purchase.status === 'completed') {
+        winston.info('✅ Payment already verified:', reference);
+        
+        const existingAccessCode = await AccessCode.findOne({ purchase: purchase._id });
+        
+        // Try to send email again if it wasn't sent before
+        if (existingAccessCode) {
+          await sendAccessCodeEmail(purchase, existingAccessCode);
+        }
+        
+        return {
+          success: true,
+          data: {
+            purchase: {
+              _id: purchase._id,
+              amount: purchase.amount,
+              status: purchase.status,
+              paidAt: purchase.paidAt,
+              ebook: purchase.ebook,
+              user: purchase.user
+            },
+            paymentStatus: purchase.status,
+            accessCode: existingAccessCode?.code,
+            alreadyVerified: true
+          },
+        };
+      }
+
+      // Verify with Paystack
+      const response = await axios.get(
+        `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, 
+        {
+          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
+        }
+      );
+
+      if (!response.data.status || response.data.data.status !== 'success') {
+        purchase.status = 'failed';
+        await purchase.save();
+        winston.error('❌ Payment verification failed:', response.data.message);
+        return { 
+          success: false, 
+          error: response.data.message || 'Payment verification failed',
+          data: response.data 
+        };
+      }
+
+      // ✅ Create AccessCode record
+      const accessCode = await AccessCode.create({
+        code: `SN-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
+        user: purchase.user._id,
+        ebook: purchase.ebook._id,
+        purchase: purchase._id,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+        isActive: true,
+      });
+
+      // ✅ Send email immediately after creating access code
+      await sendAccessCodeEmail(purchase, accessCode);
+
+      // ✅ Update purchase with AccessCode ObjectId
+      purchase.status = 'completed';
+      purchase.paidAt = new Date();
+      purchase.accessCode = accessCode._id;
+      
+      if (response.data.data.authorization) {
+        purchase.paymentDetails = {
+          authorizationCode: response.data.data.authorization.authorization_code,
+          cardType: response.data.data.authorization.card_type,
+          last4: response.data.data.authorization.last4,
+          bank: response.data.data.authorization.bank,
+          channel: response.data.data.channel,
+          paidAt: new Date(response.data.data.paid_at || new Date())
+        };
+      }
+      
       await purchase.save();
-      winston.error('❌ Payment verification failed:', response.data.message);
+
+      winston.info('✅ Payment verified successfully:', {
+        purchaseId: purchase._id,
+        status: purchase.status,
+        accessCode: accessCode.code,
+        email: purchase.user?.email
+      });
+
+      // Update user's purchased ebooks
+      if (purchase.user) {
+        try {
+          const user = await User.findById(purchase.user._id);
+          if (user) {
+            if (!user.purchasedEbooks) {
+              user.purchasedEbooks = [];
+            }
+            if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
+              user.purchasedEbooks.push(purchase.ebook._id);
+              await user.save();
+            }
+          }
+        } catch (userError) {
+          winston.warn('Could not update user purchased ebooks:', userError.message);
+        }
+      }
+
+      return {
+        success: true,
+        data: {
+          purchase: {
+            _id: purchase._id,
+            amount: purchase.amount,
+            status: purchase.status,
+            paidAt: purchase.paidAt,
+            ebook: purchase.ebook,
+            user: purchase.user
+          },
+          paymentStatus: purchase.status,
+          verifiedData: response.data.data,
+          accessCode: accessCode.code,
+          accessCodeId: accessCode._id
+        },
+      };
+    } catch (error) {
+      winston.error('🔥 Verify payment error:', {
+        message: error.message,
+        stack: error.stack,
+        reference: reference
+      });
       return { 
         success: false, 
-        error: response.data.message || 'Payment verification failed',
-        data: response.data 
+        error: 'Failed to verify payment', 
+        details: error.message,
+        stack: error.stack 
       };
     }
+  },
 
-    // ✅ Create AccessCode record
-    const accessCode = await AccessCode.create({
-      code: `SN-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
-      user: purchase.user._id,
-      ebook: purchase.ebook._id,
-      purchase: purchase._id,
-      expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
-      isActive: true,
-    });
-
-    // ✅ SEND ACCESS CODE TO EMAIL - WITH BETTER LOGGING
-    console.log('📧 Attempting to send email to:', purchase.user?.email);
-    console.log('📧 Access code:', accessCode.code);
-    console.log('📧 Ebook:', purchase.ebook?.title);
-    
-    try {
-      if (purchase.user && purchase.user.email) {
-        const emailService = require('./email.service');
-        const emailResult = await emailService.sendAccessCodeEmail(
-          purchase.user.email,
-          purchase.user.name || purchase.user.email.split('@')[0],
-          accessCode.code,
-          purchase.ebook
-        );
-        
-        if (emailResult) {
-          console.log('✅ Email sent successfully to:', purchase.user.email);
-          winston.info(`✅ Access code email sent to: ${purchase.user.email}`);
-        } else {
-          console.log('❌ Email sending returned false');
-        }
-      } else {
-        console.log('❌ No user email found');
-      }
-    } catch (emailError) {
-      console.error('🔥 Email sending error:', emailError);
-      console.error('Error stack:', emailError.stack);
-      // Log but don't fail the verification
-      winston.error('❌ Failed to send access code email:', emailError.message);
-    }
-
-    // ✅ Update purchase with AccessCode ObjectId
-    purchase.status = 'completed';
-    purchase.paidAt = new Date();
-    purchase.accessCode = accessCode._id;
-    
-    if (response.data.data.authorization) {
-      purchase.paymentDetails = {
-        authorizationCode: response.data.data.authorization.authorization_code,
-        cardType: response.data.data.authorization.card_type,
-        last4: response.data.data.authorization.last4,
-        bank: response.data.data.authorization.bank,
-        channel: response.data.data.channel,
-        paidAt: new Date(response.data.data.paid_at || new Date())
-      };
-    }
-    
-    await purchase.save();
-
-    // Update user's purchased ebooks
-    if (purchase.user) {
-      try {
-        const user = await User.findById(purchase.user._id);
-        if (user) {
-          if (!user.purchasedEbooks) {
-            user.purchasedEbooks = [];
-          }
-          if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
-            user.purchasedEbooks.push(purchase.ebook._id);
-            await user.save();
-          }
-        }
-      } catch (userError) {
-        winston.warn('Could not update user purchased ebooks:', userError.message);
-      }
-    }
-
-    return {
-      success: true,
-      data: {
-        purchase: {
-          _id: purchase._id,
-          amount: purchase.amount,
-          status: purchase.status,
-          paidAt: purchase.paidAt,
-          ebook: purchase.ebook,
-          user: purchase.user
-        },
-        paymentStatus: purchase.status,
-        verifiedData: response.data.data,
-        accessCode: accessCode.code,
-        accessCodeId: accessCode._id
-      },
-    };
-  } catch (error) {
-    winston.error('🔥 Verify payment error:', {
-      message: error.message,
-      stack: error.stack,
-      reference: reference
-    });
-    return { 
-      success: false, 
-      error: 'Failed to verify payment', 
-      details: error.message,
-      stack: error.stack 
-    };
-  }
-},
   /**
    * Get all purchases for a user
    */
@@ -469,7 +503,6 @@ async verifyPayment(reference) {
       return { success: false, error: 'Failed to process payout', details: error.message };
     }
   },
-
 };
 
 module.exports = paymentService;

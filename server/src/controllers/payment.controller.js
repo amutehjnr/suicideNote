@@ -147,44 +147,45 @@ const paymentController = {
   },
 
   /**
-   * PAYSTACK WEBHOOK
-   */
-  async handlePaystackWebhook(req, res) {
-    try {
-      const hash = crypto
-        .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
-        .update(req.rawBody || req.body)
-        .digest('hex');
+ * PAYSTACK WEBHOOK
+ */
+async handlePaystackWebhook(req, res) {
+  try {
+    const hash = crypto
+      .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY)
+      .update(req.rawBody || JSON.stringify(req.body))
+      .digest('hex');
 
-      if (hash !== req.headers['x-paystack-signature']) {
-        logger.warn('Invalid Paystack webhook signature');
-        return res.status(401).send('Invalid signature');
-      }
-
-      const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
-
-      switch (event.event) {
-        case 'charge.success':
-          await paymentService.verifyPayment(event.data.reference);
-          logger.info(`Charge success for ${event.data.reference}`);
-          break;
-        case 'transfer.success':
-          logger.info(`Transfer success: ${event.data.reference}`);
-          break;
-        case 'transfer.failed':
-          logger.error(`Transfer failed: ${event.data.reference} - ${event.data.reason}`);
-          break;
-        case 'transfer.reversed':
-          logger.warn(`Transfer reversed: ${event.data.reference}`);
-          break;
-      }
-
-      return res.status(200).send('Webhook processed');
-    } catch (error) {
-      logger.error('Webhook error:', error);
-      return res.status(500).send('Webhook failed');
+    if (hash !== req.headers['x-paystack-signature']) {
+      logger.warn('Invalid Paystack webhook signature');
+      return res.status(401).send('Invalid signature');
     }
-  },
+
+    const event = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
+    switch (event.event) {
+      case 'charge.success':
+        // This will now trigger the email sending in verifyPayment
+        await paymentService.verifyPayment(event.data.reference);
+        logger.info(`Charge success for ${event.data.reference}`);
+        break;
+      case 'transfer.success':
+        logger.info(`Transfer success: ${event.data.reference}`);
+        break;
+      case 'transfer.failed':
+        logger.error(`Transfer failed: ${event.data.reference} - ${event.data.reason}`);
+        break;
+      case 'transfer.reversed':
+        logger.warn(`Transfer reversed: ${event.data.reference}`);
+        break;
+    }
+
+    return res.status(200).send('Webhook processed');
+  } catch (error) {
+    logger.error('Webhook error:', error);
+    return res.status(500).send('Webhook failed');
+  }
+},
 
   /**
    * GET USER PURCHASES
