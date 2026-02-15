@@ -715,60 +715,74 @@ const adminDashboardController = {
         <script>
           // Helper function to get cookie
           function getCookie(name) {
-            const value = \`; \${document.cookie}\`;
-            const parts = value.split(\`; \${name}=\`);
-            if (parts.length === 2) {
-              return parts.pop().split(';').shift();
+            try {
+              const value = \`; \${document.cookie}\`;
+              const parts = value.split(\`; \${name}=\`);
+              if (parts.length === 2) {
+                return parts.pop().split(';').shift();
+              }
+            } catch (error) {
+              console.error('Error getting cookie:', error);
             }
             return null;
           }
 
           // Helper function to set cookie
           function setCookie(name, value, days = 1) {
-            const date = new Date();
-            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
-            const expires = "expires=" + date.toUTCString();
-            const secure = window.location.protocol === 'https:' ? 'secure;' : '';
-            document.cookie = \`\${name}=\${value}; \${expires}; path=/; sameSite=lax; \${secure}\`;
+            try {
+              const date = new Date();
+              date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+              const expires = "expires=" + date.toUTCString();
+              const secure = window.location.protocol === 'https:' ? 'secure;' : '';
+              document.cookie = \`\${name}=\${value}; \${expires}; path=/; sameSite=lax; \${secure}\`;
+              return true;
+            } catch (error) {
+              console.error('Error setting cookie:', error);
+              return false;
+            }
           }
 
           // Show alert message
           function showAlert(message, type = 'success') {
             const alert = document.getElementById('alertContainer');
-            alert.className = 'alert ' + type;
-            alert.textContent = message;
-            
-            setTimeout(() => {
-              alert.className = 'alert';
-            }, 5000);
+            if (alert) {
+              alert.className = 'alert ' + type;
+              alert.textContent = message;
+              
+              setTimeout(() => {
+                alert.className = 'alert';
+              }, 5000);
+            }
           }
 
           // Check authentication status
           async function checkAuth() {
-            // Try to get token from cookie first
-            let token = getCookie('admin_token');
-            
-            // If not in cookie, try sessionStorage
-            if (!token) {
-              token = sessionStorage.getItem('admin_token');
-              console.log('🔑 Token from sessionStorage:', token ? 'Present' : 'Missing');
-              
-              // If found in sessionStorage, set it back as cookie
-              if (token) {
-                setCookie('admin_token', token, 1);
-                console.log('✅ Restored token from sessionStorage to cookie');
-              }
-            } else {
-              console.log('🔑 Token from cookie: Present');
-            }
-            
-            if (!token) {
-              console.log('❌ No token found, redirecting to login');
-              window.location.href = '/admin/signin?error=no_token';
-              return false;
-            }
-
             try {
+              // Try to get token from cookie first
+              let token = getCookie('admin_token');
+              let tokenSource = 'cookie';
+              
+              // If not in cookie, try sessionStorage
+              if (!token) {
+                token = sessionStorage.getItem('admin_token');
+                tokenSource = 'sessionStorage';
+                console.log('🔑 Token from sessionStorage:', token ? 'Present' : 'Missing');
+                
+                // If found in sessionStorage, set it back as cookie
+                if (token) {
+                  setCookie('admin_token', token, 1);
+                  console.log('✅ Restored token from sessionStorage to cookie');
+                }
+              } else {
+                console.log('🔑 Token from cookie: Present');
+              }
+              
+              if (!token) {
+                console.log('❌ No token found, redirecting to login');
+                window.location.href = '/admin/signin?error=no_token';
+                return false;
+              }
+
               // Verify token by making a request to profile endpoint
               const response = await fetch('/api/v1/admin/auth/profile', {
                 headers: {
@@ -799,6 +813,7 @@ const adminDashboardController = {
                 } else {
                   console.log('❌ Token refresh failed');
                   sessionStorage.removeItem('admin_token');
+                  document.cookie = 'admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                   window.location.href = '/admin/signin?error=session_expired';
                   return false;
                 }
@@ -834,15 +849,20 @@ const adminDashboardController = {
             console.log('📊 Dashboard loading...');
             
             // Set admin info in the UI
-            document.getElementById('adminName').textContent = adminData.name;
-            document.getElementById('adminInitial').textContent = adminData.initial;
-            document.getElementById('adminFullName').textContent = adminData.name;
-            document.getElementById('adminRole').textContent = adminData.role;
+            const nameElement = document.getElementById('adminName');
+            const initialElement = document.getElementById('adminInitial');
+            const fullNameElement = document.getElementById('adminFullName');
+            const roleElement = document.getElementById('adminRole');
+            
+            if (nameElement) nameElement.textContent = adminData.name;
+            if (initialElement) initialElement.textContent = adminData.initial;
+            if (fullNameElement) fullNameElement.textContent = adminData.name;
+            if (roleElement) roleElement.textContent = adminData.role;
             
             const isAuthenticated = await checkAuth();
             if (isAuthenticated) {
-              loadDashboard();
-              loadEbooksForSelect();
+              await loadDashboard();
+              await loadEbooksForSelect();
             }
           });
 
@@ -867,14 +887,16 @@ const adminDashboardController = {
               
               if (data.success && data.data) {
                 const select = document.getElementById('freeEbook');
-                select.innerHTML = '<option value="">Select Ebook *</option>';
-                
-                data.data.forEach(ebook => {
-                  const option = document.createElement('option');
-                  option.value = ebook._id;
-                  option.textContent = ebook.title;
-                  select.appendChild(option);
-                });
+                if (select) {
+                  select.innerHTML = '<option value="">Select Ebook *</option>';
+                  
+                  data.data.forEach(ebook => {
+                    const option = document.createElement('option');
+                    option.value = ebook._id;
+                    option.textContent = ebook.title;
+                    select.appendChild(option);
+                  });
+                }
               }
             } catch (error) {
               console.error('Error loading ebooks:', error);
@@ -883,7 +905,9 @@ const adminDashboardController = {
 
           // Load different sections
           async function loadSection(section, event) {
-            if (event) event.preventDefault();
+            if (event) {
+              event.preventDefault();
+            }
             
             const isAuthenticated = await checkAuth();
             if (!isAuthenticated) return;
@@ -891,11 +915,24 @@ const adminDashboardController = {
             currentSection = section;
             currentPage = 1;
             
-            // Update active nav
-            document.querySelectorAll('.nav-link').forEach(link => {
+            // Update active nav - only if we have links
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
               link.classList.remove('active');
             });
-            if (event) event.currentTarget.classList.add('active');
+            
+            // Only try to add active class if event and event.currentTarget exist
+            if (event && event.currentTarget) {
+              event.currentTarget.classList.add('active');
+            } else {
+              // If no event, find the link by section name and activate it
+              navLinks.forEach(link => {
+                const onclickAttr = link.getAttribute('onclick');
+                if (onclickAttr && onclickAttr.includes(section)) {
+                  link.classList.add('active');
+                }
+              });
+            }
 
             // Update page title
             const titles = {
@@ -909,41 +946,57 @@ const adminDashboardController = {
               profile: 'My Profile'
             };
             
-            document.getElementById('pageTitle').textContent = titles[section] || 'Dashboard';
-            document.getElementById('pageSubtitle').textContent = \`Welcome back, \${adminData.name}\`;
+            const titleElement = document.getElementById('pageTitle');
+            if (titleElement) {
+              titleElement.textContent = titles[section] || 'Dashboard';
+            }
+            
+            const subtitleElement = document.getElementById('pageSubtitle');
+            if (subtitleElement) {
+              subtitleElement.textContent = \`Welcome back, \${adminData.name}\`;
+            }
 
             // Load section content
-            switch(section) {
-              case 'dashboard':
-                loadDashboard();
-                break;
-              case 'transactions':
-                loadTransactions();
-                break;
-              case 'access-codes':
-                loadAccessCodes();
-                break;
-              case 'users':
-                loadUsers();
-                break;
-              case 'affiliates':
-                loadAffiliates();
-                break;
-              case 'free-access':
-                loadFreeAccess();
-                break;
-              case 'settings':
-                loadSettings();
-                break;
-              case 'profile':
-                loadProfile();
-                break;
+            try {
+              switch(section) {
+                case 'dashboard':
+                  await loadDashboard();
+                  break;
+                case 'transactions':
+                  await loadTransactions();
+                  break;
+                case 'access-codes':
+                  await loadAccessCodes();
+                  break;
+                case 'users':
+                  await loadUsers();
+                  break;
+                case 'affiliates':
+                  await loadAffiliates();
+                  break;
+                case 'free-access':
+                  await loadFreeAccess();
+                  break;
+                case 'settings':
+                  await loadSettings();
+                  break;
+                case 'profile':
+                  await loadProfile();
+                  break;
+                default:
+                  console.log('Unknown section:', section);
+              }
+            } catch (error) {
+              console.error('Error loading section:', error);
+              showAlert('Error loading section content', 'error');
             }
           }
 
           // Load Dashboard
           async function loadDashboard() {
             const content = document.getElementById('contentArea');
+            if (!content) return;
+            
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
@@ -980,10 +1033,14 @@ const adminDashboardController = {
 
           function renderDashboard(stats) {
             const content = document.getElementById('contentArea');
+            if (!content) return;
             
             // Update badges
-            document.getElementById('transactionBadge').textContent = stats.overview.totalPurchases || 0;
-            document.getElementById('accessCodeBadge').textContent = stats.overview.totalAccessCodes?.total || 0;
+            const transactionBadge = document.getElementById('transactionBadge');
+            const accessCodeBadge = document.getElementById('accessCodeBadge');
+            
+            if (transactionBadge) transactionBadge.textContent = stats.overview.totalPurchases || 0;
+            if (accessCodeBadge) accessCodeBadge.textContent = stats.overview.totalAccessCodes?.total || 0;
             
             content.innerHTML = \`
               <div class="stats-grid">
@@ -1108,7 +1165,10 @@ const adminDashboardController = {
           }
 
           function initRevenueChart() {
-            const ctx = document.getElementById('revenueChart')?.getContext('2d');
+            const canvas = document.getElementById('revenueChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
             if (!ctx) return;
             
             new Chart(ctx, {
@@ -1137,7 +1197,10 @@ const adminDashboardController = {
           }
 
           function initPaymentChart(methods) {
-            const ctx = document.getElementById('paymentChart')?.getContext('2d');
+            const canvas = document.getElementById('paymentChart');
+            if (!canvas) return;
+            
+            const ctx = canvas.getContext('2d');
             if (!ctx) return;
             
             new Chart(ctx, {
@@ -1164,6 +1227,8 @@ const adminDashboardController = {
           // Load Transactions
           async function loadTransactions(page = 1) {
             const content = document.getElementById('contentArea');
+            if (!content) return;
+            
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
@@ -1200,6 +1265,7 @@ const adminDashboardController = {
 
           function renderTransactions(data) {
             const content = document.getElementById('contentArea');
+            if (!content) return;
             
             content.innerHTML = \`
               <div style="background: white; padding: 25px; border-radius: 15px;">
@@ -1263,6 +1329,8 @@ const adminDashboardController = {
           // Load Access Codes
           async function loadAccessCodes(page = 1) {
             const content = document.getElementById('contentArea');
+            if (!content) return;
+            
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
@@ -1299,6 +1367,7 @@ const adminDashboardController = {
 
           function renderAccessCodes(data) {
             const content = document.getElementById('contentArea');
+            if (!content) return;
             
             content.innerHTML = \`
               <div style="background: white; padding: 25px; border-radius: 15px;">
@@ -1358,6 +1427,8 @@ const adminDashboardController = {
           // Load Free Access Grants
           async function loadFreeAccess() {
             const content = document.getElementById('contentArea');
+            if (!content) return;
+            
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
@@ -1394,6 +1465,7 @@ const adminDashboardController = {
 
           function renderFreeAccessGrants(grants) {
             const content = document.getElementById('contentArea');
+            if (!content) return;
             
             if (!grants || grants.length === 0) {
               content.innerHTML = \`
@@ -1475,7 +1547,7 @@ const adminDashboardController = {
               
               if (data.success) {
                 showAlert('Access code revoked successfully', 'success');
-                loadFreeAccess(); // Reload the list
+                await loadFreeAccess(); // Reload the list
               } else {
                 showAlert(data.error || 'Failed to revoke access', 'error');
               }
@@ -1488,24 +1560,32 @@ const adminDashboardController = {
           // Load Users (placeholder)
           async function loadUsers() {
             const content = document.getElementById('contentArea');
-            content.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><h3>Users Section</h3><p>User management coming soon...</p></div>';
+            if (content) {
+              content.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><h3>Users Section</h3><p>User management coming soon...</p></div>';
+            }
           }
 
           // Load Affiliates (placeholder)
           async function loadAffiliates() {
             const content = document.getElementById('contentArea');
-            content.innerHTML = '<div class="empty-state"><i class="fas fa-handshake"></i><h3>Affiliates Section</h3><p>Affiliate management coming soon...</p></div>';
+            if (content) {
+              content.innerHTML = '<div class="empty-state"><i class="fas fa-handshake"></i><h3>Affiliates Section</h3><p>Affiliate management coming soon...</p></div>';
+            }
           }
 
           // Load Settings (placeholder)
           async function loadSettings() {
             const content = document.getElementById('contentArea');
-            content.innerHTML = '<div class="empty-state"><i class="fas fa-cog"></i><h3>Settings</h3><p>Settings coming soon...</p></div>';
+            if (content) {
+              content.innerHTML = '<div class="empty-state"><i class="fas fa-cog"></i><h3>Settings</h3><p>Settings coming soon...</p></div>';
+            }
           }
 
           // Load Profile
           async function loadProfile() {
             const content = document.getElementById('contentArea');
+            if (!content) return;
+            
             content.innerHTML = \`
               <div style="background: white; padding: 30px; border-radius: 15px; max-width: 600px; margin: 0 auto;">
                 <h2 style="margin-bottom: 20px; color: #333;">My Profile</h2>
@@ -1521,22 +1601,35 @@ const adminDashboardController = {
 
           // Free Access Modal Functions
           function showFreeAccessModal() {
-            document.getElementById('freeAccessModal').classList.add('show');
+            const modal = document.getElementById('freeAccessModal');
+            if (modal) modal.classList.add('show');
           }
 
           function closeFreeAccessModal() {
-            document.getElementById('freeAccessModal').classList.remove('show');
-            document.getElementById('freeEmail').value = '';
-            document.getElementById('freeName').value = '';
-            document.getElementById('freeMessage').value = '';
-            document.getElementById('freeEbook').value = '';
+            const modal = document.getElementById('freeAccessModal');
+            if (modal) modal.classList.remove('show');
+            
+            const emailInput = document.getElementById('freeEmail');
+            const nameInput = document.getElementById('freeName');
+            const messageInput = document.getElementById('freeMessage');
+            const ebookSelect = document.getElementById('freeEbook');
+            
+            if (emailInput) emailInput.value = '';
+            if (nameInput) nameInput.value = '';
+            if (messageInput) messageInput.value = '';
+            if (ebookSelect) ebookSelect.value = '';
           }
 
           async function sendFreeAccess() {
-            const email = document.getElementById('freeEmail').value;
-            const name = document.getElementById('freeName').value;
-            const message = document.getElementById('freeMessage').value;
-            const ebookId = document.getElementById('freeEbook').value;
+            const emailInput = document.getElementById('freeEmail');
+            const nameInput = document.getElementById('freeName');
+            const messageInput = document.getElementById('freeMessage');
+            const ebookSelect = document.getElementById('freeEbook');
+            
+            const email = emailInput ? emailInput.value : '';
+            const name = nameInput ? nameInput.value : '';
+            const message = messageInput ? messageInput.value : '';
+            const ebookId = ebookSelect ? ebookSelect.value : '';
 
             if (!email || !ebookId) {
               showAlert('Email and Ebook are required', 'error');
@@ -1578,9 +1671,9 @@ const adminDashboardController = {
                 closeFreeAccessModal();
                 // Reload the current section
                 if (currentSection === 'free-access') {
-                  loadFreeAccess();
+                  await loadFreeAccess();
                 } else if (currentSection === 'access-codes') {
-                  loadAccessCodes();
+                  await loadAccessCodes();
                 }
               } else {
                 showAlert(data.error || 'Failed to send free access', 'error');
@@ -1625,7 +1718,7 @@ const adminDashboardController = {
 
           function toggleProfileMenu() {
             const menu = document.getElementById('profileMenu');
-            menu.classList.toggle('show');
+            if (menu) menu.classList.toggle('show');
           }
 
           // Sign Out
