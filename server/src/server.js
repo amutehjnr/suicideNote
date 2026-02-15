@@ -110,12 +110,13 @@ app.post('/test-simple', (req, res) => {
   });
 });
 
-app.use('/admin', adminRoutes); // For pages
-app.use('/api/v1/admin', adminRoutes); // For API
+// ================== ✅ FIX: ADMIN ROUTES FIRST ==================
+console.log('🔧 Registering admin routes...');
+app.use('/admin', adminRoutes); // For admin pages
+app.use('/api/v1/admin', adminRoutes); // For admin API
 
-// ================== MAIN ROUTES ==================
+// ================== ✅ MAIN API ROUTES SECOND ==================
 console.log('🔧 Registering API routes...');
-
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/ebooks', ebookRoutes);
 app.use('/api/v1/payments', paymentRoutes);
@@ -130,17 +131,19 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ================== FRONTEND STATIC ==================
+// ================== ✅ FRONTEND STATIC FILES THIRD ==================
 app.use(express.static(distPath));
 
-// SPA fallback (React / Vite / Vue)
+// ================== ✅ SPA FALLBACK - ONLY FOR NON-API/NON-ADMIN ROUTES ==================
 app.get('*', (req, res, next) => {
+  // Skip API and admin routes
   if (req.originalUrl.startsWith('/api')) return next();
+  if (req.originalUrl.startsWith('/admin')) return next(); // ✅ IMPORTANT: Skip admin routes
   if (req.originalUrl.startsWith('/health')) return next();
 
+  // Serve index.html for all other routes (React Router)
   res.sendFile(path.join(distPath, 'index.html'));
 });
-
 
 // ================== 404 ==================
 app.use('*', (req, res) => {
@@ -170,6 +173,7 @@ const server = app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`✅ Health → http://localhost:${PORT}/health`);
   console.log(`✅ Test → http://localhost:${PORT}/test-simple`);
+  console.log(`✅ Admin → http://localhost:${PORT}/admin/signin`);
 });
 
 server.on('error', (error) => {
