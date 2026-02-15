@@ -12,276 +12,248 @@ const adminController = {
    * Get complete dashboard statistics
    */
   async getDashboardStats(req, res) {
-    try {
-      // Date ranges
-      const now = new Date();
-      const today = new Date(now.setHours(0, 0, 0, 0));
-      const thisWeek = new Date(now.setDate(now.getDate() - 7));
-      const thisMonth = new Date(now.setMonth(now.getMonth() - 1));
-      const thisYear = new Date(now.setFullYear(now.getFullYear() - 1));
+  try {
+    // Date ranges
+    const now = new Date();
+    const today = new Date(now.setHours(0, 0, 0, 0));
+    const thisWeek = new Date(now.setDate(now.getDate() - 7));
+    const thisMonth = new Date(now.setMonth(now.getMonth() - 1));
+    
+    // Parallel queries with error handling
+    const [
+      totalUsers,
+      totalPurchases,
+      totalRevenueResult,
+      totalAffiliates,
+      totalAccessCodes,
+      todayStats,
+      weeklyStats,
+      monthlyStats,
+      recentTransactions,
+      recentAccessCodes,
+      topEbooks,
+      topAffiliates,
+      paymentMethods
+    ] = await Promise.all([
+      User.countDocuments({}).catch(err => 0),
+      Purchase.countDocuments({ status: 'completed' }).catch(err => 0),
+      Purchase.aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: null, total: { $sum: '$amount' } } }
+      ]).catch(err => []),
+      Affiliate.countDocuments({}).catch(err => 0),
+      AccessCode.countDocuments({}).catch(err => 0),
 
-      // Parallel queries for better performance
-      const [
-        totalUsers,
-        totalPurchases,
-        totalRevenue,
-        totalAffiliates,
-        totalAccessCodes,
-        todayStats,
-        weeklyStats,
-        monthlyStats,
+      // Today's stats
+      Purchase.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: today } } },
+        { $group: { _id: null, count: { $sum: 1 }, revenue: { $sum: '$amount' } } }
+      ]).catch(err => []),
+
+      // Weekly stats
+      Purchase.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: thisWeek } } },
+        { $group: { _id: null, count: { $sum: 1 }, revenue: { $sum: '$amount' } } }
+      ]).catch(err => []),
+
+      // Monthly stats
+      Purchase.aggregate([
+        { $match: { status: 'completed', createdAt: { $gte: thisMonth } } },
+        { $group: { _id: null, count: { $sum: 1 }, revenue: { $sum: '$amount' } } }
+      ]).catch(err => []),
+
+      // Recent transactions
+      Purchase.find({ status: 'completed' })
+        .populate('user', 'email name')
+        .populate('ebook', 'title price')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean()
+        .catch(err => []),
+
+      // Recent access codes
+      AccessCode.find({})
+        .populate('user', 'email name')
+        .populate('ebook', 'title')
+        .populate('grantedBy', 'email')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean()
+        .catch(err => []),
+
+      // Top selling ebooks
+      Purchase.aggregate([
+        { $match: { status: 'completed' } },
+        { $group: { _id: '$ebook', count: { $sum: 1 }, revenue: { $sum: '$amount' } } },
+        { $sort: { count: -1 } },
+        { $limit: 5 },
+        { $lookup: { from: 'ebooks', localField: '_id', foreignField: '_id', as: 'ebook' } },
+        { $unwind: { path: '$ebook', preserveNullAndEmptyArrays: true } }
+      ]).catch(err => []),
+
+      // Top affiliates
+      Affiliate.find({})
+        .populate('user', 'email name')
+        .sort({ earnings: -1 })
+        .limit(5)
+        .lean()
+        .catch(err => []),
+
+      // Payment methods breakdown
+      Purchase.aggregate([
+        { $match: { status: 'completed', 'paymentDetails.channel': { $exists: true, $ne: null } } },
+        { $group: { _id: '$paymentDetails.channel', count: { $sum: 1 }, total: { $sum: '$amount' } } }
+      ]).catch(err => [])
+    ]);
+
+    // Calculate free vs paid access
+    const freeAccessCodes = await AccessCode.countDocuments({ isFreeAccess: true }).catch(err => 0);
+    const paidAccessCodes = totalAccessCodes - freeAccessCodes;
+
+    // Get conversion rate
+    const usersWithPurchases = await Purchase.distinct('user', { status: 'completed' }).catch(err => []);
+    const conversionRate = totalUsers > 0 ? (usersWithPurchases.length / totalUsers * 100).toFixed(2) : 0;
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        overview: {
+          totalUsers,
+          totalPurchases,
+          totalRevenue: totalRevenueResult[0]?.total || 0,
+          totalAffiliates,
+          totalAccessCodes: {
+            total: totalAccessCodes,
+            paid: paidAccessCodes,
+            free: freeAccessCodes
+          },
+          conversionRate: `${conversionRate}%`
+        },
+        timeStats: {
+          today: {
+            purchases: todayStats[0]?.count || 0,
+            revenue: todayStats[0]?.revenue || 0
+          },
+          thisWeek: {
+            purchases: weeklyStats[0]?.count || 0,
+            revenue: weeklyStats[0]?.revenue || 0
+          },
+          thisMonth: {
+            purchases: monthlyStats[0]?.count || 0,
+            revenue: monthlyStats[0]?.revenue || 0
+          }
+        },
         recentTransactions,
         recentAccessCodes,
-        topEbooks,
+        topEbooks: topEbooks.filter(e => e.ebook), // Filter out null ebooks
         topAffiliates,
-        paymentMethods
-      ] = await Promise.all([
-        // Basic counts
-        User.countDocuments({}),
-        Purchase.countDocuments({ status: 'completed' }),
-        Purchase.aggregate([
-          { $match: { status: 'completed' } },
-          { $group: { _id: null, total: { $sum: '$amount' } } }
-        ]),
-        Affiliate.countDocuments({}),
-        AccessCode.countDocuments({}),
+        paymentMethods: (paymentMethods || []).map(m => ({
+          method: m._id || 'unknown',
+          count: m.count,
+          total: m.total
+        }))
+      }
+    });
 
-        // Today's stats
-        Purchase.aggregate([
-          { $match: { 
-            status: 'completed',
-            createdAt: { $gte: today }
-          }},
-          { $group: { 
-            _id: null, 
-            count: { $sum: 1 }, 
-            revenue: { $sum: '$amount' } 
-          }}
-        ]),
-
-        // Weekly stats
-        Purchase.aggregate([
-          { $match: { 
-            status: 'completed',
-            createdAt: { $gte: thisWeek }
-          }},
-          { $group: { 
-            _id: null, 
-            count: { $sum: 1 }, 
-            revenue: { $sum: '$amount' } 
-          }}
-        ]),
-
-        // Monthly stats
-        Purchase.aggregate([
-          { $match: { 
-            status: 'completed',
-            createdAt: { $gte: thisMonth }
-          }},
-          { $group: { 
-            _id: null, 
-            count: { $sum: 1 }, 
-            revenue: { $sum: '$amount' } 
-          }}
-        ]),
-
-        // Recent transactions
-        Purchase.find({ status: 'completed' })
-          .populate('user', 'email name')
-          .populate('ebook', 'title price')
-          .sort({ createdAt: -1 })
-          .limit(10),
-
-        // Recent access codes
-        AccessCode.find({})
-          .populate('user', 'email name')
-          .populate('ebook', 'title')
-          .populate('grantedBy', 'email')
-          .sort({ createdAt: -1 })
-          .limit(10),
-
-        // Top selling ebooks
-        Purchase.aggregate([
-          { $match: { status: 'completed' } },
-          { $group: { 
-            _id: '$ebook', 
-            count: { $sum: 1 }, 
-            revenue: { $sum: '$amount' } 
-          }},
-          { $sort: { count: -1 } },
-          { $limit: 5 },
-          { $lookup: {
-            from: 'ebooks',
-            localField: '_id',
-            foreignField: '_id',
-            as: 'ebook'
-          }},
-          { $unwind: '$ebook' }
-        ]),
-
-        // Top affiliates
-        Affiliate.find({})
-          .populate('user', 'email name')
-          .sort({ earnings: -1 })
-          .limit(5),
-
-        // Payment methods breakdown
-        Purchase.aggregate([
-          { $match: { status: 'completed', 'paymentDetails.channel': { $exists: true } } },
-          { $group: { 
-            _id: '$paymentDetails.channel', 
-            count: { $sum: 1 }, 
-            total: { $sum: '$amount' } 
-          }}
-        ])
-      ]);
-
-      // Calculate free vs paid access
-      const freeAccessCodes = await AccessCode.countDocuments({ isFreeAccess: true });
-      const paidAccessCodes = totalAccessCodes - freeAccessCodes;
-
-      // Get conversion rate (users who purchased vs total users)
-      const usersWithPurchases = await Purchase.distinct('user', { status: 'completed' });
-      const conversionRate = totalUsers > 0 ? (usersWithPurchases.length / totalUsers * 100).toFixed(2) : 0;
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          overview: {
-            totalUsers,
-            totalPurchases,
-            totalRevenue: totalRevenue[0]?.total || 0,
-            totalAffiliates,
-            totalAccessCodes: {
-              total: totalAccessCodes,
-              paid: paidAccessCodes,
-              free: freeAccessCodes
-            },
-            conversionRate: `${conversionRate}%`
-          },
-          timeStats: {
-            today: {
-              purchases: todayStats[0]?.count || 0,
-              revenue: todayStats[0]?.revenue || 0
-            },
-            thisWeek: {
-              purchases: weeklyStats[0]?.count || 0,
-              revenue: weeklyStats[0]?.revenue || 0
-            },
-            thisMonth: {
-              purchases: monthlyStats[0]?.count || 0,
-              revenue: monthlyStats[0]?.revenue || 0
-            }
-          },
-          recentTransactions,
-          recentAccessCodes,
-          topEbooks,
-          topAffiliates,
-          paymentMethods: paymentMethods.map(m => ({
-            method: m._id || 'unknown',
-            count: m.count,
-            total: m.total
-          }))
-        }
-      });
-
-    } catch (error) {
-      console.error('Get admin stats error:', error);
-      winston.error('Get admin stats error:', error);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to fetch admin stats',
-        details: error.message 
-      });
-    }
-  },
+  } catch (error) {
+    console.error('Get admin stats error:', error);
+    winston.error('Get admin stats error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch admin stats',
+      details: error.message 
+    });
+  }
+},
 
   /**
    * Get all transactions with filtering
    */
   async getAllTransactions(req, res) {
-    try {
-      const { 
-        page = 1, 
-        limit = 20, 
-        status, 
-        startDate, 
-        endDate, 
-        email,
-        minAmount,
-        maxAmount 
-      } = req.query;
+  try {
+    const { 
+      page = 1, 
+      limit = 20, 
+      status, 
+      startDate, 
+      endDate, 
+      email,
+      minAmount,
+      maxAmount 
+    } = req.query;
 
-      const query = {};
+    const query = {};
 
-      // Apply filters
-      if (status) query.status = status;
-      if (email) {
-        const user = await User.findOne({ email: new RegExp(email, 'i') });
-        if (user) query.user = user._id;
-      }
-      if (startDate || endDate) {
-        query.createdAt = {};
-        if (startDate) query.createdAt.$gte = new Date(startDate);
-        if (endDate) query.createdAt.$lte = new Date(endDate);
-      }
-      if (minAmount || maxAmount) {
-        query.amount = {};
-        if (minAmount) query.amount.$gte = Number(minAmount);
-        if (maxAmount) query.amount.$lte = Number(maxAmount);
-      }
-
-      // Get transactions with pagination
-      const transactions = await Purchase.find(query)
-        .populate('user', 'email name')
-        .populate('ebook', 'title price')
-        .populate('accessCode')
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(Number(limit));
-
-      const total = await Purchase.countDocuments(query);
-
-      // Calculate summary
-      const summary = await Purchase.aggregate([
-        { $match: query },
-        { $group: {
-          _id: null,
-          totalAmount: { $sum: '$amount' },
-          avgAmount: { $avg: '$amount' },
-          minAmount: { $min: '$amount' },
-          maxAmount: { $max: '$amount' }
-        }}
-      ]);
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          transactions,
-          pagination: {
-            page: Number(page),
-            limit: Number(limit),
-            total,
-            pages: Math.ceil(total / limit)
-          },
-          summary: summary[0] || {
-            totalAmount: 0,
-            avgAmount: 0,
-            minAmount: 0,
-            maxAmount: 0
-          }
-        }
-      });
-
-    } catch (error) {
-      console.error('Get transactions error:', error);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to fetch transactions',
-        details: error.message 
-      });
+    // Apply filters
+    if (status) query.status = status;
+    if (email) {
+      const user = await User.findOne({ email: new RegExp(email, 'i') }).catch(err => null);
+      if (user) query.user = user._id;
     }
-  },
+    if (startDate || endDate) {
+      query.createdAt = {};
+      if (startDate) query.createdAt.$gte = new Date(startDate);
+      if (endDate) query.createdAt.$lte = new Date(endDate);
+    }
+    if (minAmount || maxAmount) {
+      query.amount = {};
+      if (minAmount) query.amount.$gte = Number(minAmount);
+      if (maxAmount) query.amount.$lte = Number(maxAmount);
+    }
+
+    // Get transactions with pagination
+    const transactions = await Purchase.find(query)
+      .populate('user', 'email name')
+      .populate('ebook', 'title price')
+      .populate('accessCode')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .lean()
+      .catch(err => []);
+
+    const total = await Purchase.countDocuments(query).catch(err => 0);
+
+    // Calculate summary
+    const summary = await Purchase.aggregate([
+      { $match: query },
+      { $group: {
+        _id: null,
+        totalAmount: { $sum: '$amount' },
+        avgAmount: { $avg: '$amount' },
+        minAmount: { $min: '$amount' },
+        maxAmount: { $max: '$amount' }
+      }}
+    ]).catch(err => []);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        transactions: transactions || [],
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          pages: Math.ceil(total / limit) || 1
+        },
+        summary: summary[0] || {
+          totalAmount: 0,
+          avgAmount: 0,
+          minAmount: 0,
+          maxAmount: 0
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get transactions error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch transactions',
+      details: error.message 
+    });
+  }
+},
 
   /**
    * Get transaction details by ID
@@ -333,90 +305,92 @@ const adminController = {
    * Get all access codes with filtering
    */
   async getAllAccessCodes(req, res) {
-    try {
-      const { 
-        page = 1, 
-        limit = 20, 
-        isActive, 
-        isFreeAccess,
-        email,
-        ebookId,
-        used 
-      } = req.query;
+  try {
+    const { 
+      page = 1, 
+      limit = 20, 
+      isActive, 
+      isFreeAccess,
+      email,
+      ebookId,
+      used 
+    } = req.query;
 
-      const query = {};
+    const query = {};
 
-      // Apply filters
-      if (isActive !== undefined) query.isActive = isActive === 'true';
-      if (isFreeAccess !== undefined) query.isFreeAccess = isFreeAccess === 'true';
-      if (ebookId) query.ebook = ebookId;
-      if (used !== undefined) {
-        if (used === 'true') {
-          query.accessCount = { $gt: 0 };
-        } else {
-          query.accessCount = 0;
-        }
+    // Apply filters
+    if (isActive !== undefined) query.isActive = isActive === 'true';
+    if (isFreeAccess !== undefined) query.isFreeAccess = isFreeAccess === 'true';
+    if (ebookId) query.ebook = ebookId;
+    if (used !== undefined) {
+      if (used === 'true') {
+        query.accessCount = { $gt: 0 };
+      } else {
+        query.accessCount = 0;
       }
-      
-      if (email) {
-        const user = await User.findOne({ email: new RegExp(email, 'i') });
-        if (user) query.user = user._id;
-      }
-
-      const accessCodes = await AccessCode.find(query)
-        .populate('user', 'email name')
-        .populate('ebook', 'title slug')
-        .populate('purchase')
-        .populate('grantedBy', 'email')
-        .populate('revokedBy', 'email')
-        .sort({ createdAt: -1 })
-        .skip((page - 1) * limit)
-        .limit(Number(limit));
-
-      const total = await AccessCode.countDocuments(query);
-
-      // Get usage statistics
-      const stats = await AccessCode.aggregate([
-        { $match: query },
-        { $group: {
-          _id: null,
-          totalAccesses: { $sum: '$accessCount' },
-          avgAccesses: { $avg: '$accessCount' },
-          expired: { 
-            $sum: { 
-              $cond: [{ $lt: ['$expiresAt', new Date()] }, 1, 0] 
-            } 
-          }
-        }}
-      ]);
-
-      return res.status(200).json({
-        success: true,
-        data: {
-          accessCodes,
-          pagination: {
-            page: Number(page),
-            limit: Number(limit),
-            total,
-            pages: Math.ceil(total / limit)
-          },
-          stats: stats[0] || {
-            totalAccesses: 0,
-            avgAccesses: 0,
-            expired: 0
-          }
-        }
-      });
-
-    } catch (error) {
-      console.error('Get access codes error:', error);
-      return res.status(500).json({ 
-        success: false, 
-        error: 'Failed to fetch access codes',
-        details: error.message 
-      });
     }
-  },
+    
+    if (email) {
+      const user = await User.findOne({ email: new RegExp(email, 'i') }).catch(err => null);
+      if (user) query.user = user._id;
+    }
+
+    const accessCodes = await AccessCode.find(query)
+      .populate('user', 'email name')
+      .populate('ebook', 'title slug')
+      .populate('purchase')
+      .populate('grantedBy', 'email')
+      .populate('revokedBy', 'email')
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(Number(limit))
+      .lean()
+      .catch(err => []);
+
+    const total = await AccessCode.countDocuments(query).catch(err => 0);
+
+    // Get usage statistics
+    const stats = await AccessCode.aggregate([
+      { $match: query },
+      { $group: {
+        _id: null,
+        totalAccesses: { $sum: '$accessCount' },
+        avgAccesses: { $avg: '$accessCount' },
+        expired: { 
+          $sum: { 
+            $cond: [{ $lt: ['$expiresAt', new Date()] }, 1, 0] 
+          } 
+        }
+      }}
+    ]).catch(err => []);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        accessCodes: accessCodes || [],
+        pagination: {
+          page: Number(page),
+          limit: Number(limit),
+          total,
+          pages: Math.ceil(total / limit) || 1
+        },
+        stats: stats[0] || {
+          totalAccesses: 0,
+          avgAccesses: 0,
+          expired: 0
+        }
+      }
+    });
+
+  } catch (error) {
+    console.error('Get access codes error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to fetch access codes',
+      details: error.message 
+    });
+  }
+},
 
   /**
    * Get access code details by ID
