@@ -604,7 +604,7 @@ class EmailService {
         body: JSON.stringify({
           sender: {
             name: 'Suicide Note',
-            email: process.env.EMAIL_FROM || 'noreply@suicidenote.onrender.com'
+            email: 'sanimustapha2215@gmail.com'
           },
           to: [
             {
