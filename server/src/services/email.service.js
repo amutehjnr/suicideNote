@@ -3,23 +3,27 @@ const winston = require('winston');
 
 class EmailService {
   constructor() {
-    // Create transporter with better timeout settings
+    console.log('📧 Initializing email service...');
+    
     this.transporter = nodemailer.createTransport({
-      host: process.env.EMAIL_HOST,
-      port: parseInt(process.env.EMAIL_PORT),
-      secure: process.env.EMAIL_PORT === '587',
+      host: 'smtp.gmail.com',
+      port: 587,
+      secure: true,
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
-      // Add these timeout settings
-      connectionTimeout: 60000, // 30 seconds
-      greetingTimeout: 60000,    // 30 seconds
-      socketTimeout: 60000,      // 30 seconds
-       tls: {
+      // Increase timeouts
+      connectionTimeout: 60000,
+      greetingTimeout: 60000,
+      socketTimeout: 60000,
+      // Add these options
+      tls: {
         rejectUnauthorized: false
       }
     });
+
+    // Verify connection immediately
     this.verifyConnection();
   }
 
