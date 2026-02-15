@@ -3,36 +3,19 @@ const winston = require('winston');
 
 class EmailService {
   constructor() {
-    console.log('📧 Initializing email service...');
+    console.log('📧 Initializing email service with Brevo...');
+    console.log('📧 BREVO_LOGIN:', process.env.BREVO_LOGIN ? 'Set' : 'Not set');
+    console.log('📧 BREVO_SMTP_KEY:', process.env.BREVO_SMTP_KEY ? 'Set' : 'Not set');
     
     this.transporter = nodemailer.createTransport({
-      host: 'smtp.gmail.com',
+      host: 'smtp-relay.brevo.com',
       port: 587,
-      secure: true,
+      secure: false,
       auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASSWORD,
+        user: process.env.BREVO_LOGIN,
+        pass: process.env.BREVO_SMTP_KEY,
       },
-      // Increase timeouts
-      connectionTimeout: 60000,
-      greetingTimeout: 60000,
-      socketTimeout: 60000,
-      // Add these options
-      tls: {
-        rejectUnauthorized: false
-      }
     });
-
-    // Verify connection immediately
-    this.verifyConnection();
-  }
-  async verifyConnection() {
-    try {
-      await this.transporter.verify();
-      console.log('✅ SMTP connection verified successfully');
-    } catch (error) {
-      console.error('❌ SMTP connection failed:', error.message);
-    }
   }
 
   async sendVerificationEmail(to, token, name = 'there') {
@@ -163,7 +146,7 @@ class EmailService {
   }
 
   /**
-   * Send Access Code Email
+   * Send Access Code Email via Brevo
    */
   async sendAccessCodeEmail(to, name, accessCode, ebook) {
     const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://suicidenote.onrender.com';
@@ -213,14 +196,13 @@ class EmailService {
     };
 
     try {
-      console.log('📧 Attempting to send email...');
+      console.log('📧 Sending access code email via Brevo...');
       const info = await this.transporter.sendMail(mailOptions);
-      console.log('✅ Email sent successfully:', info.messageId);
+      console.log('✅ Access code email sent successfully:', info.messageId);
       winston.info(`Access code email sent to: ${to}`);
       return true;
     } catch (error) {
-      console.error('❌ Email error:', error.message);
-      console.error('Error code:', error.code);
+      console.error('❌ Brevo error:', error.message);
       winston.error('Error sending access code email:', error);
       return false;
     }
