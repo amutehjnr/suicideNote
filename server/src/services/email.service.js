@@ -136,7 +136,7 @@ class EmailService {
             <h1>Thank You for Your Purchase!</h1>
           </div>
           <div class="content">
-            <h2>Hello ${name || 'Valued Reader'},</h2>
+            <h2>Hello ${'Valued Reader'},</h2>
             <p>Thank you for purchasing <strong>"${ebook.title}"</strong>! Your access code is ready below.</p>
             <div class="code-box">${accessCode}</div>
             <p style="text-align: center;">
