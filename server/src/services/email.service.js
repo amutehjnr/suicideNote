@@ -3,6 +3,7 @@ const winston = require('winston');
 
 class EmailService {
   constructor() {
+    // Create transporter with better timeout settings
     this.transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT),
@@ -11,6 +12,10 @@ class EmailService {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
+      // Add these timeout settings
+      connectionTimeout: 30000, // 30 seconds
+      greetingTimeout: 30000,    // 30 seconds
+      socketTimeout: 30000,      // 30 seconds
     });
   }
 
@@ -192,10 +197,14 @@ class EmailService {
     };
 
     try {
-      await this.transporter.sendMail(mailOptions);
+      console.log('📧 Attempting to send email...');
+      const info = await this.transporter.sendMail(mailOptions);
+      console.log('✅ Email sent successfully:', info.messageId);
       winston.info(`Access code email sent to: ${to}`);
       return true;
     } catch (error) {
+      console.error('❌ Email error:', error.message);
+      console.error('Error code:', error.code);
       winston.error('Error sending access code email:', error);
       return false;
     }
