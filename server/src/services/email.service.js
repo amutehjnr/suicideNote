@@ -7,16 +7,20 @@ class EmailService {
     this.transporter = nodemailer.createTransport({
       host: process.env.EMAIL_HOST,
       port: parseInt(process.env.EMAIL_PORT),
-      secure: process.env.EMAIL_PORT === '465',
+      secure: process.env.EMAIL_PORT === '587',
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASSWORD,
       },
       // Add these timeout settings
-      connectionTimeout: 30000, // 30 seconds
-      greetingTimeout: 30000,    // 30 seconds
-      socketTimeout: 30000,      // 30 seconds
+      connectionTimeout: 60000, // 30 seconds
+      greetingTimeout: 60000,    // 30 seconds
+      socketTimeout: 60000,      // 30 seconds
+       tls: {
+        rejectUnauthorized: false
+      }
     });
+    this.verifyConnection();
   }
 
   async sendVerificationEmail(to, token, name = 'there') {
