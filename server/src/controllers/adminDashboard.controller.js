@@ -475,24 +475,34 @@ const adminDashboardController = {
             border-radius: 15px;
             max-width: 500px;
             width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
           }
 
           .modal-content h3 {
             margin-bottom: 20px;
+            color: #333;
           }
 
           .modal-content input, .modal-content textarea, .modal-content select {
             width: 100%;
-            padding: 10px;
+            padding: 12px;
             margin-bottom: 15px;
             border: 1px solid #ddd;
             border-radius: 8px;
+            font-size: 14px;
+          }
+
+          .modal-content input:focus, .modal-content textarea:focus, .modal-content select:focus {
+            outline: none;
+            border-color: #667eea;
           }
 
           .modal-buttons {
             display: flex;
             gap: 10px;
             justify-content: flex-end;
+            margin-top: 20px;
           }
 
           .modal-buttons button {
@@ -500,6 +510,8 @@ const adminDashboardController = {
             border: none;
             border-radius: 8px;
             cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
           }
 
           .modal-buttons button.primary {
@@ -507,9 +519,63 @@ const adminDashboardController = {
             color: white;
           }
 
+          .modal-buttons button.primary:hover {
+            background: #5a6fd8;
+          }
+
           .modal-buttons button.secondary {
             background: #eee;
             color: #333;
+          }
+
+          .modal-buttons button.secondary:hover {
+            background: #ddd;
+          }
+
+          /* Success/Error Messages */
+          .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+          }
+
+          .alert.success {
+            background: #00b89420;
+            color: #00b894;
+            border: 1px solid #00b894;
+            display: block;
+          }
+
+          .alert.error {
+            background: #ff475720;
+            color: #ff4757;
+            border: 1px solid #ff4757;
+            display: block;
+          }
+
+          /* Empty State */
+          .empty-state {
+            text-align: center;
+            padding: 50px;
+            background: white;
+            border-radius: 15px;
+          }
+
+          .empty-state i {
+            font-size: 48px;
+            color: #667eea;
+            margin-bottom: 20px;
+          }
+
+          .empty-state h3 {
+            color: #333;
+            margin-bottom: 10px;
+          }
+
+          .empty-state p {
+            color: #666;
+            margin-bottom: 20px;
           }
         </style>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
@@ -614,6 +680,9 @@ const adminDashboardController = {
               </div>
             </div>
 
+            <!-- Alert Container -->
+            <div id="alertContainer" class="alert"></div>
+
             <!-- Dynamic Content -->
             <div id="contentArea">
               <div class="loading-spinner">
@@ -626,16 +695,16 @@ const adminDashboardController = {
         <!-- Modal for Free Access -->
         <div class="modal" id="freeAccessModal">
           <div class="modal-content">
-            <h3>Send Free Access Code</h3>
-            <input type="email" id="freeEmail" placeholder="Email Address" required>
+            <h3><i class="fas fa-gift" style="margin-right: 10px;"></i>Send Free Access Code</h3>
+            <input type="email" id="freeEmail" placeholder="Email Address *" required>
             <input type="text" id="freeName" placeholder="Name (Optional)">
             <textarea id="freeMessage" placeholder="Personal Message (Optional)" rows="3"></textarea>
-            <select id="freeEbook">
-              <option value="">Select Ebook</option>
+            <select id="freeEbook" required>
+              <option value="">Select Ebook *</option>
             </select>
             <div class="modal-buttons">
               <button class="secondary" onclick="closeFreeAccessModal()">Cancel</button>
-              <button class="primary" onclick="sendFreeAccess()">Send</button>
+              <button class="primary" onclick="sendFreeAccess()">Send Free Access</button>
             </div>
           </div>
         </div>
@@ -646,6 +715,17 @@ const adminDashboardController = {
             const value = \`; \${document.cookie}\`;
             const parts = value.split(\`; \${name}=\`);
             if (parts.length === 2) return parts.pop().split(';').shift();
+          }
+
+          // Show alert message
+          function showAlert(message, type = 'success') {
+            const alert = document.getElementById('alertContainer');
+            alert.className = 'alert ' + type;
+            alert.textContent = message;
+            
+            setTimeout(() => {
+              alert.className = 'alert';
+            }, 5000);
           }
 
           // Admin data from server
@@ -675,15 +755,23 @@ const adminDashboardController = {
           // Load ebooks for select dropdown
           async function loadEbooksForSelect() {
             try {
+              const token = getCookie('admin_token');
+              if (!token) {
+                window.location.href = '/admin/signin';
+                return;
+              }
+
               const response = await fetch('/api/v1/ebooks', {
                 headers: {
-                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
+                  'Authorization': \`Bearer \${token}\`
                 }
               });
               const data = await response.json();
               
-              if (data.success) {
+              if (data.success && data.data) {
                 const select = document.getElementById('freeEbook');
+                select.innerHTML = '<option value="">Select Ebook *</option>';
+                
                 data.data.forEach(ebook => {
                   const option = document.createElement('option');
                   option.value = ebook._id;
@@ -758,11 +846,22 @@ const adminDashboardController = {
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
+              const token = getCookie('admin_token');
+              if (!token) {
+                window.location.href = '/admin/signin';
+                return;
+              }
+
               const response = await fetch('/api/v1/admin/dashboard/stats', {
                 headers: {
-                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
+                  'Authorization': \`Bearer \${token}\`
                 }
               });
+              
+              if (response.status === 401) {
+                window.location.href = '/admin/signin';
+                return;
+              }
               
               const data = await response.json();
               
@@ -772,6 +871,7 @@ const adminDashboardController = {
                 content.innerHTML = '<p style="text-align: center; padding: 50px;">Failed to load dashboard data</p>';
               }
             } catch (error) {
+              console.error('Dashboard error:', error);
               content.innerHTML = '<p style="text-align: center; padding: 50px;">Error loading dashboard</p>';
             }
           }
@@ -906,7 +1006,9 @@ const adminDashboardController = {
           }
 
           function initRevenueChart() {
-            const ctx = document.getElementById('revenueChart').getContext('2d');
+            const ctx = document.getElementById('revenueChart')?.getContext('2d');
+            if (!ctx) return;
+            
             new Chart(ctx, {
               type: 'line',
               data: {
@@ -933,7 +1035,8 @@ const adminDashboardController = {
           }
 
           function initPaymentChart(methods) {
-            const ctx = document.getElementById('paymentChart').getContext('2d');
+            const ctx = document.getElementById('paymentChart')?.getContext('2d');
+            if (!ctx) return;
             
             new Chart(ctx, {
               type: 'doughnut',
@@ -962,11 +1065,22 @@ const adminDashboardController = {
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
+              const token = getCookie('admin_token');
+              if (!token) {
+                window.location.href = '/admin/signin';
+                return;
+              }
+
               const response = await fetch(\`/api/v1/admin/transactions?page=\${page}\`, {
                 headers: {
-                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
+                  'Authorization': \`Bearer \${token}\`
                 }
               });
+              
+              if (response.status === 401) {
+                window.location.href = '/admin/signin';
+                return;
+              }
               
               const data = await response.json();
               
@@ -976,6 +1090,7 @@ const adminDashboardController = {
                 content.innerHTML = '<p style="text-align: center; padding: 50px;">Failed to load transactions</p>';
               }
             } catch (error) {
+              console.error('Transactions error:', error);
               content.innerHTML = '<p style="text-align: center; padding: 50px;">Error loading transactions</p>';
             }
           }
@@ -1011,11 +1126,11 @@ const adminDashboardController = {
                     </tr>
                   </thead>
                   <tbody id="transactionsTableBody">
-                    \${data.transactions.map(t => \`
+                    \${(data.transactions || []).map(t => \`
                       <tr>
-                        <td>\${t.transactionReference}</td>
+                        <td>\${t.transactionReference?.substring(0, 12) || 'N/A'}</td>
                         <td>\${t.user?.email || 'N/A'}</td>
-                        <td>\${t.ebook?.title || 'N/A'}</td>
+                        <td>\${t.ebook?.title?.substring(0, 20) || 'N/A'}</td>
                         <td>₦\${t.amount}</td>
                         <td><span class="status-badge \${t.status}">\${t.status}</span></td>
                         <td>\${new Date(t.createdAt).toLocaleDateString()}</td>
@@ -1031,10 +1146,10 @@ const adminDashboardController = {
                 </table>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                  <p>Showing \${data.transactions.length} of \${data.pagination.total} transactions</p>
+                  <p>Showing \${data.transactions?.length || 0} of \${data.pagination?.total || 0} transactions</p>
                   <div>
-                    \${Array.from({ length: data.pagination.pages }, (_, i) => i + 1).map(p => \`
-                      <button onclick="loadTransactions(\${p})" style="padding: 5px 10px; margin: 0 5px; border: 1px solid #ddd; border-radius: 5px; background: \${p === data.pagination.page ? '#667eea' : 'white'}; color: \${p === data.pagination.page ? 'white' : '#333'};">\${p}</button>
+                    \${Array.from({ length: data.pagination?.pages || 1 }, (_, i) => i + 1).map(p => \`
+                      <button onclick="loadTransactions(\${p})" style="padding: 5px 10px; margin: 0 5px; border: 1px solid #ddd; border-radius: 5px; background: \${p === data.pagination?.page ? '#667eea' : 'white'}; color: \${p === data.pagination?.page ? 'white' : '#333'};">\${p}</button>
                     \`).join('')}
                   </div>
                 </div>
@@ -1048,11 +1163,22 @@ const adminDashboardController = {
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
+              const token = getCookie('admin_token');
+              if (!token) {
+                window.location.href = '/admin/signin';
+                return;
+              }
+
               const response = await fetch(\`/api/v1/admin/access-codes?page=\${page}\`, {
                 headers: {
-                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
+                  'Authorization': \`Bearer \${token}\`
                 }
               });
+              
+              if (response.status === 401) {
+                window.location.href = '/admin/signin';
+                return;
+              }
               
               const data = await response.json();
               
@@ -1062,6 +1188,7 @@ const adminDashboardController = {
                 content.innerHTML = '<p style="text-align: center; padding: 50px;">Failed to load access codes</p>';
               }
             } catch (error) {
+              console.error('Access codes error:', error);
               content.innerHTML = '<p style="text-align: center; padding: 50px;">Error loading access codes</p>';
             }
           }
@@ -1092,11 +1219,11 @@ const adminDashboardController = {
                     </tr>
                   </thead>
                   <tbody>
-                    \${data.accessCodes.map(c => \`
+                    \${(data.accessCodes || []).map(c => \`
                       <tr>
                         <td>\${c.code}</td>
-                        <td>\${c.user?.email || 'N/A'}</td>
-                        <td>\${c.ebook?.title || 'N/A'}</td>
+                        <td>\${c.user?.email?.split('@')[0] || 'N/A'}</td>
+                        <td>\${c.ebook?.title?.substring(0, 15) || 'N/A'}</td>
                         <td><span class="status-badge \${c.isActive ? 'active' : 'inactive'}">\${c.isActive ? 'Active' : 'Inactive'}</span></td>
                         <td>\${c.isFreeAccess ? 'Free' : 'Paid'}</td>
                         <td>\${c.accessCount || 0}</td>
@@ -1113,10 +1240,10 @@ const adminDashboardController = {
                 </table>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                  <p>Showing \${data.accessCodes.length} of \${data.pagination.total} access codes</p>
+                  <p>Showing \${data.accessCodes?.length || 0} of \${data.pagination?.total || 0} access codes</p>
                   <div>
-                    \${Array.from({ length: data.pagination.pages }, (_, i) => i + 1).map(p => \`
-                      <button onclick="loadAccessCodes(\${p})" style="padding: 5px 10px; margin: 0 5px; border: 1px solid #ddd; border-radius: 5px; background: \${p === data.pagination.page ? '#667eea' : 'white'}; color: \${p === data.pagination.page ? 'white' : '#333'};">\${p}</button>
+                    \${Array.from({ length: data.pagination?.pages || 1 }, (_, i) => i + 1).map(p => \`
+                      <button onclick="loadAccessCodes(\${p})" style="padding: 5px 10px; margin: 0 5px; border: 1px solid #ddd; border-radius: 5px; background: \${p === data.pagination?.page ? '#667eea' : 'white'}; color: \${p === data.pagination?.page ? 'white' : '#333'};">\${p}</button>
                     \`).join('')}
                   </div>
                 </div>
@@ -1124,31 +1251,148 @@ const adminDashboardController = {
             \`;
           }
 
-          // Load Users
-          async function loadUsers() {
-            const content = document.getElementById('contentArea');
-            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div><p style="text-align: center;">Users section coming soon...</p>';
-          }
-
-          // Load Affiliates
-          async function loadAffiliates() {
-            const content = document.getElementById('contentArea');
-            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div><p style="text-align: center;">Affiliates section coming soon...</p>';
-          }
-
-          // Load Free Access
+          // Load Free Access Grants
           async function loadFreeAccess() {
             const content = document.getElementById('contentArea');
-            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div><p style="text-align: center;">Free Access section coming soon...</p>';
+            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+
+            try {
+              const token = getCookie('admin_token');
+              if (!token) {
+                window.location.href = '/admin/signin';
+                return;
+              }
+
+              const response = await fetch('/api/v1/admin/free-access/grants', {
+                headers: {
+                  'Authorization': \`Bearer \${token}\`
+                }
+              });
+              
+              if (response.status === 401) {
+                window.location.href = '/admin/signin';
+                return;
+              }
+              
+              const data = await response.json();
+              
+              if (data.success) {
+                renderFreeAccessGrants(data.data);
+              } else {
+                content.innerHTML = '<p style="text-align: center; padding: 50px;">Failed to load free access grants</p>';
+              }
+            } catch (error) {
+              console.error('Error loading free access:', error);
+              content.innerHTML = '<p style="text-align: center; padding: 50px;">Error loading free access</p>';
+            }
           }
 
-          // Load Settings
+          function renderFreeAccessGrants(grants) {
+            const content = document.getElementById('contentArea');
+            
+            if (!grants || grants.length === 0) {
+              content.innerHTML = \`
+                <div class="empty-state">
+                  <i class="fas fa-gift"></i>
+                  <h3>No Free Access Grants Yet</h3>
+                  <p>Use the button below to grant complimentary access to investors or reviewers.</p>
+                  <button class="primary" onclick="showFreeAccessModal()" style="padding: 12px 30px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    <i class="fas fa-gift"></i> Send Your First Free Access
+                  </button>
+                </div>
+              \`;
+              return;
+            }
+
+            content.innerHTML = \`
+              <div style="background: white; padding: 25px; border-radius: 15px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                  <h2>Free Access Grants</h2>
+                  <button class="primary" onclick="showFreeAccessModal()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    <i class="fas fa-gift"></i> Send New Free Access
+                  </button>
+                </div>
+
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Recipient</th>
+                      <th>Ebook</th>
+                      <th>Granted By</th>
+                      <th>Status</th>
+                      <th>Expires</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    \${grants.map(grant => \`
+                      <tr>
+                        <td>\${grant.code}</td>
+                        <td>\${grant.user?.email?.split('@')[0] || 'N/A'}</td>
+                        <td>\${grant.ebook?.title?.substring(0, 20) || 'N/A'}</td>
+                        <td>\${grant.grantedBy?.email?.split('@')[0] || 'N/A'}</td>
+                        <td><span class="status-badge \${grant.isActive ? 'active' : 'inactive'}">\${grant.isActive ? 'Active' : 'Inactive'}</span></td>
+                        <td>\${new Date(grant.expiresAt).toLocaleDateString()}</td>
+                        <td>
+                          \${grant.isActive ? \`
+                            <button class="action-btn delete" onclick="revokeAccess('\${grant._id}')">Revoke</button>
+                          \` : ''}
+                        </td>
+                      </tr>
+                    \`).join('')}
+                  </tbody>
+                </table>
+              </div>
+            \`;
+          }
+
+          // Revoke access function
+          async function revokeAccess(accessCodeId) {
+            if (!confirm('Are you sure you want to revoke this access code? The user will no longer be able to access the ebook.')) return;
+            
+            try {
+              const token = getCookie('admin_token');
+              const response = await fetch(\`/api/v1/admin/free-access/revoke/\${accessCodeId}\`, {
+                method: 'PUT',
+                headers: {
+                  'Authorization': \`Bearer \${token}\`
+                }
+              });
+              
+              const data = await response.json();
+              
+              if (data.success) {
+                showAlert('Access code revoked successfully', 'success');
+                loadFreeAccess(); // Reload the list
+              } else {
+                showAlert(data.error || 'Failed to revoke access', 'error');
+              }
+            } catch (error) {
+              console.error('Revoke error:', error);
+              showAlert('Error revoking access', 'error');
+            }
+          }
+
+          // Load Users (placeholder)
+          async function loadUsers() {
+            const content = document.getElementById('contentArea');
+            content.innerHTML = '<div class="empty-state"><i class="fas fa-users"></i><h3>Users Section</h3><p>User management coming soon...</p></div>';
+          }
+
+          // Load Affiliates (placeholder)
+          async function loadAffiliates() {
+            const content = document.getElementById('contentArea');
+            content.innerHTML = '<div class="empty-state"><i class="fas fa-handshake"></i><h3>Affiliates Section</h3><p>Affiliate management coming soon...</p></div>';
+          }
+
+          // Load Settings (placeholder)
           async function loadSettings() {
             const content = document.getElementById('contentArea');
-            content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div><p style="text-align: center;">Settings section coming soon...</p>';
+            content.innerHTML = '<div class="empty-state"><i class="fas fa-cog"></i><h3>Settings</h3><p>Settings coming soon...</p></div>';
           }
 
-          // Load Profile - SIMPLIFIED VERSION
+          // Load Profile
           async function loadProfile() {
             const content = document.getElementById('contentArea');
             content.innerHTML = \`
@@ -1174,6 +1418,7 @@ const adminDashboardController = {
             document.getElementById('freeEmail').value = '';
             document.getElementById('freeName').value = '';
             document.getElementById('freeMessage').value = '';
+            document.getElementById('freeEbook').value = '';
           }
 
           async function sendFreeAccess() {
@@ -1183,16 +1428,28 @@ const adminDashboardController = {
             const ebookId = document.getElementById('freeEbook').value;
 
             if (!email || !ebookId) {
-              alert('Email and Ebook are required');
+              showAlert('Email and Ebook are required', 'error');
+              return;
+            }
+
+            const emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+            if (!emailRegex.test(email)) {
+              showAlert('Please enter a valid email address', 'error');
               return;
             }
 
             try {
+              const token = getCookie('admin_token');
+              if (!token) {
+                window.location.href = '/admin/signin';
+                return;
+              }
+
               const response = await fetch('/api/v1/admin/free-access/send', {
                 method: 'POST',
                 headers: {
                   'Content-Type': 'application/json',
-                  'Authorization': \`Bearer \${getCookie('admin_token')}\`
+                  'Authorization': \`Bearer \${token}\`
                 },
                 body: JSON.stringify({ email, name, ebookId, message })
               });
@@ -1200,24 +1457,32 @@ const adminDashboardController = {
               const data = await response.json();
               
               if (data.success) {
-                alert('Free access code sent successfully!');
+                showAlert(\`Free access code sent to \${email}\`, 'success');
                 closeFreeAccessModal();
-                loadAccessCodes();
+                // Reload the current section
+                if (currentSection === 'free-access') {
+                  loadFreeAccess();
+                } else if (currentSection === 'access-codes') {
+                  loadAccessCodes();
+                }
               } else {
-                alert(data.error || 'Failed to send free access');
+                showAlert(data.error || 'Failed to send free access', 'error');
               }
             } catch (error) {
-              alert('Error sending free access');
+              console.error('Send free access error:', error);
+              showAlert('Error sending free access', 'error');
             }
           }
 
           // Utility Functions
           function searchTransactions() {
-            // Implement search
+            // Implement search functionality
+            console.log('Search transactions');
           }
 
           function filterTransactions() {
-            // Implement filter
+            // Implement filter functionality
+            console.log('Filter transactions');
           }
 
           function viewTransaction(id) {
@@ -1235,9 +1500,7 @@ const adminDashboardController = {
           }
 
           function revokeAccessCode(id) {
-            if (confirm('Are you sure you want to revoke this access code?')) {
-              alert('Revoking access code: ' + id);
-            }
+            revokeAccess(id);
           }
 
           // Toggle functions

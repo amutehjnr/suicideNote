@@ -562,130 +562,138 @@ const adminController = {
   },
 
   /**
-   * Send free access code to email (bypass payment)
-   */
-  async sendFreeAccessCode(req, res) {
-    try {
-      const { email, name, ebookId, message, expiryDays } = req.body;
+ * Send free access code to email (bypass payment)
+ */
+async sendFreeAccessCode(req, res) {
+  try {
+    const { email, name, ebookId, message, expiryDays } = req.body;
 
-      // Validation
-      if (!email) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Email is required' 
-        });
-      }
-
-      if (!ebookId) {
-        return res.status(400).json({ 
-          success: false, 
-          error: 'Ebook ID is required' 
-        });
-      }
-
-      // Find or create user
-      let user = await User.findOne({ email: email.toLowerCase().trim() });
-      let isNewUser = false;
-
-      if (!user) {
-        user = new User({
-          email: email.toLowerCase().trim(),
-          name: name || email.split('@')[0],
-          password: crypto.randomBytes(24).toString('hex'),
-          isVerified: true,
-          role: 'user',
-          isFreeAccessUser: true
-        });
-        await user.save();
-        isNewUser = true;
-        winston.info(`Created new user for free access: ${user.email}`);
-      }
-
-      // Find ebook
-      const ebook = await Ebook.findById(ebookId);
-      if (!ebook) {
-        return res.status(404).json({ 
-          success: false, 
-          error: 'Ebook not found' 
-        });
-      }
-
-      // Create purchase record (free)
-      const purchase = new Purchase({
-        user: user._id,
-        ebook: ebook._id,
-        amount: 0,
-        status: 'completed',
-        paidAt: new Date(),
-        isFreeAccess: true,
-        grantedBy: req.user._id,
-        metadata: {
-          grantedBy: req.user.email,
-          grantedAt: new Date().toISOString(),
-          message: message || 'Free access granted',
-          isFreeAccess: true
-        }
-      });
-      await purchase.save();
-
-      // Generate access code
-      const accessCode = await AccessCode.create({
-        code: `FREE-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
-        user: user._id,
-        ebook: ebook._id,
-        purchase: purchase._id,
-        expiresAt: new Date(Date.now() + (expiryDays || 365) * 24 * 60 * 60 * 1000),
-        isActive: true,
-        isFreeAccess: true,
-        grantedBy: req.user._id,
-        accessCount: 0
-      });
-
-      // Send email with access code
-      const emailResult = await emailService.sendFreeAccessEmail(
-        user.email,
-        user.name || user.email.split('@')[0],
-        accessCode.code,
-        ebook,
-        message || 'Here is your complimentary access code'
-      );
-
-      // Update user's purchased ebooks
-      if (!user.purchasedEbooks) {
-        user.purchasedEbooks = [];
-      }
-      if (!user.purchasedEbooks.includes(ebook._id)) {
-        user.purchasedEbooks.push(ebook._id);
-        await user.save();
-      }
-
-      return res.status(200).json({
-        success: true,
-        message: `Free access code sent to ${email}`,
-        data: {
-          email: user.email,
-          name: user.name,
-          ebook: {
-            _id: ebook._id,
-            title: ebook.title
-          },
-          accessCode: accessCode.code,
-          expiresAt: accessCode.expiresAt,
-          emailSent: emailResult,
-          isNewUser
-        }
-      });
-
-    } catch (error) {
-      console.error('Send free access error:', error);
-      winston.error('Send free access error:', error);
-      return res.status(500).json({ 
+    // Validation
+    if (!email) {
+      return res.status(400).json({ 
         success: false, 
-        error: 'Failed to send free access code',
-        details: error.message 
+        error: 'Email is required' 
       });
     }
-  },
+
+    if (!ebookId) {
+      return res.status(400).json({ 
+        success: false, 
+        error: 'Ebook ID is required' 
+      });
+    }
+
+    // Check if admin is authenticated
+    if (!req.admin) {
+      return res.status(401).json({
+        success: false,
+        error: 'Admin authentication required'
+      });
+    }
+
+    // Find or create user
+    let user = await User.findOne({ email: email.toLowerCase().trim() });
+    let isNewUser = false;
+
+    if (!user) {
+      user = new User({
+        email: email.toLowerCase().trim(),
+        name: name || email.split('@')[0],
+        password: crypto.randomBytes(24).toString('hex'),
+        isVerified: true,
+        role: 'user',
+        isFreeAccessUser: true
+      });
+      await user.save();
+      isNewUser = true;
+      winston.info(`Created new user for free access: ${user.email}`);
+    }
+
+    // Find ebook
+    const ebook = await Ebook.findById(ebookId);
+    if (!ebook) {
+      return res.status(404).json({ 
+        success: false, 
+        error: 'Ebook not found' 
+      });
+    }
+
+    // Create purchase record (free)
+    const purchase = new Purchase({
+      user: user._id,
+      ebook: ebook._id,
+      amount: 0,
+      status: 'completed',
+      paidAt: new Date(),
+      isFreeAccess: true,
+      grantedBy: req.admin._id, // ✅ FIXED: Changed from req.user._id to req.admin._id
+      metadata: {
+        grantedBy: req.admin.email, // ✅ FIXED: Changed from req.user.email to req.admin.email
+        grantedAt: new Date().toISOString(),
+        message: message || 'Free access granted',
+        isFreeAccess: true
+      }
+    });
+    await purchase.save();
+
+    // Generate access code
+    const accessCode = await AccessCode.create({
+      code: `FREE-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(4).toString('hex').toUpperCase()}`,
+      user: user._id,
+      ebook: ebook._id,
+      purchase: purchase._id,
+      expiresAt: new Date(Date.now() + (expiryDays || 365) * 24 * 60 * 60 * 1000),
+      isActive: true,
+      isFreeAccess: true,
+      grantedBy: req.admin._id, // ✅ FIXED: Changed from req.user._id to req.admin._id
+      accessCount: 0
+    });
+
+    // Send email with access code
+    const emailResult = await emailService.sendFreeAccessEmail(
+      user.email,
+      user.name || user.email.split('@')[0],
+      accessCode.code,
+      ebook,
+      message || 'Here is your complimentary access code'
+    );
+
+    // Update user's purchased ebooks
+    if (!user.purchasedEbooks) {
+      user.purchasedEbooks = [];
+    }
+    if (!user.purchasedEbooks.includes(ebook._id)) {
+      user.purchasedEbooks.push(ebook._id);
+      await user.save();
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Free access code sent to ${email}`,
+      data: {
+        email: user.email,
+        name: user.name,
+        ebook: {
+          _id: ebook._id,
+          title: ebook.title
+        },
+        accessCode: accessCode.code,
+        expiresAt: accessCode.expiresAt,
+        emailSent: emailResult,
+        isNewUser
+      }
+    });
+
+  } catch (error) {
+    console.error('Send free access error:', error);
+    winston.error('Send free access error:', error);
+    return res.status(500).json({ 
+      success: false, 
+      error: 'Failed to send free access code',
+      details: error.message 
+    });
+  }
+},
 
   /**
    * Bulk send free access codes
