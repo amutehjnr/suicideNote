@@ -49,7 +49,6 @@ const app = express();
 // ================== CORE MIDDLEWARE ==================
 console.log('🔧 Registering core middleware...');
 
-// ⚠️ IMPORTANT: express.json MUST come BEFORE routes
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
@@ -110,12 +109,12 @@ app.post('/test-simple', (req, res) => {
   });
 });
 
-// ================== ✅ FIX: ADMIN ROUTES FIRST ==================
+// ================== ✅ ADMIN ROUTES - FIRST PRIORITY ==================
 console.log('🔧 Registering admin routes...');
 app.use('/admin', adminRoutes); // For admin pages
 app.use('/api/v1/admin', adminRoutes); // For admin API
 
-// ================== ✅ MAIN API ROUTES SECOND ==================
+// ================== ✅ MAIN API ROUTES ==================
 console.log('🔧 Registering API routes...');
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/ebooks', ebookRoutes);
@@ -131,14 +130,14 @@ app.get('/health', (req, res) => {
   });
 });
 
-// ================== ✅ FRONTEND STATIC FILES THIRD ==================
+// ================== ✅ FRONTEND STATIC FILES ==================
 app.use(express.static(distPath));
 
-// ================== ✅ SPA FALLBACK - ONLY FOR NON-API/NON-ADMIN ROUTES ==================
+// ================== ✅ SPA FALLBACK - AFTER ALL OTHER ROUTES ==================
 app.get('*', (req, res, next) => {
-  // Skip API and admin routes
+  // Skip API, admin, and health routes
   if (req.originalUrl.startsWith('/api')) return next();
-  if (req.originalUrl.startsWith('/admin')) return next(); // ✅ IMPORTANT: Skip admin routes
+  if (req.originalUrl.startsWith('/admin')) return next(); // CRITICAL: Skip admin routes
   if (req.originalUrl.startsWith('/health')) return next();
 
   // Serve index.html for all other routes (React Router)
@@ -161,8 +160,7 @@ app.use((err, req, res, next) => {
   res.status(err.statusCode || 500).json({
     success: false,
     error: 'Internal server error',
-    message:
-      process.env.NODE_ENV === 'development' ? err.message : undefined,
+    message: process.env.NODE_ENV === 'development' ? err.message : undefined,
   });
 });
 
@@ -173,7 +171,8 @@ const server = app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
   console.log(`✅ Health → http://localhost:${PORT}/health`);
   console.log(`✅ Test → http://localhost:${PORT}/test-simple`);
-  console.log(`✅ Admin → http://localhost:${PORT}/admin/signin`);
+  console.log(`✅ Admin Login → http://localhost:${PORT}/admin/signin`);
+  console.log(`✅ Admin Dashboard → http://localhost:${PORT}/admin/dashboard`);
 });
 
 server.on('error', (error) => {
