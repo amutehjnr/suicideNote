@@ -318,11 +318,12 @@ async getAllAccessCodes(req, res) {
 
     const query = {};
 
-    // Apply filters - with proper handling
+    // Apply filters
     if (isActive !== undefined && isActive !== '') {
       query.isActive = isActive === 'true';
     }
     
+    // isFreeAccess exists in your schema ✅
     if (isFreeAccess !== undefined && isFreeAccess !== '') {
       query.isFreeAccess = isFreeAccess === 'true';
     }
@@ -339,13 +340,13 @@ async getAllAccessCodes(req, res) {
       }
     }
     
-    // Email search - handle properly
+    // Handle email search
     if (email && email.trim() !== '') {
       const user = await User.findOne({ email: new RegExp(email, 'i') }).lean();
       if (user) {
         query.user = user._id;
       } else {
-        // If no user found with that email, return empty results
+        // No user found, return empty results
         return res.status(200).json({
           success: true,
           data: {
@@ -368,13 +369,12 @@ async getAllAccessCodes(req, res) {
 
     console.log('Access codes query:', JSON.stringify(query));
 
-    // Get access codes with proper population
+    // Get access codes with only the populations that exist in your schema
     const accessCodes = await AccessCode.find(query)
       .populate('user', 'email name')
       .populate('ebook', 'title slug')
       .populate('purchase', 'transactionReference amount')
-      .populate('grantedBy', 'email name')
-      .populate('revokedBy', 'email name')
+      // Remove grantedBy and revokedBy - they don't exist in your schema
       .sort({ createdAt: -1 })
       .skip((Number(page) - 1) * Number(limit))
       .limit(Number(limit))
@@ -382,22 +382,20 @@ async getAllAccessCodes(req, res) {
 
     const total = await AccessCode.countDocuments(query);
 
-    // Get usage statistics
-    const stats = await AccessCode.aggregate([
-      { $match: query },
-      { $group: {
-        _id: null,
-        totalAccesses: { $sum: '$accessCount' },
-        avgAccesses: { $avg: '$accessCount' },
-        expired: { 
-          $sum: { 
-            $cond: [{ $lt: ['$expiresAt', new Date()] }, 1, 0] 
-          } 
-        }
-      }}
-    ]).catch(err => []);
+    // Calculate expiration stats
+    const now = new Date();
+    let totalAccesses = 0;
+    let expired = 0;
+    
+    accessCodes.forEach(code => {
+      totalAccesses += code.accessCount || 0;
+      if (code.expiresAt < now) {
+        expired++;
+      }
+    });
+    
+    const avgAccesses = accessCodes.length > 0 ? totalAccesses / accessCodes.length : 0;
 
-    // Log for debugging
     console.log(`Found ${accessCodes.length} access codes out of ${total} total`);
 
     return res.status(200).json({
@@ -410,10 +408,10 @@ async getAllAccessCodes(req, res) {
           total,
           pages: Math.ceil(total / Number(limit)) || 1
         },
-        stats: stats[0] || {
-          totalAccesses: 0,
-          avgAccesses: 0,
-          expired: 0
+        stats: {
+          totalAccesses,
+          avgAccesses,
+          expired
         }
       }
     });

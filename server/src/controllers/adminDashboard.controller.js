@@ -760,12 +760,10 @@ const adminDashboardController = {
             try {
               // Try to get token from cookie first
               let token = getCookie('admin_token');
-              let tokenSource = 'cookie';
               
               // If not in cookie, try sessionStorage
               if (!token) {
                 token = sessionStorage.getItem('admin_token');
-                tokenSource = 'sessionStorage';
                 console.log('🔑 Token from sessionStorage:', token ? 'Present' : 'Missing');
                 
                 // If found in sessionStorage, set it back as cookie
@@ -842,7 +840,6 @@ const adminDashboardController = {
 
           let currentSection = 'dashboard';
           let currentPage = 1;
-          let isRefreshing = false;
 
           // Load initial dashboard
           document.addEventListener('DOMContentLoaded', async () => {
@@ -915,17 +912,17 @@ const adminDashboardController = {
             currentSection = section;
             currentPage = 1;
             
-            // Update active nav - only if we have links
+            // Update active nav
             const navLinks = document.querySelectorAll('.nav-link');
             navLinks.forEach(link => {
               link.classList.remove('active');
             });
             
-            // Only try to add active class if event and event.currentTarget exist
+            // Try to add active class to the clicked link
             if (event && event.currentTarget) {
               event.currentTarget.classList.add('active');
             } else {
-              // If no event, find the link by section name and activate it
+              // Find the link by section name
               navLinks.forEach(link => {
                 const onclickAttr = link.getAttribute('onclick');
                 if (onclickAttr && onclickAttr.includes(section)) {
@@ -1326,7 +1323,7 @@ const adminDashboardController = {
             \`;
           }
 
-          // Load Access Codes
+          // Load Access Codes - FIXED VERSION
           async function loadAccessCodes(page = 1) {
             const content = document.getElementById('contentArea');
             if (!content) return;
@@ -1365,9 +1362,25 @@ const adminDashboardController = {
             }
           }
 
+          // FIXED: Updated to match your schema (removed grantedBy/revokedBy)
           function renderAccessCodes(data) {
             const content = document.getElementById('contentArea');
             if (!content) return;
+            
+            // Handle empty state
+            if (!data.accessCodes || data.accessCodes.length === 0) {
+              content.innerHTML = \`
+                <div class="empty-state">
+                  <i class="fas fa-key"></i>
+                  <h3>No Access Codes Found</h3>
+                  <p>There are no access codes in the system yet.</p>
+                  <button class="primary" onclick="showFreeAccessModal()" style="padding: 12px 30px; background: #667eea; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    <i class="fas fa-gift"></i> Send Your First Free Access
+                  </button>
+                </div>
+              \`;
+              return;
+            }
             
             content.innerHTML = \`
               <div style="background: white; padding: 25px; border-radius: 15px;">
@@ -1378,42 +1391,44 @@ const adminDashboardController = {
                   </button>
                 </div>
 
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>User</th>
-                      <th>Ebook</th>
-                      <th>Status</th>
-                      <th>Type</th>
-                      <th>Used</th>
-                      <th>Expires</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    \${(data.accessCodes || []).map(c => \`
+                <div style="overflow-x: auto;">
+                  <table>
+                    <thead>
                       <tr>
-                        <td>\${c.code}</td>
-                        <td>\${c.user?.email?.split('@')[0] || 'N/A'}</td>
-                        <td>\${c.ebook?.title?.substring(0, 15) || 'N/A'}</td>
-                        <td><span class="status-badge \${c.isActive ? 'active' : 'inactive'}">\${c.isActive ? 'Active' : 'Inactive'}</span></td>
-                        <td>\${c.isFreeAccess ? 'Free' : 'Paid'}</td>
-                        <td>\${c.accessCount || 0}</td>
-                        <td>\${new Date(c.expiresAt).toLocaleDateString()}</td>
-                        <td>
-                          <button class="action-btn view" onclick="viewAccessCode('\${c._id}')">View</button>
-                          \${c.isActive ? \`
-                            <button class="action-btn delete" onclick="revokeAccessCode('\${c._id}')">Revoke</button>
-                          \` : ''}
-                        </td>
+                        <th>Code</th>
+                        <th>User</th>
+                        <th>Ebook</th>
+                        <th>Status</th>
+                        <th>Type</th>
+                        <th>Used</th>
+                        <th>Expires</th>
+                        <th>Actions</th>
                       </tr>
-                    \`).join('')}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      \${data.accessCodes.map(c => \`
+                        <tr>
+                          <td><strong>\${c.code}</strong></td>
+                          <td>\${c.user?.email?.split('@')[0] || 'N/A'}</td>
+                          <td>\${c.ebook?.title?.substring(0, 20) || 'N/A'}</td>
+                          <td><span class="status-badge \${c.isActive ? 'active' : 'inactive'}">\${c.isActive ? 'Active' : 'Inactive'}</span></td>
+                          <td><span class="status-badge \${c.isFreeAccess ? 'free' : 'paid'}" style="background: \${c.isFreeAccess ? '#f0e6ff' : '#e6f7ff'}; color: \${c.isFreeAccess ? '#9b59b6' : '#1890ff'};">\${c.isFreeAccess ? 'Free' : 'Paid'}</span></td>
+                          <td>\${c.accessCount || 0}</td>
+                          <td>\${new Date(c.expiresAt).toLocaleDateString()}</td>
+                          <td>
+                            <button class="action-btn view" onclick="viewAccessCode('\${c._id}')">View</button>
+                            \${c.isActive ? \`
+                              <button class="action-btn delete" onclick="revokeAccessCode('\${c._id}')">Revoke</button>
+                            \` : ''}
+                          </td>
+                        </tr>
+                      \`).join('')}
+                    </tbody>
+                  </table>
+                </div>
 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                  <p>Showing \${data.accessCodes?.length || 0} of \${data.pagination?.total || 0} access codes</p>
+                  <p>Showing \${data.accessCodes.length} of \${data.pagination?.total || 0} access codes</p>
                   <div>
                     \${Array.from({ length: data.pagination?.pages || 1 }, (_, i) => i + 1).map(p => \`
                       <button onclick="loadAccessCodes(\${p})" style="padding: 5px 10px; margin: 0 5px; border: 1px solid #ddd; border-radius: 5px; background: \${p === data.pagination?.page ? '#667eea' : 'white'}; color: \${p === data.pagination?.page ? 'white' : '#333'};">\${p}</button>
@@ -1463,6 +1478,7 @@ const adminDashboardController = {
             }
           }
 
+          // FIXED: Updated free access grants to match your schema
           function renderFreeAccessGrants(grants) {
             const content = document.getElementById('contentArea');
             if (!content) return;
@@ -1490,36 +1506,36 @@ const adminDashboardController = {
                   </button>
                 </div>
 
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Recipient</th>
-                      <th>Ebook</th>
-                      <th>Granted By</th>
-                      <th>Status</th>
-                      <th>Expires</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    \${grants.map(grant => \`
+                <div style="overflow-x: auto;">
+                  <table>
+                    <thead>
                       <tr>
-                        <td>\${grant.code}</td>
-                        <td>\${grant.user?.email?.split('@')[0] || 'N/A'}</td>
-                        <td>\${grant.ebook?.title?.substring(0, 20) || 'N/A'}</td>
-                        <td>\${grant.grantedBy?.email?.split('@')[0] || 'N/A'}</td>
-                        <td><span class="status-badge \${grant.isActive ? 'active' : 'inactive'}">\${grant.isActive ? 'Active' : 'Inactive'}</span></td>
-                        <td>\${new Date(grant.expiresAt).toLocaleDateString()}</td>
-                        <td>
-                          \${grant.isActive ? \`
-                            <button class="action-btn delete" onclick="revokeAccess('\${grant._id}')">Revoke</button>
-                          \` : ''}
-                        </td>
+                        <th>Code</th>
+                        <th>Recipient</th>
+                        <th>Ebook</th>
+                        <th>Status</th>
+                        <th>Expires</th>
+                        <th>Actions</th>
                       </tr>
-                    \`).join('')}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      \${grants.map(grant => \`
+                        <tr>
+                          <td><strong>\${grant.code}</strong></td>
+                          <td>\${grant.user?.email?.split('@')[0] || 'N/A'}</td>
+                          <td>\${grant.ebook?.title?.substring(0, 20) || 'N/A'}</td>
+                          <td><span class="status-badge \${grant.isActive ? 'active' : 'inactive'}">\${grant.isActive ? 'Active' : 'Inactive'}</span></td>
+                          <td>\${new Date(grant.expiresAt).toLocaleDateString()}</td>
+                          <td>
+                            \${grant.isActive ? \`
+                              <button class="action-btn delete" onclick="revokeAccess('\${grant._id}')">Revoke</button>
+                            \` : 'Revoked'}
+                          </td>
+                        </tr>
+                      \`).join('')}
+                    </tbody>
+                  </table>
+                </div>
               </div>
             \`;
           }
@@ -1548,6 +1564,7 @@ const adminDashboardController = {
               if (data.success) {
                 showAlert('Access code revoked successfully', 'success');
                 await loadFreeAccess(); // Reload the list
+                await loadAccessCodes(); // Also reload access codes
               } else {
                 showAlert(data.error || 'Failed to revoke access', 'error');
               }
