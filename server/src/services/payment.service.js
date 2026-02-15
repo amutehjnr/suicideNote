@@ -12,7 +12,7 @@ const emailService = require('./email.service');
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
-// Helper function to send access code email
+// Helper function to send access code email with proper name handling
 async function sendAccessCodeEmail(purchase, accessCode) {
   try {
     console.log('📧 ===== SENDING ACCESS CODE EMAIL =====');
@@ -25,9 +25,18 @@ async function sendAccessCodeEmail(purchase, accessCode) {
       return false;
     }
     
+    // ✅ FIX: Get the name from multiple possible sources
+    const userName = purchase.user?.name || 
+                     purchase.metadata?.guestName || 
+                     purchase.metadata?.name ||
+                     purchase.user?.email?.split('@')[0] || 
+                     'Valued Reader';
+    
+    console.log('📧 User name resolved to:', userName);
+    
     const result = await emailService.sendAccessCodeEmail(
       purchase.user.email,
-      purchase.user.name || purchase.user.email.split('@')[0],
+      userName, // Pass the resolved name
       accessCode.code,
       purchase.ebook
     );

@@ -587,6 +587,62 @@ class EmailService {
     return this.sendEmailViaBrevo(to, '💰 Affiliate Payout Processed!', htmlContent);
   }
 
+  async sendFreeAccessEmail(to, name, accessCode, ebook, customMessage) {
+  const frontendUrl = process.env.FRONTEND_URL || 'https://suicidenote.onrender.com';
+  const accessUrl = `${frontendUrl}/access/${ebook.slug || ebook._id}?code=${accessCode}`;
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(to right, #9b59b6, #8e44ad); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .code-box { background: white; padding: 20px; text-align: center; border: 2px dashed #9b59b6; font-family: monospace; font-size: 28px; font-weight: bold; color: #9b59b6; margin: 20px 0; border-radius: 5px; }
+        .message-box { background: #e8f4fd; padding: 15px; border-left: 4px solid #3498db; margin: 20px 0; }
+        .button { display: inline-block; background: #9b59b6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎁 You've Received Complimentary Access!</h1>
+        </div>
+        <div class="content">
+          <h2>Hello ${name},</h2>
+          
+          <div class="message-box">
+            <p>${customMessage || 'We\'re pleased to offer you complimentary access to our ebook.'}</p>
+          </div>
+          
+          <p>You now have free access to <strong>"${ebook.title}"</strong>. Your personal access code is below:</p>
+          
+          <div class="code-box">${accessCode}</div>
+          
+          <p style="text-align: center;">
+            <a href="${accessUrl}" class="button">Access Your Ebook</a>
+          </p>
+          
+          <p>This code will never expire. Keep it safe to access your ebook anytime.</p>
+          
+          <p>Happy reading!</p>
+          <p><strong>The Suicide Note Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>© 2026 Suicide Note. All rights reserved.</p>
+          <p>Lagos, Nigeria</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
+
+  return this.sendEmailViaBrevo(to, `🎁 Complimentary Access to ${ebook.title}`, htmlContent);
+}
+
   /**
    * Core method to send email via Brevo API
    */

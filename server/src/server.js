@@ -8,6 +8,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const cookieParser = require('cookie-parser');
 const winston = require('winston');
 const path = require('path');
+const adminRoutes = require('./routes/admin.routes');
 
 console.log('🚀 Starting server...');
 
@@ -108,6 +109,9 @@ app.post('/test-simple', (req, res) => {
     body: req.body,
   });
 });
+
+app.use('/admin', adminRoutes); // For pages
+app.use('/api/v1/admin', adminRoutes); // For API
 
 // ================== MAIN ROUTES ==================
 console.log('🔧 Registering API routes...');
