@@ -18,6 +18,9 @@ const adminDashboardController = {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Admin Dashboard - Suicide Note</title>
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
         <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
         <style>
           * {
@@ -714,7 +717,19 @@ const adminDashboardController = {
           function getCookie(name) {
             const value = \`; \${document.cookie}\`;
             const parts = value.split(\`; \${name}=\`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
+            if (parts.length === 2) {
+              return parts.pop().split(';').shift();
+            }
+            return null;
+          }
+
+          // Helper function to set cookie
+          function setCookie(name, value, days = 1) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + date.toUTCString();
+            const secure = window.location.protocol === 'https:' ? 'secure;' : '';
+            document.cookie = \`\${name}=\${value}; \${expires}; path=/; sameSite=lax; \${secure}\`;
           }
 
           // Show alert message
@@ -730,12 +745,26 @@ const adminDashboardController = {
 
           // Check authentication status
           async function checkAuth() {
-            const token = getCookie('admin_token');
-            console.log('🔑 Token from cookie:', token ? 'Present' : 'Missing');
+            // Try to get token from cookie first
+            let token = getCookie('admin_token');
+            
+            // If not in cookie, try sessionStorage
+            if (!token) {
+              token = sessionStorage.getItem('admin_token');
+              console.log('🔑 Token from sessionStorage:', token ? 'Present' : 'Missing');
+              
+              // If found in sessionStorage, set it back as cookie
+              if (token) {
+                setCookie('admin_token', token, 1);
+                console.log('✅ Restored token from sessionStorage to cookie');
+              }
+            } else {
+              console.log('🔑 Token from cookie: Present');
+            }
             
             if (!token) {
               console.log('❌ No token found, redirecting to login');
-              window.location.href = '/admin/signin';
+              window.location.href = '/admin/signin?error=no_token';
               return false;
             }
 
@@ -744,7 +773,8 @@ const adminDashboardController = {
               const response = await fetch('/api/v1/admin/auth/profile', {
                 headers: {
                   'Authorization': \`Bearer \${token}\`
-                }
+                },
+                credentials: 'include'
               });
 
               if (response.status === 401) {
@@ -757,11 +787,19 @@ const adminDashboardController = {
                 });
 
                 if (refreshResponse.ok) {
+                  const refreshData = await refreshResponse.json();
                   console.log('✅ Token refreshed successfully');
+                  
+                  // Update token in both cookie and sessionStorage
+                  if (refreshData.token) {
+                    setCookie('admin_token', refreshData.token, 1);
+                    sessionStorage.setItem('admin_token', refreshData.token);
+                  }
                   return true;
                 } else {
                   console.log('❌ Token refresh failed');
-                  window.location.href = '/admin/signin';
+                  sessionStorage.removeItem('admin_token');
+                  window.location.href = '/admin/signin?error=session_expired';
                   return false;
                 }
               }
@@ -793,6 +831,8 @@ const adminDashboardController = {
 
           // Load initial dashboard
           document.addEventListener('DOMContentLoaded', async () => {
+            console.log('📊 Dashboard loading...');
+            
             // Set admin info in the UI
             document.getElementById('adminName').textContent = adminData.name;
             document.getElementById('adminInitial').textContent = adminData.initial;
@@ -809,7 +849,7 @@ const adminDashboardController = {
           // Load ebooks for select dropdown
           async function loadEbooksForSelect() {
             try {
-              const token = getCookie('admin_token');
+              const token = getCookie('admin_token') || sessionStorage.getItem('admin_token');
               if (!token) return;
 
               const response = await fetch('/api/v1/ebooks', {
@@ -907,7 +947,7 @@ const adminDashboardController = {
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
-              const token = getCookie('admin_token');
+              const token = getCookie('admin_token') || sessionStorage.getItem('admin_token');
               if (!token) {
                 await checkAuth();
                 return;
@@ -916,7 +956,8 @@ const adminDashboardController = {
               const response = await fetch('/api/v1/admin/dashboard/stats', {
                 headers: {
                   'Authorization': \`Bearer \${token}\`
-                }
+                },
+                credentials: 'include'
               });
               
               if (response.status === 401) {
@@ -1126,7 +1167,7 @@ const adminDashboardController = {
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
-              const token = getCookie('admin_token');
+              const token = getCookie('admin_token') || sessionStorage.getItem('admin_token');
               if (!token) {
                 await checkAuth();
                 return;
@@ -1135,7 +1176,8 @@ const adminDashboardController = {
               const response = await fetch(\`/api/v1/admin/transactions?page=\${page}\`, {
                 headers: {
                   'Authorization': \`Bearer \${token}\`
-                }
+                },
+                credentials: 'include'
               });
               
               if (response.status === 401) {
@@ -1224,7 +1266,7 @@ const adminDashboardController = {
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
-              const token = getCookie('admin_token');
+              const token = getCookie('admin_token') || sessionStorage.getItem('admin_token');
               if (!token) {
                 await checkAuth();
                 return;
@@ -1233,7 +1275,8 @@ const adminDashboardController = {
               const response = await fetch(\`/api/v1/admin/access-codes?page=\${page}\`, {
                 headers: {
                   'Authorization': \`Bearer \${token}\`
-                }
+                },
+                credentials: 'include'
               });
               
               if (response.status === 401) {
@@ -1318,7 +1361,7 @@ const adminDashboardController = {
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
 
             try {
-              const token = getCookie('admin_token');
+              const token = getCookie('admin_token') || sessionStorage.getItem('admin_token');
               if (!token) {
                 await checkAuth();
                 return;
@@ -1327,7 +1370,8 @@ const adminDashboardController = {
               const response = await fetch('/api/v1/admin/free-access/grants', {
                 headers: {
                   'Authorization': \`Bearer \${token}\`
-                }
+                },
+                credentials: 'include'
               });
               
               if (response.status === 401) {
@@ -1413,12 +1457,13 @@ const adminDashboardController = {
             if (!confirm('Are you sure you want to revoke this access code? The user will no longer be able to access the ebook.')) return;
             
             try {
-              const token = getCookie('admin_token');
+              const token = getCookie('admin_token') || sessionStorage.getItem('admin_token');
               const response = await fetch(\`/api/v1/admin/free-access/revoke/\${accessCodeId}\`, {
                 method: 'PUT',
                 headers: {
                   'Authorization': \`Bearer \${token}\`
-                }
+                },
+                credentials: 'include'
               });
               
               if (response.status === 401) {
@@ -1505,7 +1550,7 @@ const adminDashboardController = {
             }
 
             try {
-              const token = getCookie('admin_token');
+              const token = getCookie('admin_token') || sessionStorage.getItem('admin_token');
               if (!token) {
                 await checkAuth();
                 return;
@@ -1517,6 +1562,7 @@ const adminDashboardController = {
                   'Content-Type': 'application/json',
                   'Authorization': \`Bearer \${token}\`
                 },
+                credentials: 'include',
                 body: JSON.stringify({ email, name, ebookId, message })
               });
 
@@ -1547,12 +1593,10 @@ const adminDashboardController = {
 
           // Utility Functions
           function searchTransactions() {
-            // Implement search functionality
             console.log('Search transactions');
           }
 
           function filterTransactions() {
-            // Implement filter functionality
             console.log('Filter transactions');
           }
 
@@ -1590,13 +1634,15 @@ const adminDashboardController = {
             
             try {
               const response = await fetch('/api/v1/admin/auth/signout', {
-                method: 'POST'
+                method: 'POST',
+                credentials: 'include'
               });
               
               if (response.ok) {
                 // Clear cookies
                 document.cookie = 'admin_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
                 document.cookie = 'admin_refresh_token=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+                sessionStorage.removeItem('admin_token');
                 window.location.href = '/admin/signin';
               }
             } catch (error) {

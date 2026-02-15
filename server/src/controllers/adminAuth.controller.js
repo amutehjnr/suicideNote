@@ -12,6 +12,7 @@ const ADMIN_COOKIE_OPTIONS = {
   secure: process.env.NODE_ENV === 'production',
   sameSite: 'lax',
   path: '/',
+  domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
   maxAge: 24 * 60 * 60 * 1000 // 1 day
 };
 
@@ -27,6 +28,9 @@ const adminAuthController = {
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <title>Admin Sign In - Suicide Note</title>
+        <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+        <meta http-equiv="Pragma" content="no-cache">
+        <meta http-equiv="Expires" content="0">
         <style>
           * {
             margin: 0;
@@ -361,7 +365,7 @@ const adminAuthController = {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password, remember }),
-                credentials: 'include' // ✅ CRITICAL: This ensures cookies are saved
+                credentials: 'include'
               });
 
               const data = await response.json();
@@ -369,9 +373,14 @@ const adminAuthController = {
               if (data.success) {
                 showAlert('Login successful! Redirecting...', 'success');
                 
+                // Store token in sessionStorage as backup
+                if (data.token) {
+                  sessionStorage.setItem('admin_token', data.token);
+                  console.log('Token stored in sessionStorage');
+                }
+                
                 // Small delay to ensure cookies are set
                 setTimeout(() => {
-                  // Use the redirect from response or default to dashboard
                   window.location.href = data.redirect || '/admin/dashboard';
                 }, 500);
               } else {
@@ -387,10 +396,14 @@ const adminAuthController = {
             }
           });
 
-          // Check if there's an error parameter in URL
+          // Check for error parameters
           const urlParams = new URLSearchParams(window.location.search);
           if (urlParams.get('error') === 'session_expired') {
             showAlert('Your session has expired. Please login again.', 'error');
+          } else if (urlParams.get('error') === 'no_token') {
+            showAlert('Please login to access the admin area.', 'error');
+          } else if (urlParams.get('error') === 'auth_required') {
+            showAlert('Authentication required. Please login.', 'error');
           }
         </script>
       </body>
@@ -459,7 +472,8 @@ const adminAuthController = {
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
-        maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000 // 7 days if remember, else 1 day
+        domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
+        maxAge: remember ? 7 * 24 * 60 * 60 * 1000 : 24 * 60 * 60 * 1000
       };
 
       // Set cookies
@@ -468,11 +482,12 @@ const adminAuthController = {
 
       winston.info(`Admin logged in: ${admin.email}`);
 
-      // Return success with explicit redirect path
+      // Return success with token in response body as backup
       return res.status(200).json({
         success: true,
         message: 'Login successful',
-        redirect: '/admin/dashboard', // ✅ Explicit redirect path
+        redirect: '/admin/dashboard',
+        token: token,
         data: {
           admin: {
             id: admin._id,
@@ -480,8 +495,7 @@ const adminAuthController = {
             name: admin.name,
             role: admin.role,
             permissions: admin.permissions
-          },
-          token
+          }
         }
       });
 
@@ -500,9 +514,16 @@ const adminAuthController = {
    */
   async signOut(req, res) {
     try {
-      // Clear cookies
-      res.clearCookie('admin_token', { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production' });
-      res.clearCookie('admin_refresh_token', { path: '/', httpOnly: true, secure: process.env.NODE_ENV === 'production' });
+      // Clear cookies with same options
+      const cookieOptions = {
+        path: '/',
+        domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production'
+      };
+      
+      res.clearCookie('admin_token', cookieOptions);
+      res.clearCookie('admin_refresh_token', cookieOptions);
       
       return res.status(200).json({
         success: true,
@@ -741,13 +762,16 @@ const adminAuthController = {
       const newToken = admin.generateAuthToken();
       
       // Set new token cookie
-      res.cookie('admin_token', newToken, {
+      const cookieOptions = {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production',
         sameSite: 'lax',
         path: '/',
+        domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined,
         maxAge: 24 * 60 * 60 * 1000
-      });
+      };
+
+      res.cookie('admin_token', newToken, cookieOptions);
 
       return res.status(200).json({
         success: true,
@@ -794,7 +818,7 @@ const adminAuthController = {
       await admin.save();
 
       // Send reset email
-      const resetUrl = `${process.env.ADMIN_URL || process.env.FRONTEND_URL}/reset-password?token=${resetToken}`;
+      const resetUrl = `${process.env.ADMIN_URL || process.env.FRONTEND_URL || 'https://suicidenote.onrender.com'}/reset-password?token=${resetToken}`;
       
       await emailService.sendPasswordResetEmail(admin.email, resetUrl);
 
