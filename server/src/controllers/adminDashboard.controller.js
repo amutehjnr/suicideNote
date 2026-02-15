@@ -653,7 +653,8 @@ const adminDashboardController = {
             name: '${req.admin.name}',
             role: '${req.admin.role}',
             initial: '${req.admin.name.charAt(0).toUpperCase()}',
-            id: '${req.admin._id}'
+            id: '${req.admin._id}',
+            email: '${req.admin.email}'
           };
 
           let currentSection = 'dashboard';
@@ -1147,17 +1148,17 @@ const adminDashboardController = {
             content.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div><p style="text-align: center;">Settings section coming soon...</p>';
           }
 
-          // Load Profile
+          // Load Profile - SIMPLIFIED VERSION
           async function loadProfile() {
             const content = document.getElementById('contentArea');
             content.innerHTML = \`
-              <div style="background: white; padding: 30px; border-radius: 15px;">
-                <h2>My Profile</h2>
-                <div style="margin-top: 20px;">
-                  <p><strong>Name:</strong> \${adminData.name}</p>
-                  <p><strong>Email:</strong> \${adminData.role === 'superadmin' ? '${req.admin.email}' : 'Hidden'}</p>
-                  <p><strong>Role:</strong> \${adminData.role}</p>
-                  <p><strong>ID:</strong> \${adminData.id}</p>
+              <div style="background: white; padding: 30px; border-radius: 15px; max-width: 600px; margin: 0 auto;">
+                <h2 style="margin-bottom: 20px; color: #333;">My Profile</h2>
+                <div style="background: #f9f9f9; padding: 20px; border-radius: 10px;">
+                  <p style="margin: 10px 0;"><strong>Name:</strong> \${adminData.name}</p>
+                  <p style="margin: 10px 0;"><strong>Email:</strong> \${adminData.email}</p>
+                  <p style="margin: 10px 0;"><strong>Role:</strong> \${adminData.role}</p>
+                  <p style="margin: 10px 0;"><strong>ID:</strong> \${adminData.id}</p>
                 </div>
               </div>
             \`;
@@ -1276,7 +1277,7 @@ const adminDashboardController = {
         </script>
       </body>
       </html>
-    \`;
+    `;
     
     res.send(html);
   }
