@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import PaymentService from '../../services/PaymentService';
 import toast from 'react-hot-toast';
-import './ReaderPage.css'; // We'll use CSS instead of modules for the HTML styles
+import './ReaderPage.css';
 
 // Book content divided into multiple pages/chapters
 const BOOK_CONTENT = [
@@ -50,12 +50,16 @@ This is for humanity, in all its broken, beautiful glory.`,
   {
     page: 4,
     chapter: "Chapter 1: The Note Begins",
-    content: `Someone. Anyone. Maybe no one.
+    content: `I'm writing this because I need someone to understand.
+
+Not my mother, who will cry and ask what she did wrong. Not my father, who will wonder where he failed as a man. Not Tola, too busy with her husband and children to notice I've been disappearing for years. Not Deji, who has exams next week and a future that shouldn't be shadowed by this.
+
+Someone. Anyone. Maybe no one.
 
 I'm using loose sheets torn from an old exercise book that I used in my final year at LASU, pages still blank after the semester ended. I told myself I'd use them for something eventually. Grocery lists, maybe. Or tracking my Clash of Clans progress. But they've sat in that wardrobe for two years, and tonight, I finally know what they're for.
 
 It's Friday, November 15, 2024. 11:47 PM. NEPA took light around nine—unusual, because they normally let us have power until at least ten on weekends. I'm sitting at the small table in my self-contain, writing by the light of my phone's flashlight propped against the wall. The battery is at 23%.`,
-    wordCount: 120
+    wordCount: 180
   },
   {
     page: 5,
@@ -315,14 +319,16 @@ const ReaderPage = () => {
   
   const [currentPage, setCurrentPage] = useState(4);
   const [chapOpen, setChapOpen] = useState(false);
-  const [currentChapter, setCurrentChapter] = useState('Chapter 1: The Note Begins');
   
   // State from ReaderPage
   const [accessCode, setAccessCode] = useState('');
   const [isValidAccess, setIsValidAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [bookmark, setBookmark] = useState(null);
-  const [progress, setProgress] = useState(0);
+
+  // Get current chapter based on page
+  const currentContent = BOOK_CONTENT.find(page => page.page === currentPage) || BOOK_CONTENT[3];
+  const currentChapter = currentContent.chapter;
 
   // Initialize access
   useEffect(() => {
@@ -346,14 +352,12 @@ const ReaderPage = () => {
             setAccessCode(savedCode);
             setIsValidAccess(true);
             
-            // Restore bookmark
+            // Restore bookmark if exists
             const savedBookmark = localStorage.getItem(`bookmark_${ebookId}`);
             if (savedBookmark) {
               const page = parseInt(savedBookmark);
               if (page > 0 && page <= BOOK_CONTENT.length) {
                 setCurrentPage(page);
-                setCurrentChapter(BOOK_CONTENT[page - 1].chapter);
-                setProgress(Math.round((page / BOOK_CONTENT.length) * 100));
               }
             }
             
@@ -417,8 +421,6 @@ const ReaderPage = () => {
     if (isValidAccess && currentPage) {
       localStorage.setItem(`bookmark_${ebookId}`, currentPage.toString());
       setBookmark(currentPage);
-      const newProgress = Math.round((currentPage / BOOK_CONTENT.length) * 100);
-      setProgress(newProgress);
     }
   }, [currentPage, ebookId, isValidAccess]);
 
@@ -447,29 +449,22 @@ const ReaderPage = () => {
 
   const handleChapterSelect = (chapter, pageNum) => {
     setCurrentPage(pageNum);
-    setCurrentChapter(chapter);
     setChapOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Page navigation
-  const goToPage = (pageNumber) => {
-    if (pageNumber >= 1 && pageNumber <= BOOK_CONTENT.length) {
-      setCurrentPage(pageNumber);
-      setCurrentChapter(BOOK_CONTENT[pageNumber - 1].chapter);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      goToPage(currentPage - 1);
+      setCurrentPage(prev => prev - 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < TOTAL_PAGES) {
-      goToPage(currentPage + 1);
+      setCurrentPage(prev => prev + 1);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -484,10 +479,12 @@ const ReaderPage = () => {
         handlePrevPage();
       } else if (e.key === 'Home') {
         e.preventDefault();
-        goToPage(1);
+        setCurrentPage(1);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else if (e.key === 'End') {
         e.preventDefault();
-        goToPage(BOOK_CONTENT.length);
+        setCurrentPage(TOTAL_PAGES);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       }
     };
 
@@ -495,15 +492,35 @@ const ReaderPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentPage]);
 
-  // Get current page content
-  const currentContent = BOOK_CONTENT.find(page => page.page === currentPage) || BOOK_CONTENT[3];
+  // Progress percentage
+  const progressPercentage = (currentPage / TOTAL_PAGES) * 100;
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p className="loading-text">Loading your book...</p>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        background: 'var(--bg)'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid var(--border)',
+          borderTopColor: 'var(--accent)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite',
+          marginBottom: '16px'
+        }}></div>
+        <p style={{ color: 'var(--text)' }}>Loading your book...</p>
+        <style>{`
+          @keyframes spin {
+            to { transform: rotate(360deg); }
+          }
+        `}</style>
       </div>
     );
   }
@@ -511,10 +528,34 @@ const ReaderPage = () => {
   // Access denied state
   if (!isValidAccess) {
     return (
-      <div className="access-denied">
-        <h2>Access Denied</h2>
-        <p>Please purchase the book to read the full content.</p>
-        <button onClick={() => navigate('/')} className="nav-btn" style={{ maxWidth: '200px', margin: '0 auto' }}>
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column', 
+        alignItems: 'center', 
+        justifyContent: 'center', 
+        height: '100vh',
+        background: 'var(--bg)',
+        padding: '24px',
+        textAlign: 'center'
+      }}>
+        <h2 style={{ color: 'var(--accent)', marginBottom: '12px' }}>Access Denied</h2>
+        <p style={{ color: 'var(--text)', marginBottom: '24px', maxWidth: '400px' }}>
+          Please purchase the book to read the full content.
+        </p>
+        <button 
+          onClick={() => navigate('/')} 
+          style={{
+            background: '#fff',
+            border: '1px solid var(--border)',
+            borderRadius: '10px',
+            padding: '12px 24px',
+            fontFamily: 'var(--sans)',
+            fontSize: '15px',
+            fontWeight: '500',
+            color: 'var(--text)',
+            cursor: 'pointer'
+          }}
+        >
           Go to Homepage
         </button>
       </div>
@@ -555,16 +596,6 @@ const ReaderPage = () => {
           >
             +
           </button>
-          {bookmark && bookmark !== currentPage && (
-            <button 
-              className="font-btn" 
-              onClick={() => goToPage(bookmark)}
-              style={{ borderLeft: '1px solid var(--border)' }}
-              title="Go to bookmark"
-            >
-              🔖
-            </button>
-          )}
         </div>
       </header>
 
@@ -579,7 +610,7 @@ const ReaderPage = () => {
       >
         <div 
           className="progress-bar-fill" 
-          style={{ width: `${progress}%` }}
+          style={{ width: `${progressPercentage}%` }}
         ></div>
       </div>
 
@@ -604,7 +635,7 @@ const ReaderPage = () => {
               role="listitem"
               onClick={() => handleChapterSelect(page.chapter, page.page)}
             >
-              {page.chapter} (Page {page.page})
+              {page.chapter}
             </button>
           ))}
         </div>
@@ -616,20 +647,14 @@ const ReaderPage = () => {
           className="reading-text" 
           style={{ fontSize: `${fontSize}px` }}
         >
-          {/* Chapter header (hidden in display but shown in toggle) */}
-          <div style={{ marginBottom: '20px', color: '#666', fontSize: '0.9em', fontFamily: 'var(--sans)' }}>
-            {currentChapter} • Page {currentPage} of {TOTAL_PAGES} • {currentContent.wordCount} words
-          </div>
-          
           {currentContent.content.split('\n').map((paragraph, idx) => {
-            if (paragraph.trim()) {
-              // Check if this is the first paragraph of Chapter 1 to add opener class
-              if (currentPage === 4 && idx === 0 && paragraph.includes('Someone.')) {
-                return <p key={idx}><span className="opener">{paragraph}</span></p>;
-              }
-              return <p key={idx}>{paragraph}</p>;
+            if (!paragraph.trim()) return null;
+            
+            // Check if this is the first paragraph of Chapter 1 to add opener class
+            if (currentPage === 4 && idx === 0 && paragraph.includes('Someone.')) {
+              return <p key={idx}><span className="opener">{paragraph}</span></p>;
             }
-            return null;
+            return <p key={idx}>{paragraph}</p>;
           })}
         </article>
       </main>
@@ -642,7 +667,7 @@ const ReaderPage = () => {
           disabled={currentPage <= 1}
           aria-label="Previous page"
         >
-          ← Previous
+          Previous
         </button>
         <div className="page-indicator" aria-live="polite">
           Page {currentPage} of {TOTAL_PAGES}
@@ -656,67 +681,6 @@ const ReaderPage = () => {
           Next →
         </button>
       </nav>
-
-      {/* ══ QUICK NAVIGATION (from ReaderPage) ═══════════════ */}
-      <div style={{
-        background: 'var(--bg)',
-        borderTop: '1px solid var(--border)',
-        padding: '12px 16px',
-        display: 'flex',
-        justifyContent: 'center',
-        gap: '8px',
-        flexWrap: 'wrap'
-      }}>
-        <button
-          onClick={() => goToPage(1)}
-          className="font-btn"
-          style={{ border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}
-        >
-          ⏮️ Start
-        </button>
-        <button
-          onClick={() => goToPage(Math.max(1, currentPage - 5))}
-          className="font-btn"
-          style={{ border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}
-          disabled={currentPage <= 5}
-        >
-          ⏪ -5
-        </button>
-        <select
-          value={currentPage}
-          onChange={(e) => goToPage(parseInt(e.target.value))}
-          style={{
-            padding: '8px 12px',
-            border: '1px solid var(--border)',
-            borderRadius: '6px',
-            background: '#fff',
-            fontFamily: 'var(--sans)',
-            fontSize: '14px',
-            color: 'var(--text)'
-          }}
-        >
-          {BOOK_CONTENT.map((page) => (
-            <option key={page.page} value={page.page}>
-              {page.chapter} (Page {page.page})
-            </option>
-          ))}
-        </select>
-        <button
-          onClick={() => goToPage(Math.min(TOTAL_PAGES, currentPage + 5))}
-          className="font-btn"
-          style={{ border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}
-          disabled={currentPage >= TOTAL_PAGES - 4}
-        >
-          +5 ⏩
-        </button>
-        <button
-          onClick={() => goToPage(TOTAL_PAGES)}
-          className="font-btn"
-          style={{ border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}
-        >
-          End ⏭️
-        </button>
-      </div>
 
       {/* ══ FOOTER ══════════════════════════════════════════ */}
       <footer className="site-footer">
@@ -747,9 +711,7 @@ const ReaderPage = () => {
           </div>
         </div>
 
-        <div className="footer-meta">
-          Reading time: ~{Math.round(currentContent.wordCount / 200)} min this page • {TOTAL_PAGES} pages total
-        </div>
+        <div className="footer-meta">Reading time: ~{Math.round(currentContent.wordCount / 200)} min &nbsp;·&nbsp; {TOTAL_PAGES} pages total</div>
       </footer>
     </>
   );
