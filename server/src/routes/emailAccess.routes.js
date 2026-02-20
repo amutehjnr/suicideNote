@@ -226,6 +226,19 @@ router.get('/:slug', async (req, res) => {
           .error-message.show {
             display: block;
           }
+          .success-message {
+            background: #e8f5e9;
+            border: 1px solid #4caf50;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 20px;
+            color: #2e7d32;
+            font-size: 14px;
+            display: none;
+          }
+          .success-message.show {
+            display: block;
+          }
           .loading-spinner {
             display: inline-block;
             width: 20px;
@@ -237,6 +250,14 @@ router.get('/:slug', async (req, res) => {
           }
           @keyframes spin {
             to { transform: rotate(360deg); }
+          }
+          .redirect-note {
+            margin-top: 16px;
+            padding: 12px;
+            background: #fff3e0;
+            border-radius: 8px;
+            font-size: 14px;
+            color: #e65100;
           }
         </style>
       </head>
@@ -254,12 +275,13 @@ router.get('/:slug', async (req, res) => {
               <div class="info-box">
                 <div class="info-title">🔑 Enter Your Access Code</div>
                 <div class="info-text">
-                  Please enter your access code to read "${ebook.title}" by Loba Yusuf.
-                  ${prefillCode ? 'We\'ve pre-filled the code from your email for you.' : ''}
+                  Please enter the access code from your email to read "${ebook.title}".
+                  ${prefillCode ? 'The code has been pre-filled from your email link.' : ''}
                 </div>
               </div>
               
               <div id="errorMessage" class="error-message"></div>
+              <div id="successMessage" class="success-message"></div>
               
               <form id="accessForm" onsubmit="handleSubmit(event)">
                 <div class="form-group">
@@ -300,15 +322,7 @@ router.get('/:slug', async (req, res) => {
           const ebookId = ${JSON.stringify(ebook._id.toString())};
           const readerUrl = '/read/' + ebookSlug;
           
-          // Auto-submit if code is pre-filled
-          window.addEventListener('DOMContentLoaded', () => {
-            const codeInput = document.getElementById('accessCode');
-            if (codeInput.value) {
-              setTimeout(() => {
-                document.getElementById('accessForm').dispatchEvent(new Event('submit'));
-              }, 500);
-            }
-          });
+          // NO AUTO-SUBMIT - User must click the button
           
           async function handleSubmit(event) {
             event.preventDefault();
@@ -318,6 +332,7 @@ router.get('/:slug', async (req, res) => {
             const btnText = document.getElementById('btnText');
             const btnSpinner = document.getElementById('btnSpinner');
             const errorMessage = document.getElementById('errorMessage');
+            const successMessage = document.getElementById('successMessage');
             
             const code = codeInput.value.trim();
             
@@ -326,12 +341,13 @@ router.get('/:slug', async (req, res) => {
               return;
             }
             
-            // Disable form
+            // Disable form during validation
             codeInput.disabled = true;
             submitBtn.disabled = true;
             btnText.textContent = 'Validating...';
             btnSpinner.style.display = 'inline-block';
             errorMessage.classList.remove('show');
+            successMessage.classList.remove('show');
             
             try {
               console.log('🔑 Validating code:', code);
@@ -351,6 +367,10 @@ router.get('/:slug', async (req, res) => {
               console.log('✅ Validation result:', result);
               
               if (result.success) {
+                // Show success message
+                successMessage.textContent = '✓ Access granted! Redirecting to reader...';
+                successMessage.classList.add('show');
+                
                 // Store in localStorage
                 try {
                   localStorage.setItem('ebook_access_' + ebookSlug, code.toUpperCase());
@@ -369,19 +389,20 @@ router.get('/:slug', async (req, res) => {
                   console.error('Failed to store in localStorage:', e);
                 }
                 
-                // Show success message
-                btnText.textContent = 'Access Granted! Redirecting...';
+                // Update button
+                btnText.textContent = 'Access Granted!';
+                btnSpinner.style.display = 'none';
                 
-                // Redirect to reader
+                // Redirect to reader after 1.5 seconds
                 setTimeout(() => {
                   window.location.href = readerUrl + '?code=' + code.toUpperCase() + '&validated=true&from=email';
-                }, 1000);
+                }, 1500);
                 
               } else {
-                // Show error
+                // Show error message
                 showError(result.error || 'Invalid access code');
                 
-                // Re-enable form
+                // Re-enable form for retry
                 codeInput.disabled = false;
                 submitBtn.disabled = false;
                 btnText.textContent = 'Access Book';
@@ -415,6 +436,14 @@ router.get('/:slug', async (req, res) => {
           // Auto-uppercase as user types
           document.getElementById('accessCode').addEventListener('input', function(e) {
             this.value = this.value.toUpperCase();
+          });
+          
+          // Allow Enter key to submit
+          document.getElementById('accessCode').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              document.getElementById('accessForm').dispatchEvent(new Event('submit'));
+            }
           });
         </script>
       </body>
