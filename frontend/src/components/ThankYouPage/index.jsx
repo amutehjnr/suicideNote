@@ -17,6 +17,8 @@ const ThankYouPage = ({ onBackToHome }) => {
   const [accessCode, setAccessCode] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [user, setUser] = useState(null);
+  const [currency, setCurrency] = useState('NGN');
+  const [paymentMethod, setPaymentMethod] = useState('paystack');
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,12 +33,14 @@ const ThankYouPage = ({ onBackToHome }) => {
         const urlParams = new URLSearchParams(location.search);
         const reference = urlParams.get('reference');
         const trxref = urlParams.get('trxref');
+        const sessionId = urlParams.get('session_id');
         
-        const paymentRef = reference || trxref;
+        const paymentRef = reference || trxref || sessionId;
         
         console.log('📋 URL parameters:', { 
           reference, 
-          trxref, 
+          trxref,
+          sessionId,
           paymentRef,
           fullUrl: window.location.href 
         });
@@ -53,26 +57,38 @@ const ThankYouPage = ({ onBackToHome }) => {
             
             // Extract data from response
             const purchaseData = result.data?.purchase || result.data;
+            const accessCodeData = result.data?.accessCode;
             const verificationData = result.data?.verifiedData;
             
-            // Generate access code
-            const generatedAccessCode = result.data?.accessCode || 
-              `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+            // Get currency and payment method from purchase data
+            const purchaseCurrency = purchaseData?.currency || 'NGN';
+            const purchaseMethod = purchaseData?.paymentMethod || 'paystack';
             
-            console.log('🔑 Generated access code:', generatedAccessCode);
+            console.log('🔑 Access code received:', accessCodeData);
+            console.log('💰 Currency:', purchaseCurrency);
+            console.log('💳 Payment method:', purchaseMethod);
             
             // Update state
             setPurchase(purchaseData);
-            setAccessCode(generatedAccessCode);
+            setAccessCode(accessCodeData);
+            setCurrency(purchaseCurrency);
+            setPaymentMethod(purchaseMethod);
             
             // Save to localStorage for future access
             localStorage.setItem('recent_purchase', JSON.stringify({
               purchase: purchaseData,
-              accessCode: generatedAccessCode,
+              accessCode: accessCodeData,
               reference: paymentRef,
               verifiedData: verificationData,
+              currency: purchaseCurrency,
+              paymentMethod: purchaseMethod,
               timestamp: new Date().toISOString()
             }));
+            
+            // Save access code
+            if (accessCodeData) {
+              localStorage.setItem('ebook_access_suicide-note-2026', accessCodeData);
+            }
             
             // Clear any pending purchase
             localStorage.removeItem('pending_purchase');
@@ -93,6 +109,8 @@ const ThankYouPage = ({ onBackToHome }) => {
                 const generatedCode = `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
                 setAccessCode(generatedCode);
                 setPurchase(parsed);
+                setCurrency(parsed.currency || 'NGN');
+                setPaymentMethod(parsed.paymentMethod || 'paystack');
                 
                 toast.warning('Payment verification pending. Using cached purchase info.');
                 
@@ -119,6 +137,8 @@ const ThankYouPage = ({ onBackToHome }) => {
               
               setPurchase(parsed.purchase);
               setAccessCode(parsed.accessCode);
+              setCurrency(parsed.currency || 'NGN');
+              setPaymentMethod(parsed.paymentMethod || 'paystack');
               
               toast.success('Welcome back! Your access code is ready.');
               
@@ -259,6 +279,26 @@ const ThankYouPage = ({ onBackToHome }) => {
     }).replace('NGN', '₦');
   };
 
+  // Format amount based on currency
+  const formatAmount = () => {
+    if (!purchase) return '';
+    
+    if (currency === 'USD') {
+      const amount = purchase.amount ? (purchase.amount / 100).toFixed(2) : '5.00';
+      return `$${amount}`;
+    } else {
+      return `₦${(purchase.amount || 2500).toLocaleString()}`;
+    }
+  };
+
+  // Get payment method display name
+  const getPaymentMethodDisplay = () => {
+    if (paymentMethod === 'stripe') {
+      return 'Stripe (Credit/Debit Card)';
+    }
+    return 'Paystack';
+  };
+
   const handleStartReading = () => {
     if (!accessCode) {
       toast.error('Access code not available');
@@ -278,7 +318,8 @@ const ThankYouPage = ({ onBackToHome }) => {
         state: { 
           accessCode,
           purchaseId: purchase?._id,
-          ebookTitle: purchase?.ebook?.title || 'Suicide Note'
+          ebookTitle: purchase?.ebook?.title || 'Suicide Note',
+          currency
         }
       });
       
@@ -296,34 +337,13 @@ const ThankYouPage = ({ onBackToHome }) => {
     }
   };
 
-  // You can completely remove the loading component and show a skeleton or nothing during loading
   if (isLoading) {
-    // Instead of showing the loading message, you can either:
-    // 1. Show nothing (blank screen) until data loads
-    return null;
-    
-    // OR 2. Show a minimal skeleton loader without the "Verifying your payment..." text:
-    // return (
-    //   <div className={styles.container}>
-    //     <div className={styles.header}>
-    //       <div className="container">
-    //         <div className={styles.headerContent}>
-    //           <div className={styles.logo}>
-    //             <Icon name="Book" className={styles.logoIcon} />
-    //             <span className={styles.logoText}>Suicide Note</span>
-    //           </div>
-    //         </div>
-    //       </div>
-    //     </div>
-    //     <div className="container">
-    //       <div className={styles.mainContent}>
-    //         <div className={`card ${styles.successCard}`}>
-    //           <div className={styles.skeletonLoader}></div>
-    //         </div>
-    //       </div>
-    //     </div>
-    //   </div>
-    // );
+    return (
+      <div className={styles.loadingContainer}>
+        <div className={styles.spinner}></div>
+        <p>Verifying your payment...</p>
+      </div>
+    );
   }
 
   return (
@@ -362,7 +382,8 @@ const ThankYouPage = ({ onBackToHome }) => {
               {purchase && (
                 <div className={styles.purchaseInfo}>
                   <p>Purchase ID: <span className={styles.purchaseId}>{purchase._id?.substring(0, 8)}...</span></p>
-                  <p>Amount: <span className={styles.purchaseAmount}>₦{(purchase.amount || 2500).toLocaleString()}</span></p>
+                  <p>Amount: <span className={styles.purchaseAmount}>{formatAmount()}</span></p>
+                  <p>Payment Method: <span className={styles.paymentMethod}>{getPaymentMethodDisplay()}</span></p>
                 </div>
               )}
             </div>
@@ -407,303 +428,352 @@ const ThankYouPage = ({ onBackToHome }) => {
             </div>
           </div>
 
-          {/* Affiliate Promotion Section */}
-          <div className={styles.affiliateCard}>
-            <div className={styles.affiliateContent}>
-              <div className="text-center mb-8">
-                <span className="badge badge-yellow animate-pulse mb-4">⚡ WAIT! ONE MORE THING...</span>
-                <h2 className={styles.affiliateTitle}>Want to Earn Your Money Back?</h2>
-                <p className={styles.affiliateSubtitle}>
-                  You just invested ₦2,500. What if you could earn that back (and more) just by sharing this book?
-                </p>
-              </div>
+          {/* Affiliate Promotion Section - Only show for NGN purchases */}
+          {currency === 'NGN' && (
+            <div className={styles.affiliateCard}>
+              <div className={styles.affiliateContent}>
+                <div className="text-center mb-8">
+                  <span className="badge badge-yellow animate-pulse mb-4">⚡ WAIT! ONE MORE THING...</span>
+                  <h2 className={styles.affiliateTitle}>Want to Earn Your Money Back?</h2>
+                  <p className={styles.affiliateSubtitle}>
+                    You just invested ₦2,500. What if you could earn that back (and more) just by sharing this book?
+                  </p>
+                </div>
 
-              {/* Value Proposition */}
-              <div className={styles.valueProposition}>
-                <div className={styles.valueContent}>
-                  <div>
-                    <h3 className={styles.valueTitle}>Here's the Deal:</h3>
-                    <ul className={styles.valueList}>
-                      <li className={styles.valueItem}>
-                        <div className={styles.checkCircle}>
-                          <Icon name="Check" className={styles.smallCheckIcon} />
-                        </div>
-                        <span>Get your unique affiliate link instantly</span>
-                      </li>
-                      <li className={styles.valueItem}>
-                        <div className={styles.checkCircle}>
-                          <Icon name="Check" className={styles.smallCheckIcon} />
-                        </div>
-                        <span>Share on Twitter, WhatsApp, Facebook, Instagram</span>
-                      </li>
-                      <li className={styles.valueItem}>
-                        <div className={styles.checkCircle}>
-                          <Icon name="Check" className={styles.smallCheckIcon} />
-                        </div>
-                        <span>Earn <strong className={styles.highlightGreen}>₦1,250 (50%)</strong> per sale</span>
-                      </li>
-                      <li className={styles.valueItem}>
-                        <div className={styles.checkCircle}>
-                          <Icon name="Check" className={styles.smallCheckIcon} />
-                        </div>
-                        <span>Get paid automatically via Paystack in 7 days</span>
-                      </li>
-                      <li className={styles.valueItem}>
-                        <div className={styles.checkCircle}>
-                          <Icon name="Check" className={styles.smallCheckIcon} />
-                        </div>
-                        <span>No approval needed - start immediately</span>
-                      </li>
-                    </ul>
-                  </div>
+                {/* Value Proposition */}
+                <div className={styles.valueProposition}>
+                  <div className={styles.valueContent}>
+                    <div>
+                      <h3 className={styles.valueTitle}>Here's the Deal:</h3>
+                      <ul className={styles.valueList}>
+                        <li className={styles.valueItem}>
+                          <div className={styles.checkCircle}>
+                            <Icon name="Check" className={styles.smallCheckIcon} />
+                          </div>
+                          <span>Get your unique affiliate link instantly</span>
+                        </li>
+                        <li className={styles.valueItem}>
+                          <div className={styles.checkCircle}>
+                            <Icon name="Check" className={styles.smallCheckIcon} />
+                          </div>
+                          <span>Share on Twitter, WhatsApp, Facebook, Instagram</span>
+                        </li>
+                        <li className={styles.valueItem}>
+                          <div className={styles.checkCircle}>
+                            <Icon name="Check" className={styles.smallCheckIcon} />
+                          </div>
+                          <span>Earn <strong className={styles.highlightGreen}>₦1,250 (50%)</strong> per sale</span>
+                        </li>
+                        <li className={styles.valueItem}>
+                          <div className={styles.checkCircle}>
+                            <Icon name="Check" className={styles.smallCheckIcon} />
+                          </div>
+                          <span>Get paid automatically via Paystack in 7 days</span>
+                        </li>
+                        <li className={styles.valueItem}>
+                          <div className={styles.checkCircle}>
+                            <Icon name="Check" className={styles.smallCheckIcon} />
+                          </div>
+                          <span>No approval needed - start immediately</span>
+                        </li>
+                      </ul>
+                    </div>
 
-                  <div className={styles.earningsCard}>
-                    <h3 className={styles.earningsTitle}>💰 Your Earning Potential</h3>
-                    
-                    <div className={styles.earningsList}>
-                      <div className={styles.earningItem}>
-                        <div className={styles.earningHeader}>
-                          <span className={styles.earningLabel}>Just 2 sales:</span>
-                          <span className={styles.earningAmount}>₦2,500</span>
-                        </div>
-                        <p className={styles.earningNote}>Your money back!</p>
-                      </div>
+                    <div className={styles.earningsCard}>
+                      <h3 className={styles.earningsTitle}>💰 Your Earning Potential</h3>
                       
-                      <div className={styles.earningItem}>
-                        <div className={styles.earningHeader}>
-                          <span className={styles.earningLabel}>20 sales:</span>
-                          <span className={styles.earningAmount}>₦25,000</span>
+                      <div className={styles.earningsList}>
+                        <div className={styles.earningItem}>
+                          <div className={styles.earningHeader}>
+                            <span className={styles.earningLabel}>Just 2 sales:</span>
+                            <span className={styles.earningAmount}>₦2,500</span>
+                          </div>
+                          <p className={styles.earningNote}>Your money back!</p>
                         </div>
-                        <p className={styles.earningNote}>One good Twitter thread</p>
-                      </div>
-                      
-                      <div className={styles.earningItem}>
-                        <div className={styles.earningHeader}>
-                          <span className={styles.earningLabel}>50 sales:</span>
-                          <span className={styles.earningAmount}>₦62,500</span>
+                        
+                        <div className={styles.earningItem}>
+                          <div className={styles.earningHeader}>
+                            <span className={styles.earningLabel}>20 sales:</span>
+                            <span className={styles.earningAmount}>₦25,000</span>
+                          </div>
+                          <p className={styles.earningNote}>One good Twitter thread</p>
                         </div>
-                        <p className={styles.earningNote}>Consistent sharing</p>
-                      </div>
+                        
+                        <div className={styles.earningItem}>
+                          <div className={styles.earningHeader}>
+                            <span className={styles.earningLabel}>50 sales:</span>
+                            <span className={styles.earningAmount}>₦62,500</span>
+                          </div>
+                          <p className={styles.earningNote}>Consistent sharing</p>
+                        </div>
 
-                      <div className={styles.premiumEarning}>
-                        <div className={styles.earningHeader}>
-                          <span className={styles.premiumLabel}>100 sales:</span>
-                          <span className={styles.premiumAmount}>₦125,000</span>
+                        <div className={styles.premiumEarning}>
+                          <div className={styles.earningHeader}>
+                            <span className={styles.premiumLabel}>100 sales:</span>
+                            <span className={styles.premiumAmount}>₦125,000</span>
+                          </div>
+                          <p className={styles.premiumNote}>Our top affiliate last month!</p>
                         </div>
-                        <p className={styles.premiumNote}>Our top affiliate last month!</p>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Social Proof */}
-              <div className={styles.socialProof}>
-                <div className={styles.socialContent}>
-                  <div className={styles.socialAvatar}>T</div>
-                  <div>
-                    <p className={styles.socialText}>
-                      "I've earned <span className={styles.highlightYellow}>₦47,000 in just 2 months</span> by sharing this book on Twitter. I posted one thread about my mental health journey and how this book helped me. The book basically paid for itself after 2 sales, everything else is pure profit!"
-                    </p>
-                    <p className={styles.socialAuthor}>- Tunde O., Lagos</p>
-                    <div className={styles.socialStats}>
-                      <span>✓ 38 sales</span>
-                      <span>✓ ₦47,500 earned</span>
-                      <span>✓ Started 2 months ago</span>
+                {/* Social Proof */}
+                <div className={styles.socialProof}>
+                  <div className={styles.socialContent}>
+                    <div className={styles.socialAvatar}>T</div>
+                    <div>
+                      <p className={styles.socialText}>
+                        "I've earned <span className={styles.highlightYellow}>₦47,000 in just 2 months</span> by sharing this book on Twitter. I posted one thread about my mental health journey and how this book helped me. The book basically paid for itself after 2 sales, everything else is pure profit!"
+                      </p>
+                      <p className={styles.socialAuthor}>- Tunde O., Lagos</p>
+                      <div className={styles.socialStats}>
+                        <span>✓ 38 sales</span>
+                        <span>✓ ₦47,500 earned</span>
+                        <span>✓ Started 2 months ago</span>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Earnings Calculator */}
-              <div className="card mb-8">
-                <h3 className={styles.calculatorTitle}>Calculate Your Potential Earnings</h3>
-                <div className={styles.calculatorContent}>
-                  <label className={styles.sliderLabel}>
-                    How many sales do you think you can make per month?
-                  </label>
-                  <div className={styles.sliderContainer}>
-                    <input
-                      type="range"
-                      min="5"
-                      max="100"
-                      step="5"
-                      value={salesEstimate}
-                      onChange={(e) => setSalesEstimate(Number(e.target.value))}
-                      className={styles.slider}
-                      disabled={isLoading}
-                    />
-                    <div className={styles.sliderLabels}>
-                      <span>5 sales</span>
-                      <span>100 sales</span>
-                    </div>
-                  </div>
-                  
-                  <div className={styles.earningsDisplay}>
-                    <div className={styles.earningsAmount}>{calculateEarnings(salesEstimate)}</div>
-                    <p className={styles.earningsText}>per month with {salesEstimate} sales</p>
-                    <p className={styles.yearlyEarnings}>
-                      That's {calculateEarnings(salesEstimate * 12)} per year!
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              {/* Sign Up Form */}
-              <div className="card">
-                <h3 className={styles.formTitle}>Get Your Affiliate Link Now (Takes 30 Seconds)</h3>
-                
-                {!affiliateGenerated ? (
-                  <div>
-                    <div className={styles.signupForm}>
+                {/* Earnings Calculator */}
+                <div className="card mb-8">
+                  <h3 className={styles.calculatorTitle}>Calculate Your Potential Earnings</h3>
+                  <div className={styles.calculatorContent}>
+                    <label className={styles.sliderLabel}>
+                      How many sales do you think you can make per month?
+                    </label>
+                    <div className={styles.sliderContainer}>
                       <input
-                        type="email"
-                        placeholder="Enter your email address"
-                        value={affiliateEmail}
-                        onChange={(e) => setAffiliateEmail(e.target.value)}
-                        className={`form-input ${styles.emailInput}`}
+                        type="range"
+                        min="5"
+                        max="100"
+                        step="5"
+                        value={salesEstimate}
+                        onChange={(e) => setSalesEstimate(Number(e.target.value))}
+                        className={styles.slider}
                         disabled={isLoading}
                       />
-                      <button
-                        onClick={handleGenerateLink}
-                        className={`btn btn-green ${styles.generateButton}`}
-                        disabled={isLoading || !affiliateEmail || !affiliateEmail.includes('@')}
-                      >
-                        <Icon name="DollarSign" className={styles.dollarIcon} />
-                        <span>{isLoading ? 'Processing...' : 'Generate My Affiliate Link'}</span>
-                        <Icon name="ArrowRight" className={styles.arrowIcon} />
-                      </button>
-                      <p className={styles.formNote}>
-                        No approval needed. Start earning immediately.
-                      </p>
+                      <div className={styles.sliderLabels}>
+                        <span>5 sales</span>
+                        <span>100 sales</span>
+                      </div>
                     </div>
                     
-                    <div className={styles.statsGrid}>
-                      <div className={styles.statCard}>
-                        <Icon name="Users" className={styles.statIcon} />
-                        <p className={styles.statText}>143 Active Affiliates</p>
-                      </div>
-                      <div className={styles.statCard}>
-                        <Icon name="TrendingUp" className={styles.statIcon} />
-                        <p className={styles.statText}>₦2.4M Paid Out</p>
-                      </div>
-                      <div className={styles.statCard}>
-                        <Icon name="Check" className={styles.statIcon} />
-                        <p className={styles.statText}>7-Day Payouts</p>
-                      </div>
+                    <div className={styles.earningsDisplay}>
+                      <div className={styles.earningsAmount}>{calculateEarnings(salesEstimate)}</div>
+                      <p className={styles.earningsText}>per month with {salesEstimate} sales</p>
+                      <p className={styles.yearlyEarnings}>
+                        That's {calculateEarnings(salesEstimate * 12)} per year!
+                      </p>
                     </div>
                   </div>
-                ) : (
-                  <div id="generated-link" className={styles.generatedLinkSection}>
-                    <div className={styles.successMessage}>
-                      <Icon name="Check" className={styles.bigCheckIcon} />
-                      <h3 className={styles.successHeading}>Success! Your Link is Ready</h3>
-                      <p className={styles.successText}>Start sharing and earning right now!</p>
-                    </div>
+                </div>
 
-                    <div className={styles.linkContainer}>
-                      <label className={styles.linkLabel}>Your Unique Affiliate Link:</label>
-                      <div className={styles.linkDisplay}>
-                        <code className={styles.linkCode}>{affiliateLink}</code>
+                {/* Sign Up Form */}
+                <div className="card">
+                  <h3 className={styles.formTitle}>Get Your Affiliate Link Now (Takes 30 Seconds)</h3>
+                  
+                  {!affiliateGenerated ? (
+                    <div>
+                      <div className={styles.signupForm}>
+                        <input
+                          type="email"
+                          placeholder="Enter your email address"
+                          value={affiliateEmail}
+                          onChange={(e) => setAffiliateEmail(e.target.value)}
+                          className={`form-input ${styles.emailInput}`}
+                          disabled={isLoading}
+                        />
                         <button
-                          onClick={() => copyToClipboard(affiliateLink, 'link')}
-                          className={styles.copyLinkButton}
-                          disabled={copiedLink}
+                          onClick={handleGenerateLink}
+                          className={`btn btn-green ${styles.generateButton}`}
+                          disabled={isLoading || !affiliateEmail || !affiliateEmail.includes('@')}
                         >
-                          <Icon name="Copy" className={styles.copyIcon} />
-                          <span>{copiedLink ? 'Copied!' : 'Copy'}</span>
+                          <Icon name="DollarSign" className={styles.dollarIcon} />
+                          <span>{isLoading ? 'Processing...' : 'Generate My Affiliate Link'}</span>
+                          <Icon name="ArrowRight" className={styles.arrowIcon} />
                         </button>
+                        <p className={styles.formNote}>
+                          No approval needed. Start earning immediately.
+                        </p>
                       </div>
-                    </div>
-
-                    <div className={styles.sharingGuide}>
-                      <h4 className={styles.guideTitle}>📱 How to Share Your Link:</h4>
-                      <div className={styles.socialGrid}>
-                        <div className={styles.socialItem}>
-                          <Icon name="Twitter" className={styles.twitterIcon} />
-                          <div>
-                            <p className={styles.socialName}>Twitter/X</p>
-                            <p className={styles.socialDescription}>Share your story + link in a thread</p>
-                          </div>
+                      
+                      <div className={styles.statsGrid}>
+                        <div className={styles.statCard}>
+                          <Icon name="Users" className={styles.statIcon} />
+                          <p className={styles.statText}>143 Active Affiliates</p>
                         </div>
-                        <div className={styles.socialItem}>
-                          <Icon name="MessageCircle" className={styles.whatsappIcon} />
-                          <div>
-                            <p className={styles.socialName}>WhatsApp Status</p>
-                            <p className={styles.socialDescription}>Post to your status with link</p>
-                          </div>
+                        <div className={styles.statCard}>
+                          <Icon name="TrendingUp" className={styles.statIcon} />
+                          <p className={styles.statText}>₦2.4M Paid Out</p>
                         </div>
-                        <div className={styles.socialItem}>
-                          <Icon name="Share2" className={styles.facebookIcon} />
-                          <div>
-                            <p className={styles.socialName}>Facebook</p>
-                            <p className={styles.socialDescription}>Share in groups or your timeline</p>
-                          </div>
-                        </div>
-                        <div className={styles.socialItem}>
-                          <Icon name="Mail" className={styles.emailIcon} />
-                          <div>
-                            <p className={styles.socialName}>Email</p>
-                            <p className={styles.socialDescription}>Send to friends and family</p>
-                          </div>
+                        <div className={styles.statCard}>
+                          <Icon name="Check" className={styles.statIcon} />
+                          <p className={styles.statText}>7-Day Payouts</p>
                         </div>
                       </div>
                     </div>
+                  ) : (
+                    <div id="generated-link" className={styles.generatedLinkSection}>
+                      <div className={styles.successMessage}>
+                        <Icon name="Check" className={styles.bigCheckIcon} />
+                        <h3 className={styles.successHeading}>Success! Your Link is Ready</h3>
+                        <p className={styles.successText}>Start sharing and earning right now!</p>
+                      </div>
 
-                    <div className="pro-tip">
-                      <p className={styles.tipText}>
-                        <strong>💡 Pro Tip:</strong> The more personal your recommendation, the better! Share how this book helped YOU with mental health awareness. Authentic stories sell better than generic promotions.
-                      </p>
-                    </div>
+                      <div className={styles.linkContainer}>
+                        <label className={styles.linkLabel}>Your Unique Affiliate Link:</label>
+                        <div className={styles.linkDisplay}>
+                          <code className={styles.linkCode}>{affiliateLink}</code>
+                          <button
+                            onClick={() => copyToClipboard(affiliateLink, 'link')}
+                            className={styles.copyLinkButton}
+                            disabled={copiedLink}
+                          >
+                            <Icon name="Copy" className={styles.copyIcon} />
+                            <span>{copiedLink ? 'Copied!' : 'Copy'}</span>
+                          </button>
+                        </div>
+                      </div>
 
-                    <div className={styles.emailConfirmation}>
-                      <p className={styles.confirmationText}>
-                        <strong>We've emailed your affiliate link to:</strong><br />
-                        <span className={styles.userEmail}>{affiliateEmail}</span>
-                      </p>
-                      <p className={styles.confirmationNote}>
-                        Track your earnings, get payment updates, and access promotional materials via email.
-                      </p>
+                      <div className={styles.sharingGuide}>
+                        <h4 className={styles.guideTitle}>📱 How to Share Your Link:</h4>
+                        <div className={styles.socialGrid}>
+                          <div className={styles.socialItem}>
+                            <Icon name="Twitter" className={styles.twitterIcon} />
+                            <div>
+                              <p className={styles.socialName}>Twitter/X</p>
+                              <p className={styles.socialDescription}>Share your story + link in a thread</p>
+                            </div>
+                          </div>
+                          <div className={styles.socialItem}>
+                            <Icon name="MessageCircle" className={styles.whatsappIcon} />
+                            <div>
+                              <p className={styles.socialName}>WhatsApp Status</p>
+                              <p className={styles.socialDescription}>Post to your status with link</p>
+                            </div>
+                          </div>
+                          <div className={styles.socialItem}>
+                            <Icon name="Share2" className={styles.facebookIcon} />
+                            <div>
+                              <p className={styles.socialName}>Facebook</p>
+                              <p className={styles.socialDescription}>Share in groups or your timeline</p>
+                            </div>
+                          </div>
+                          <div className={styles.socialItem}>
+                            <Icon name="Mail" className={styles.emailIcon} />
+                            <div>
+                              <p className={styles.socialName}>Email</p>
+                              <p className={styles.socialDescription}>Send to friends and family</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="pro-tip">
+                        <p className={styles.tipText}>
+                          <strong>💡 Pro Tip:</strong> The more personal your recommendation, the better! Share how this book helped YOU with mental health awareness. Authentic stories sell better than generic promotions.
+                        </p>
+                      </div>
+
+                      <div className={styles.emailConfirmation}>
+                        <p className={styles.confirmationText}>
+                          <strong>We've emailed your affiliate link to:</strong><br />
+                          <span className={styles.userEmail}>{affiliateEmail}</span>
+                        </p>
+                        <p className={styles.confirmationNote}>
+                          Track your earnings, get payment updates, and access promotional materials via email.
+                        </p>
+                      </div>
                     </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* International Payment Message - Show for USD purchases */}
+          {currency === 'USD' && (
+            <div className={styles.internationalCard}>
+              <div className={styles.internationalContent}>
+                <div className="text-center mb-8">
+                  <span className="badge badge-blue animate-pulse mb-4">🌍 INTERNATIONAL PURCHASE</span>
+                  <h2 className={styles.internationalTitle}>Thank You for Your Support!</h2>
+                  <p className={styles.internationalSubtitle}>
+                    Your purchase helps bring important conversations about mental health to a global audience.
+                  </p>
+                </div>
+
+                <div className={styles.internationalMessage}>
+                  <Icon name="Globe" className={styles.globeIcon} />
+                  <div>
+                    <h3 className={styles.internationalMessageTitle}>You now have full access to the book</h3>
+                    <p className={styles.internationalMessageText}>
+                      Your access code above will give you unlimited access to "Suicide Note" by Loba Yusuf. 
+                      You can read online anytime, anywhere in the world.
+                    </p>
                   </div>
-                )}
-              </div>
-            </div>
-          </div>
+                </div>
 
-          {/* Why This Works Section */}
-          <div className="card mb-8">
-            <h2 className={styles.whyTitle}>Why Our Affiliates Succeed</h2>
-            <div className={styles.whyGrid}>
-              <div className={styles.whyCard}>
-                <div className={styles.whyIcon}>
-                  <Icon name="Book" className={styles.purpleIcon} />
+                <div className={styles.internationalFeatures}>
+                  <div className={styles.feature}>
+                    <Icon name="CheckCircle" className={styles.featureCheckIcon} />
+                    <span>Full book access</span>
+                  </div>
+                  <div className={styles.feature}>
+                    <Icon name="CheckCircle" className={styles.featureCheckIcon} />
+                    <span>Read online anytime</span>
+                  </div>
+                  <div className={styles.feature}>
+                    <Icon name="CheckCircle" className={styles.featureCheckIcon} />
+                    <span>No expiration</span>
+                  </div>
+                  <div className={styles.feature}>
+                    <Icon name="CheckCircle" className={styles.featureCheckIcon} />
+                    <span>Support mental health awareness</span>
+                  </div>
                 </div>
-                <h3 className={styles.whyCardTitle}>Powerful Product</h3>
-                <p className={styles.whyCardText}>
-                  This book changes lives. When you share it, you're genuinely helping people - not just selling.
-                </p>
-              </div>
-              <div className={styles.whyCard}>
-                <div className={styles.whyIcon}>
-                  <Icon name="DollarSign" className={styles.blueIcon} />
-                </div>
-                <h3 className={styles.whyCardTitle}>50% Commission</h3>
-                <p className={styles.whyCardText}>
-                  Most Nigerian ebooks offer 20-30%. We offer 50% because we want you motivated to share.
-                </p>
-              </div>
-              <div className={styles.whyCard}>
-                <div className={styles.whyIcon}>
-                  <Icon name="TrendingUp" className={styles.greenIcon} />
-                </div>
-                <h3 className={styles.whyCardTitle}>Easy to Promote</h3>
-                <p className={styles.whyCardText}>
-                  Mental health is trending. People want this content. One good post can get you 20+ sales.
-                </p>
               </div>
             </div>
-          </div>
+          )}
+
+          {/* Why This Works Section - Only show for NGN */}
+          {currency === 'NGN' && (
+            <div className="card mb-8">
+              <h2 className={styles.whyTitle}>Why Our Affiliates Succeed</h2>
+              <div className={styles.whyGrid}>
+                <div className={styles.whyCard}>
+                  <div className={styles.whyIcon}>
+                    <Icon name="Book" className={styles.purpleIcon} />
+                  </div>
+                  <h3 className={styles.whyCardTitle}>Powerful Product</h3>
+                  <p className={styles.whyCardText}>
+                    This book changes lives. When you share it, you're genuinely helping people - not just selling.
+                  </p>
+                </div>
+                <div className={styles.whyCard}>
+                  <div className={styles.whyIcon}>
+                    <Icon name="DollarSign" className={styles.blueIcon} />
+                  </div>
+                  <h3 className={styles.whyCardTitle}>50% Commission</h3>
+                  <p className={styles.whyCardText}>
+                    Most Nigerian ebooks offer 20-30%. We offer 50% because we want you motivated to share.
+                  </p>
+                </div>
+                <div className={styles.whyCard}>
+                  <div className={styles.whyIcon}>
+                    <Icon name="TrendingUp" className={styles.greenIcon} />
+                  </div>
+                  <h3 className={styles.whyCardTitle}>Easy to Promote</h3>
+                  <p className={styles.whyCardText}>
+                    Mental health is trending. People want this content. One good post can get you 20+ sales.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Final CTA */}
           <div className={styles.finalCTA}>

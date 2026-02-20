@@ -1,5 +1,6 @@
 const axios = require('axios');
 const mongoose = require('mongoose');
+const Stripe = require('stripe');
 const User = require('../models/User.model');
 const Purchase = require('../models/Purchase.model');
 const Ebook = require('../models/Ebook.model');
@@ -9,10 +10,18 @@ const crypto = require('crypto');
 const AccessCode = require('../models/AccessCode.model');
 const emailService = require('./email.service');
 
+// Initialize Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
-// Helper function to send access code email with proper name handling
+// Constants
+const NGN_TO_USD_RATE = process.env.NGN_USD_RATE || 500;
+const EBOOK_PRICE_NGN = 2500; // ₦2,500
+const EBOOK_PRICE_USD = 500; // $5.00 in cents
+
+// Helper function to send access code email
 async function sendAccessCodeEmail(purchase, accessCode) {
   try {
     console.log('📧 ===== SENDING ACCESS CODE EMAIL =====');
@@ -25,7 +34,6 @@ async function sendAccessCodeEmail(purchase, accessCode) {
       return false;
     }
     
-    // ✅ FIX: Get the name from multiple possible sources
     const userName = purchase.user?.name || 
                      purchase.metadata?.guestName || 
                      purchase.metadata?.name ||
@@ -36,7 +44,7 @@ async function sendAccessCodeEmail(purchase, accessCode) {
     
     const result = await emailService.sendAccessCodeEmail(
       purchase.user.email,
-      userName, // Pass the resolved name
+      userName,
       accessCode.code,
       purchase.ebook
     );
@@ -51,40 +59,31 @@ async function sendAccessCodeEmail(purchase, accessCode) {
 
 const paymentService = {
   /**
-   * Initialize Payment
-   * @param {string} userId
-   * @param {string} ebookIdentifier - This could be MongoDB _id, slug, or custom ID
-   * @param {string} affiliateCode
-   * @param {object} metadata
-   * @param {number} amountKobo
+   * Initialize Payment (supports both Paystack and Stripe)
    */
-  async initializePayment(userId, ebookIdentifier, affiliateCode, metadata, amountKobo) {
+  async initializePayment(userId, ebookIdentifier, affiliateCode, metadata, amount, currency = 'NGN') {
     try {
       winston.info('🚀 initializePayment called:', { 
         userId, 
         ebookIdentifier, 
-        amountKobo,
+        amount,
+        currency,
         hasAffiliateCode: !!affiliateCode 
       });
       
+      // Find ebook
       let ebook;
       
-      // First, try to find by MongoDB _id (if it's a valid ObjectId)
       if (mongoose.Types.ObjectId.isValid(ebookIdentifier)) {
         ebook = await Ebook.findById(ebookIdentifier);
-        winston.info('🔍 Searching by MongoDB _id:', ebookIdentifier);
       }
       
-      // If not found by _id, try to find by slug or custom ID field
       if (!ebook) {
-        winston.info('🔍 Searching by custom fields for:', ebookIdentifier);
         ebook = await Ebook.findOne({
           $or: [
             { slug: ebookIdentifier },
             { customId: ebookIdentifier },
-            { ebookId: ebookIdentifier },
-            { identifier: ebookIdentifier },
-            { productId: ebookIdentifier }
+            { ebookId: ebookIdentifier }
           ]
         });
       }
@@ -97,64 +96,82 @@ const paymentService = {
       winston.info('✅ Found ebook:', { 
         id: ebook._id, 
         title: ebook.title, 
-        price: ebook.price 
+        price: ebook.price,
+        currency 
       });
       
-      // Generate temporary reference
-      const tempTransactionRef = `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+      // Get user
+      const user = await User.findById(userId);
+      if (!user) {
+        return { success: false, error: 'User not found' };
+      }
       
-      // Create a new purchase entry (pending)
+      // Determine payment method based on currency
+      const paymentMethod = currency === 'USD' ? 'stripe' : 'paystack';
+      
+      // Create purchase record
       const purchase = new Purchase({
         user: userId,
         ebook: ebook._id,
-        amount: amountKobo / 100, // store in Naira
+        amount: amount, // Amount in smallest currency unit (kobo for NGN, cents for USD)
+        currency: currency,
+        paymentMethod: paymentMethod,
         status: 'pending',
         affiliateCode: affiliateCode || null,
         metadata: {
           ...metadata,
           originalEbookIdentifier: ebookIdentifier,
         },
-        transactionReference: tempTransactionRef,
       });
+      
       await purchase.save();
+      winston.info('✅ Purchase created:', { purchaseId: purchase._id, currency });
       
-      winston.info('✅ Purchase created:', { 
-        purchaseId: purchase._id,
-        tempReference: tempTransactionRef 
-      });
-
-      const user = await User.findById(userId);
-      if (!user) {
-        winston.error('❌ User not found for ID:', userId);
-        return { success: false, error: 'User not found' };
+      // Initialize payment based on currency
+      if (currency === 'USD') {
+        return await this.initializeStripePayment(user, ebook, purchase, amount, metadata);
+      } else {
+        return await this.initializePaystackPayment(user, ebook, purchase, amount, metadata);
       }
-
-      // Get frontend URL for callback
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       
-      // ✅ CRITICAL FIX: Redirect to thank-you page with reference
+    } catch (error) {
+      winston.error('🔥 Initialize payment error:', error);
+      return { 
+        success: false, 
+        error: 'Failed to initialize payment', 
+        details: error.message 
+      };
+    }
+  },
+
+  /**
+   * Initialize Paystack Payment (NGN)
+   */
+  async initializePaystackPayment(user, ebook, purchase, amountKobo, metadata) {
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const callbackUrl = `${frontendUrl}/thank-you`;
-      winston.info('🔗 Callback URL set to:', callbackUrl);
       
       const payload = {
         email: metadata.guestEmail || user.email,
-        amount: amountKobo,
+        amount: amountKobo, // Already in kobo
         metadata: {
           purchaseId: purchase._id.toString(),
           ebookId: ebook._id.toString(),
-          ebookIdentifier: ebookIdentifier,
-          affiliateCode: affiliateCode || '',
-          userId: userId.toString(),
+          ebookTitle: ebook.title,
+          affiliateCode: metadata.affiliateCode || '',
+          userId: user._id.toString(),
+          paymentMethod: 'paystack',
+          currency: 'NGN',
           ...metadata,
         },
-        callback_url: callbackUrl, // This tells Paystack where to redirect after payment
+        callback_url: callbackUrl,
       };
 
       winston.info('📤 Sending to Paystack:', {
         amountKobo,
         userEmail: payload.email,
-        ebookTitle: ebook.title,
-        callback_url: payload.callback_url
+        ebookTitle: ebook.title
       });
 
       const response = await axios.post(
@@ -169,25 +186,14 @@ const paymentService = {
       );
 
       if (response.data.status !== true) {
-        winston.error('❌ Paystack initialization failed:', response.data.message);
         purchase.status = 'failed';
         await purchase.save();
-        return { 
-          success: false, 
-          error: response.data.message || 'Paystack initialization failed' 
-        };
+        return { success: false, error: response.data.message };
       }
 
-      // Update purchase with Paystack reference
       purchase.paystackReference = response.data.data.reference;
       purchase.transactionReference = response.data.data.reference;
       await purchase.save();
-
-      winston.info('✅ Payment initialized successfully:', {
-        purchaseId: purchase._id,
-        reference: response.data.data.reference,
-        authorizationUrl: response.data.data.authorization_url
-      });
 
       return {
         success: true,
@@ -195,6 +201,8 @@ const paymentService = {
           authorizationUrl: response.data.data.authorization_url,
           reference: response.data.data.reference,
           purchaseId: purchase._id,
+          paymentMethod: 'paystack',
+          currency: 'NGN',
           ebook: {
             _id: ebook._id,
             title: ebook.title,
@@ -203,29 +211,115 @@ const paymentService = {
         },
       };
     } catch (error) {
-      winston.error('🔥 Initialize payment error:', {
-        message: error.message,
-        stack: error.stack,
-        response: error.response?.data
-      });
-      return { 
-        success: false, 
-        error: 'Failed to initialize payment', 
-        details: error.message,
-        stack: error.stack 
-      };
+      winston.error('🔥 Paystack initialization error:', error);
+      purchase.status = 'failed';
+      await purchase.save();
+      return { success: false, error: 'Failed to initialize Paystack payment' };
     }
   },
 
   /**
-   * Verify Payment
-   * @param {string} reference
+   * Initialize Stripe Payment (USD)
+   */
+  async initializeStripePayment(user, ebook, purchase, amountCents, metadata) {
+    try {
+      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+      const successUrl = `${frontendUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`;
+      const cancelUrl = `${frontendUrl}/checkout-cancelled`;
+      
+      // Create Stripe checkout session
+      const session = await stripe.checkout.sessions.create({
+        payment_method_types: ['card'],
+        line_items: [
+          {
+            price_data: {
+              currency: 'usd',
+              product_data: {
+                name: ebook.title,
+                description: ebook.shortDescription || 'Digital ebook - Suicide Note by Loba Yusuf',
+                images: ebook.coverImage ? [ebook.coverImage] : [],
+              },
+              unit_amount: amountCents, // $5.00 = 500 cents
+            },
+            quantity: 1,
+          },
+        ],
+        mode: 'payment',
+        success_url: successUrl,
+        cancel_url: cancelUrl,
+        customer_email: metadata.guestEmail || user.email,
+        client_reference_id: purchase._id.toString(),
+        metadata: {
+          purchaseId: purchase._id.toString(),
+          ebookId: ebook._id.toString(),
+          ebookTitle: ebook.title,
+          userId: user._id.toString(),
+          affiliateCode: metadata.affiliateCode || '',
+          paymentMethod: 'stripe',
+          currency: 'USD',
+        },
+      });
+
+      // Update purchase with Stripe session ID
+      purchase.stripeSessionId = session.id;
+      purchase.stripePaymentIntentId = session.payment_intent;
+      purchase.transactionReference = session.id;
+      await purchase.save();
+
+      winston.info('✅ Stripe session created:', {
+        sessionId: session.id,
+        purchaseId: purchase._id,
+        url: session.url
+      });
+
+      return {
+        success: true,
+        data: {
+          authorizationUrl: session.url,
+          sessionId: session.id,
+          purchaseId: purchase._id,
+          paymentMethod: 'stripe',
+          currency: 'USD',
+          ebook: {
+            _id: ebook._id,
+            title: ebook.title,
+            price: ebook.price
+          }
+        },
+      };
+    } catch (error) {
+      winston.error('🔥 Stripe initialization error:', error);
+      purchase.status = 'failed';
+      await purchase.save();
+      return { success: false, error: 'Failed to initialize Stripe payment' };
+    }
+  },
+
+  /**
+   * Verify Payment (supports both Paystack and Stripe)
    */
   async verifyPayment(reference) {
     try {
       winston.info('🔍 Verifying payment with reference:', reference);
       
-      // Find purchase with populated fields
+      // Check if it's a Stripe session ID (starts with 'cs_')
+      if (reference && reference.startsWith('cs_')) {
+        return await this.verifyStripePayment(reference);
+      } else {
+        return await this.verifyPaystackPayment(reference);
+      }
+      
+    } catch (error) {
+      winston.error('🔥 Verify payment error:', error);
+      return { success: false, error: 'Failed to verify payment' };
+    }
+  },
+
+  /**
+   * Verify Paystack Payment
+   */
+  async verifyPaystackPayment(reference) {
+    try {
       const purchase = await Purchase.findOne({ 
         $or: [
           { paystackReference: reference },
@@ -234,32 +328,15 @@ const paymentService = {
       }).populate('ebook').populate('user');
       
       if (!purchase) {
-        winston.error('❌ Purchase not found for reference:', reference);
         return { success: false, error: 'Purchase not found' };
       }
 
-      // Check if already verified
       if (purchase.status === 'completed') {
-        winston.info('✅ Payment already verified:', reference);
-        
         const existingAccessCode = await AccessCode.findOne({ purchase: purchase._id });
-        
-        // Try to send email again if it wasn't sent before
-        if (existingAccessCode) {
-          await sendAccessCodeEmail(purchase, existingAccessCode);
-        }
-        
         return {
           success: true,
           data: {
-            purchase: {
-              _id: purchase._id,
-              amount: purchase.amount,
-              status: purchase.status,
-              paidAt: purchase.paidAt,
-              ebook: purchase.ebook,
-              user: purchase.user
-            },
+            purchase,
             paymentStatus: purchase.status,
             accessCode: existingAccessCode?.code,
             alreadyVerified: true
@@ -278,68 +355,131 @@ const paymentService = {
       if (!response.data.status || response.data.data.status !== 'success') {
         purchase.status = 'failed';
         await purchase.save();
-        winston.error('❌ Payment verification failed:', response.data.message);
-        return { 
-          success: false, 
-          error: response.data.message || 'Payment verification failed',
-          data: response.data 
+        return { success: false, error: 'Payment verification failed' };
+      }
+
+      // Prepare payment details from Paystack
+      const paymentDetails = {
+        authorizationCode: response.data.data.authorization?.authorization_code,
+        cardType: response.data.data.authorization?.card_type,
+        last4: response.data.data.authorization?.last4,
+        bank: response.data.data.authorization?.bank,
+        channel: response.data.data.channel,
+        paidAt: new Date(response.data.data.paid_at),
+      };
+
+      return await this.completeSuccessfulPayment(purchase, paymentDetails);
+      
+    } catch (error) {
+      winston.error('🔥 Paystack verification error:', error);
+      return { success: false, error: 'Failed to verify Paystack payment' };
+    }
+  },
+
+  /**
+   * Verify Stripe Payment
+   */
+  async verifyStripePayment(sessionId) {
+    try {
+      // Retrieve the checkout session from Stripe
+      const session = await stripe.checkout.sessions.retrieve(sessionId, {
+        expand: ['payment_intent', 'line_items'],
+      });
+
+      if (session.payment_status !== 'paid') {
+        return { success: false, error: 'Payment not completed' };
+      }
+
+      // Find purchase by session ID or client_reference_id
+      const purchase = await Purchase.findOne({ 
+        $or: [
+          { stripeSessionId: sessionId },
+          { transactionReference: sessionId },
+          { _id: session.client_reference_id }
+        ]
+      }).populate('ebook').populate('user');
+      
+      if (!purchase) {
+        return { success: false, error: 'Purchase not found' };
+      }
+
+      if (purchase.status === 'completed') {
+        const existingAccessCode = await AccessCode.findOne({ purchase: purchase._id });
+        return {
+          success: true,
+          data: {
+            purchase,
+            paymentStatus: purchase.status,
+            accessCode: existingAccessCode?.code,
+            alreadyVerified: true
+          },
         };
       }
 
-      // ✅ Create AccessCode record
+      // Prepare payment details from Stripe
+      const paymentIntent = session.payment_intent;
+      const charge = paymentIntent?.charges?.data?.[0];
+      
+      const paymentDetails = {
+        authorizationCode: paymentIntent?.id,
+        cardType: charge?.payment_method_details?.card?.brand,
+        last4: charge?.payment_method_details?.card?.last4,
+        expMonth: charge?.payment_method_details?.card?.exp_month,
+        expYear: charge?.payment_method_details?.card?.exp_year,
+        bank: 'stripe',
+        channel: 'card',
+        paidAt: new Date(paymentIntent?.created * 1000),
+      };
+
+      return await this.completeSuccessfulPayment(purchase, paymentDetails);
+      
+    } catch (error) {
+      winston.error('🔥 Stripe verification error:', error);
+      return { success: false, error: 'Failed to verify Stripe payment' };
+    }
+  },
+
+  /**
+   * Complete successful payment (common for both Paystack and Stripe)
+   */
+  async completeSuccessfulPayment(purchase, paymentDetails) {
+    try {
+      // Create access code
       const accessCode = await AccessCode.create({
         code: `SN-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
         user: purchase.user._id,
         ebook: purchase.ebook._id,
         purchase: purchase._id,
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year from now
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
         isActive: true,
       });
 
-      // ✅ Send email immediately after creating access code
+      // Send email
       await sendAccessCodeEmail(purchase, accessCode);
 
-      // ✅ Update purchase with AccessCode ObjectId
+      // Update purchase
       purchase.status = 'completed';
       purchase.paidAt = new Date();
       purchase.accessCode = accessCode._id;
-      
-      if (response.data.data.authorization) {
-        purchase.paymentDetails = {
-          authorizationCode: response.data.data.authorization.authorization_code,
-          cardType: response.data.data.authorization.card_type,
-          last4: response.data.data.authorization.last4,
-          bank: response.data.data.authorization.bank,
-          channel: response.data.data.channel,
-          paidAt: new Date(response.data.data.paid_at || new Date())
-        };
-      }
-      
+      purchase.paymentDetails = paymentDetails;
+      purchase.completedAt = new Date();
       await purchase.save();
-
-      winston.info('✅ Payment verified successfully:', {
-        purchaseId: purchase._id,
-        status: purchase.status,
-        accessCode: accessCode.code,
-        email: purchase.user?.email
-      });
 
       // Update user's purchased ebooks
       if (purchase.user) {
-        try {
-          const user = await User.findById(purchase.user._id);
-          if (user) {
-            if (!user.purchasedEbooks) {
-              user.purchasedEbooks = [];
-            }
-            if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
-              user.purchasedEbooks.push(purchase.ebook._id);
-              await user.save();
-            }
+        const user = await User.findById(purchase.user._id);
+        if (user) {
+          if (!user.purchasedEbooks) user.purchasedEbooks = [];
+          if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
+            user.purchasedEbooks.push(purchase.ebook._id);
+            await user.save();
           }
-        } catch (userError) {
-          winston.warn('Could not update user purchased ebooks:', userError.message);
         }
+      }
+
+      // Handle affiliate commission if applicable
+      if (purchase.affiliateCode) {
+        await this.handleAffiliateCommission(purchase);
       }
 
       return {
@@ -348,30 +488,121 @@ const paymentService = {
           purchase: {
             _id: purchase._id,
             amount: purchase.amount,
+            currency: purchase.currency,
             status: purchase.status,
             paidAt: purchase.paidAt,
             ebook: purchase.ebook,
             user: purchase.user
           },
           paymentStatus: purchase.status,
-          verifiedData: response.data.data,
           accessCode: accessCode.code,
-          accessCodeId: accessCode._id
         },
       };
     } catch (error) {
-      winston.error('🔥 Verify payment error:', {
-        message: error.message,
-        stack: error.stack,
-        reference: reference
-      });
-      return { 
-        success: false, 
-        error: 'Failed to verify payment', 
-        details: error.message,
-        stack: error.stack 
-      };
+      winston.error('🔥 Complete payment error:', error);
+      return { success: false, error: 'Failed to complete payment' };
     }
+  },
+
+  /**
+   * Handle affiliate commission
+   */
+  async handleAffiliateCommission(purchase) {
+    try {
+      const affiliate = await Affiliate.findOne({ affiliateCode: purchase.affiliateCode });
+      if (!affiliate) return;
+
+      const commissionRate = affiliate.commissionRate || 0.5; // 50% default
+      const commissionAmount = purchase.amount * commissionRate;
+
+      affiliate.earnings += commissionAmount;
+      affiliate.totalSales += 1;
+      affiliate.sales.push({
+        purchaseId: purchase._id,
+        amount: purchase.amount,
+        commission: commissionAmount,
+        date: new Date(),
+        status: 'pending',
+      });
+      await affiliate.save();
+
+      winston.info('✅ Affiliate commission recorded:', {
+        affiliateCode: purchase.affiliateCode,
+        purchaseId: purchase._id,
+        commissionAmount
+      });
+    } catch (error) {
+      winston.error('❌ Affiliate commission error:', error);
+    }
+  },
+
+  /**
+   * Stripe Webhook Handler
+   */
+  async handleStripeWebhook(req, res) {
+    const sig = req.headers['stripe-signature'];
+    let event;
+
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        sig,
+        process.env.STRIPE_WEBHOOK_SECRET
+      );
+    } catch (err) {
+      winston.error('⚠️ Webhook signature verification failed:', err.message);
+      return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    // Handle the event
+    switch (event.type) {
+      case 'checkout.session.completed':
+        const session = event.data.object;
+        await this.verifyStripePayment(session.id);
+        winston.info(`✅ Stripe checkout completed: ${session.id}`);
+        break;
+        
+      case 'payment_intent.succeeded':
+        const paymentIntent = event.data.object;
+        winston.info(`✅ Stripe payment succeeded: ${paymentIntent.id}`);
+        break;
+        
+      case 'payment_intent.payment_failed':
+        const failedPayment = event.data.object;
+        winston.error(`❌ Stripe payment failed: ${failedPayment.id}`);
+        break;
+        
+      default:
+        winston.info(`Unhandled event type: ${event.type}`);
+    }
+
+    return res.json({ received: true });
+  },
+
+  /**
+   * Get currency options for frontend
+   */
+  getCurrencyOptions() {
+    return {
+      NGN: {
+        symbol: '₦',
+        code: 'NGN',
+        amount: EBOOK_PRICE_NGN,
+        displayAmount: '2,500',
+        paymentMethod: 'paystack',
+        icon: '🇳🇬',
+        description: 'Local cards, Bank Transfer, USSD'
+      },
+      USD: {
+        symbol: '$',
+        code: 'USD',
+        amount: EBOOK_PRICE_USD, // cents
+        displayAmount: '5.00',
+        paymentMethod: 'stripe',
+        icon: '🌍',
+        description: 'International cards (Visa, Mastercard, etc.)'
+      }
+    };
   },
 
   /**
@@ -381,6 +612,7 @@ const paymentService = {
     try {
       const purchases = await Purchase.find({ user: userId })
         .populate('ebook')
+        .populate('accessCode')
         .sort({ createdAt: -1 });
       return { success: true, data: purchases };
     } catch (error) {
@@ -394,7 +626,9 @@ const paymentService = {
    */
   async getPurchaseById(purchaseId, userId) {
     try {
-      const purchase = await Purchase.findOne({ _id: purchaseId, user: userId }).populate('ebook');
+      const purchase = await Purchase.findOne({ _id: purchaseId, user: userId })
+        .populate('ebook')
+        .populate('accessCode');
       if (!purchase) return { success: false, error: 'Purchase not found' };
       return { success: true, data: purchase };
     } catch (error) {

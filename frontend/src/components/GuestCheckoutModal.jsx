@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Icon } from './shared/Icons';
 import styles from './GuestCheckoutModal.module.css';
-import PaymentService from '../services/PaymentService'; // Import the object
+import PaymentService from '../services/PaymentService';
 import toast from 'react-hot-toast';
 
 const GuestCheckoutModal = ({
@@ -11,97 +11,128 @@ const GuestCheckoutModal = ({
   ebookId,
   ebookPrice,
   ebookTitle = 'Suicide Note',
-  affiliateCode, // optional
-  campaignName,  // optional
+  affiliateCode,
+  campaignName,
 }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
+  const [currency, setCurrency] = useState('NGN'); // 'NGN' or 'USD'
   const [isLoading, setIsLoading] = useState(false);
+  const [currencyOptions, setCurrencyOptions] = useState({
+    NGN: {
+      symbol: '₦',
+      code: 'NGN',
+      amount: 2500,
+      displayAmount: '2,500',
+      paymentMethod: 'paystack',
+      icon: '🇳🇬',
+      description: 'Local cards, Bank Transfer, USSD'
+    },
+    USD: {
+      symbol: '$',
+      code: 'USD',
+      amount: 500,
+      displayAmount: '5.00',
+      paymentMethod: 'stripe',
+      icon: '🌍',
+      description: 'International cards (Visa, Mastercard, etc.)'
+    }
+  });
+
+  // Fetch currency options on mount
+  useEffect(() => {
+    const fetchCurrencyOptions = async () => {
+      const result = await PaymentService.getCurrencyOptions();
+      if (result.success) {
+        setCurrencyOptions(result.data);
+      }
+    };
+    
+    if (isOpen) {
+      fetchCurrencyOptions();
+    }
+  }, [isOpen]);
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleSubmit = async () => {
-  if (!validateEmail(email)) {
-    toast.error('Please enter a valid email');
-    return;
-  }
-
-  console.log('📦 GuestCheckoutModal props:', {
-    ebookId,
-    ebookPrice,
-    ebookTitle,
-    affiliateCode,
-    campaignName
-  });
-
-  setIsLoading(true);
-
-  try {
-    // Build payment data - CORRECT format
-    const paymentData = {
-      ebookId: String(ebookId), // Ensure it's a string
-      email: email.trim(),
-      name: name.trim() || email.split('@')[0],
-      amount: Number(ebookPrice), // Must be a number
-    };
-
-    // Only add optional fields if they exist AND are valid
-    if (affiliateCode && affiliateCode.trim() !== '') {
-      paymentData.affiliateCode = String(affiliateCode).trim();
-    }
-    
-    // ⚠️ FIX: Ensure campaignName is always a string (not null/undefined)
-    if (campaignName && campaignName.trim() !== '') {
-      paymentData.campaignName = String(campaignName).trim();
-    } else {
-      // Provide a default string value if campaignName is null/undefined/empty
-      paymentData.campaignName = 'direct-purchase'; // Default value
+    if (!validateEmail(email)) {
+      toast.error('Please enter a valid email');
+      return;
     }
 
-    // Add callback URL
-    // paymentData.callback_url = `${window.location.origin}/payment-callback`;
+    console.log('📦 GuestCheckoutModal props:', {
+      ebookId,
+      ebookPrice,
+      ebookTitle,
+      affiliateCode,
+      campaignName,
+      currency
+    });
 
-    console.log('📤 Sending payment data:', paymentData);
+    setIsLoading(true);
 
-    // ✅ Call PaymentService correctly
-    const result = await PaymentService.initializePayment(paymentData);
-
-    console.log('✅ Payment initialization result:', result);
-
-    // ✅ Check for authorization URL
-    if (result?.success) {
-      const authUrl = result.data?.authorizationUrl || result.data?.authorization_url;
+    try {
+      // Get the selected currency option
+      const selectedOption = currencyOptions[currency];
       
-      if (authUrl) {
-        console.log('🔗 Redirecting to Paystack:', authUrl);
-        
-        // Save purchase info temporarily for thank you page
-        localStorage.setItem('pending_purchase', JSON.stringify({
-          reference: result.data.reference,
-          ebookTitle: ebookTitle,
-          amount: ebookPrice,
-          timestamp: new Date().toISOString()
-        }));
-        
-        // Redirect to Paystack
-        window.location.href = authUrl;
-      } else {
-        console.error('❌ No authorization URL in response:', result);
-        toast.error('Payment initialization failed - no payment link generated');
+      // Build payment data with currency
+      const paymentData = {
+        ebookId: String(ebookId),
+        email: email.trim(),
+        name: name.trim() || email.split('@')[0],
+        amount: selectedOption.amount, // Amount in smallest unit
+        currency: currency,
+      };
+
+      if (affiliateCode && affiliateCode.trim() !== '') {
+        paymentData.affiliateCode = String(affiliateCode).trim();
       }
-    } else {
-      console.error('❌ Payment initialization failed:', result);
-      toast.error(result?.error || 'Payment initialization failed');
+      
+      paymentData.campaignName = campaignName?.trim() || 'direct-purchase';
+
+      console.log('📤 Sending payment data:', paymentData);
+
+      const result = await PaymentService.initializePayment(paymentData);
+
+      console.log('✅ Payment initialization result:', result);
+
+      if (result?.success) {
+        const authUrl = result.data?.authorizationUrl || result.data?.authorization_url;
+        
+        if (authUrl) {
+          console.log(`🔗 Redirecting to ${currency} payment:`, authUrl);
+          
+          // Save purchase info temporarily
+          localStorage.setItem('pending_purchase', JSON.stringify({
+            reference: result.data.reference || result.data.sessionId,
+            ebookTitle: ebookTitle,
+            amount: currency === 'USD' ? 5 : ebookPrice,
+            currency: currency,
+            timestamp: new Date().toISOString()
+          }));
+          
+          // Redirect to payment gateway
+          window.location.href = authUrl;
+        } else {
+          console.error('❌ No authorization URL in response:', result);
+          toast.error('Payment initialization failed - no payment link generated');
+        }
+      } else {
+        console.error('❌ Payment initialization failed:', result);
+        toast.error(result?.error || 'Payment initialization failed');
+      }
+    } catch (error) {
+      console.error('❌ Payment failed:', error);
+      toast.error(error?.message || 'Payment failed');
+    } finally {
+      setIsLoading(false);
     }
-  } catch (error) {
-    console.error('❌ Payment failed:', error);
-    toast.error(error?.message || 'Payment failed');
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   if (!isOpen) return null;
+
+  const selectedOption = currencyOptions[currency];
 
   return (
     <div className={styles.modalOverlay}>
@@ -115,8 +146,33 @@ const GuestCheckoutModal = ({
           </div>
 
           <div className={styles.priceSection}>
-            <div className={styles.priceTag}>₦{ebookPrice.toLocaleString()}</div>
-            <p className={styles.priceDescription}>One-time payment for "{ebookTitle}"</p>
+            {/* Currency Toggle */}
+            <div className={styles.currencyToggle}>
+              <button
+                className={`${styles.currencyButton} ${currency === 'NGN' ? styles.active : ''}`}
+                onClick={() => setCurrency('NGN')}
+                disabled={isLoading}
+              >
+                <span className={styles.currencyIcon}>{currencyOptions.NGN.icon}</span>
+                <span className={styles.currencyCode}>NGN</span>
+                <span className={styles.currencyPrice}>{currencyOptions.NGN.symbol}{currencyOptions.NGN.displayAmount}</span>
+                <span className={styles.currencyMethod}>{currencyOptions.NGN.paymentMethod}</span>
+              </button>
+              <button
+                className={`${styles.currencyButton} ${currency === 'USD' ? styles.active : ''}`}
+                onClick={() => setCurrency('USD')}
+                disabled={isLoading}
+              >
+                <span className={styles.currencyIcon}>{currencyOptions.USD.icon}</span>
+                <span className={styles.currencyCode}>USD</span>
+                <span className={styles.currencyPrice}>{currencyOptions.USD.symbol}{currencyOptions.USD.displayAmount}</span>
+                <span className={styles.currencyMethod}>{currencyOptions.USD.paymentMethod}</span>
+              </button>
+            </div>
+            
+            <p className={styles.priceDescription}>
+              {selectedOption.description}
+            </p>
           </div>
 
           <div className={styles.stepContent}>
@@ -127,6 +183,7 @@ const GuestCheckoutModal = ({
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
+                placeholder="you@example.com"
                 autoFocus
               />
             </div>
@@ -138,12 +195,54 @@ const GuestCheckoutModal = ({
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 disabled={isLoading}
+                placeholder="Enter your name"
               />
             </div>
 
-            <button onClick={handleSubmit} disabled={isLoading || !validateEmail(email)}>
-              {isLoading ? 'Processing...' : 'Proceed to Payment →'}
+            <button 
+              onClick={handleSubmit} 
+              disabled={isLoading || !validateEmail(email)}
+              className={styles.submitButton}
+            >
+              {isLoading ? (
+                <>
+                  <span className={styles.spinner}></span>
+                  <span>Processing...</span>
+                </>
+              ) : (
+                <>
+                  <span>Pay {selectedOption.symbol}{selectedOption.displayAmount}</span>
+                  <span className={styles.arrow}>→</span>
+                </>
+              )}
             </button>
+
+            <div className={styles.paymentFeatures}>
+              <div className={styles.featureItem}>
+                <Icon name="Shield" className={styles.featureIcon} />
+                <span>Secure Payment</span>
+              </div>
+              <div className={styles.featureItem}>
+                <Icon name="Lock" className={styles.featureIcon} />
+                <span>Encrypted Transaction</span>
+              </div>
+              <div className={styles.featureItem}>
+                <Icon name="CheckCircle" className={styles.featureIcon} />
+                <span>Instant Access</span>
+              </div>
+            </div>
+
+            {currency === 'USD' && (
+              <div className={styles.paymentNote}>
+                <Icon name="Info" /> International payments processed by Stripe
+              </div>
+            )}
+
+            {currency === 'NGN' && (
+              <div className={styles.paymentNote}>
+                <Icon name="Info" /> Nigerian payments processed by Paystack
+              </div>
+            )}
           </div>
         </div>
       </div>

@@ -10,7 +10,6 @@ const debugMiddleware = (req, res, next) => {
   console.log('🔍 [ROUTE]', req.method, req.originalUrl);
   console.log('🔍 [BODY]', req.body);
   console.log('🔍 [HEADERS] Content-Type:', req.headers['content-type']);
-  console.log('🔍 [HEADERS] Authorization:', req.headers['authorization']);
   next();
 };
 
@@ -20,56 +19,46 @@ const initializePaymentSchema = Joi.object({
   email: Joi.string().email().required(),
   name: Joi.string().optional(),
   amount: Joi.number().positive().required(),
+  currency: Joi.string().valid('NGN', 'USD').default('NGN'),
   affiliateCode: Joi.string().optional().allow(null, ''),
   campaignName: Joi.string().optional(),
-  callback_url: Joi.string().uri().optional()
 });
 
 const verifyPaymentSchema = Joi.object({
   reference: Joi.string().required(),
-  email: Joi.string().email().optional(),
 });
 
 const validateAccessCodeSchema = Joi.object({
   code: Joi.string().required(),
-  ebookId: Joi.string().optional().allow('', null), // Optional
-  ebookSlug: Joi.string().optional().allow('', null), // Optional
-});
-
-const requestRefundSchema = Joi.object({
-  purchaseId: Joi.string().required(),
-  reason: Joi.string().min(10).max(500).required(),
-});
-
-const processPayoutSchema = Joi.object({
-  amount: Joi.number().min(5000).required(),
-});
-
-const updateBankDetailsSchema = Joi.object({
-  accountNumber: Joi.string().pattern(/^[0-9]{10}$/).required(),
-  accountName: Joi.string().min(2).max(100).required(),
-  bankCode: Joi.string().required(),
-  bankName: Joi.string().required(),
+  ebookId: Joi.string().optional(),
+  ebookSlug: Joi.string().optional(),
 });
 
 // Public routes
 router.post(
   '/webhook/paystack',
+  express.raw({ type: 'application/json' }),
   paymentController.handlePaystackWebhook
 );
 
-// router.get(
-//   '/banks',
-//   authMiddleware.rateLimit(60 * 1000, 10),
-//   paymentController.getBanks
-// );
+router.post(
+  '/webhook/stripe',
+  express.raw({ type: 'application/json' }),
+  paymentController.handleStripeWebhook
+);
+
+// Get currency options
+router.get(
+  '/currency-options',
+  paymentController.getCurrencyOptions
+);
 
 // Guest checkout route with optional auth
 router.post(
   '/initialize',
   express.json(),
-  debugMiddleware, // Add debug logging
-  authMiddleware.optional, // Allows both logged in and guest users
+  debugMiddleware,
+  authMiddleware.optional,
   authMiddleware.validateAffiliateCode,
   authMiddleware.validate(initializePaymentSchema),
   paymentController.initializePayment
@@ -87,28 +76,25 @@ router.post(
 router.post('/test-body', (req, res) => {
   console.log('✅ Test endpoint called');
   console.log('📦 Request body:', req.body);
-  console.log('📦 Type of body:', typeof req.body);
-  console.log('📦 Body keys:', Object.keys(req.body || {}));
   
   return res.status(200).json({
     success: true,
     message: 'Test successful',
     body: req.body,
-    bodyType: typeof req.body,
-    bodyKeys: Object.keys(req.body || {})
   });
 });
 
-// Public test route (no middleware)
+// Public test route
 router.post('/public-test', paymentController.initializePayment);
 
-// Authenticated routes
+// Access code validation
 router.post(
-  '/validate-access-code',  // But frontend calls /api/access/validate
+  '/validate-access-code',
   authMiddleware.validate(validateAccessCodeSchema),
   paymentController.validateAccessCode
 );
 
+// Authenticated routes
 router.get(
   '/purchases',
   authMiddleware.protect,
@@ -119,13 +105,6 @@ router.get(
   '/purchases/:id',
   authMiddleware.protect,
   paymentController.getPurchaseById
-);
-
-router.post(
-  '/request-refund',
-  authMiddleware.protect,
-  authMiddleware.validate(requestRefundSchema),
-  paymentController.requestRefund
 );
 
 // Affiliate routes
@@ -140,7 +119,6 @@ router.post(
   '/affiliate/request-payout',
   authMiddleware.protect,
   authMiddleware.isAffiliate,
-  authMiddleware.validate(processPayoutSchema),
   paymentController.requestPayout
 );
 
@@ -148,69 +126,23 @@ router.put(
   '/affiliate/bank-details',
   authMiddleware.protect,
   authMiddleware.isAffiliate,
-  authMiddleware.validate(updateBankDetailsSchema),
   paymentController.updateBankDetails
 );
 
-// router.get(
-//   '/affiliate/stats',
-//   authMiddleware.protect,
-//   authMiddleware.isAffiliate,
-//   paymentController.getAffiliateStats
-// );
+// Track affiliate click
+router.get(
+  '/track-click',
+  paymentController.trackAffiliateClick
+);
 
-// Admin routes
-// router.get(
-//   '/admin/stats',
-//   authMiddleware.protect,
-//   authMiddleware.restrictTo('admin'),
-//   paymentController.getPaymentStats
-// );
-
-// router.get(
-//   '/admin/affiliates',
-//   authMiddleware.protect,
-//   authMiddleware.restrictTo('admin'),
-//   paymentController.getAllAffiliates
-// );
-
-// router.post(
-//   '/admin/process-payout/:affiliateId',
-//   authMiddleware.protect,
-//   authMiddleware.restrictTo('admin'),
-//   paymentController.adminProcessPayout
-// );
-
-// // Track affiliate click (public)
-// router.get(
-//   '/track-click',
-//   paymentController.trackAffiliateClick
-// );
-
-// // Generate affiliate link
-// router.post(
-//   '/affiliate/generate-link',
-//   authMiddleware.protect,
-//   authMiddleware.isAffiliate,
-//   paymentController.generateAffiliateLink
-// );
-
-// Simple debug route with NO other middleware
+// Simple debug route
 router.post('/debug-simple', 
-  express.json(), // Explicit parser
-  (req, res, next) => {
-    console.log('✅ Debug simple route - Body exists:', !!req.body);
-    console.log('✅ Debug simple route - Body:', req.body);
-    console.log('✅ Debug simple route - Body keys:', Object.keys(req.body || {}));
-    
-    // Check raw request
-    console.log('✅ Debug simple route - Raw request:', req.rawBody);
-    
+  express.json(),
+  (req, res) => {
     res.json({
       success: true,
       message: 'Debug simple route working',
       body: req.body,
-      rawBody: req.rawBody,
       timestamp: new Date().toISOString()
     });
   }

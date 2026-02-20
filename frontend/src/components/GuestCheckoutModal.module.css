@@ -1,64 +1,80 @@
-/* GuestCheckoutModal.module.css */
-
 .modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(4px);
+  background: rgba(0, 0, 0, 0.5);
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1rem;
   z-index: 1000;
-  animation: fadeIn 0.2s ease-out;
+  backdrop-filter: blur(4px);
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 .modalContainer {
-  background-color: var(--color-white);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-2xl);
   width: 100%;
-  max-width: 28rem;
-  max-height: 90vh;
-  overflow: hidden;
-  animation: slideUp 0.3s ease-out;
+  max-width: 500px;
+  margin: 20px;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .modalContent {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
+  background: white;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
 .modalHeader {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0dbd4;
   display: flex;
   align-items: center;
-  padding: 1.5rem 1.5rem 0.5rem;
-  position: relative;
+  justify-content: space-between;
+  background: #faf8f5;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
 }
 
 .closeButton {
-  position: absolute;
-  left: 1.5rem;
-  top: 1.5rem;
   background: none;
   border: none;
-  color: var(--color-gray-500);
   cursor: pointer;
-  padding: 0.5rem;
-  border-radius: var(--radius);
+  padding: 8px;
+  color: #666;
   transition: all 0.2s;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .closeButton:hover {
-  color: var(--color-gray-700);
-  background-color: var(--color-gray-100);
+  background: #e0dbd4;
+  color: #1a1a1a;
 }
 
 .closeButton:disabled {
@@ -66,175 +82,239 @@
   cursor: not-allowed;
 }
 
-.modalTitle {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--color-gray-900);
-  text-align: center;
-  flex: 1;
-  margin: 0;
-}
-
 .priceSection {
-  padding: 1.5rem;
-  text-align: center;
-  background: linear-gradient(135deg, var(--color-red-light) 0%, rgba(239, 68, 68, 0.1) 100%);
-  border-bottom: 1px solid var(--color-gray-200);
+  padding: 24px;
+  background: linear-gradient(135deg, #f8f4f0, #f0e9e2);
+  border-bottom: 1px solid #e0dbd4;
 }
 
-.priceTag {
-  font-size: 3rem;
-  font-weight: 800;
-  color: var(--color-red);
-  line-height: 1;
-  margin-bottom: 0.5rem;
+.currencyToggle {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.currencyButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  border: 2px solid #e0dbd4;
+  border-radius: 16px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+
+.currencyButton:hover {
+  border-color: #8b1a1a;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 26, 26, 0.1);
+}
+
+.currencyButton.active {
+  border-color: #8b1a1a;
+  background: #fff5f0;
+  box-shadow: 0 4px 12px rgba(139, 26, 26, 0.15);
+}
+
+.currencyButton.active::before {
+  content: '✓';
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  color: #8b1a1a;
+  font-weight: bold;
+}
+
+.currencyIcon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.currencyCode {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 4px;
+}
+
+.currencyPrice {
+  font-size: 20px;
+  font-weight: 700;
+  color: #8b1a1a;
+  margin-bottom: 4px;
+}
+
+.currencyMethod {
+  font-size: 12px;
+  color: #666;
+  text-transform: capitalize;
 }
 
 .priceDescription {
-  font-size: 1rem;
-  color: var(--color-gray-600);
+  text-align: center;
+  color: #4a4a4a;
+  font-size: 14px;
   margin: 0;
+  padding-top: 8px;
+  border-top: 1px dashed #e0dbd4;
 }
 
 .stepContent {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
+  padding: 24px;
 }
 
 .formGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+  margin-bottom: 20px;
 }
 
 .formGroup label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--color-gray-700);
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 8px;
 }
 
 .formGroup input {
-  padding: 0.875rem 1rem;
-  border: 1px solid var(--color-gray-300);
-  border-radius: var(--radius);
-  font-size: 1rem;
-  color: var(--color-gray-900);
+  width: 100%;
+  padding: 14px 16px;
+  border: 2px solid #e0dbd4;
+  border-radius: 12px;
+  font-size: 16px;
   transition: all 0.2s;
-  background-color: var(--color-white);
+  background: white;
 }
 
 .formGroup input:focus {
   outline: none;
-  border-color: var(--color-red);
-  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+  border-color: #8b1a1a;
+  box-shadow: 0 0 0 3px rgba(139, 26, 26, 0.1);
 }
 
 .formGroup input:disabled {
-  background-color: var(--color-gray-100);
-  color: var(--color-gray-500);
+  background: #f5f5f5;
   cursor: not-allowed;
 }
 
 .formGroup input::placeholder {
-  color: var(--color-gray-400);
+  color: #aaa;
 }
 
-.stepContent button {
-  background: linear-gradient(135deg, var(--color-red) 0%, var(--color-red-dark) 100%);
-  color: var(--color-white);
+.submitButton {
+  width: 100%;
+  background: #8b1a1a;
+  color: white;
   border: none;
-  border-radius: var(--radius-lg);
-  padding: 1rem 2rem;
-  font-size: 1rem;
-  font-weight: 700;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
-  margin-top: 0.5rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
+  gap: 8px;
+  margin-top: 24px;
 }
 
-.stepContent button:hover {
-  transform: translateY(-1px);
-  box-shadow: var(--shadow-lg);
+.submitButton:hover:not(:disabled) {
+  background: #6b1313;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(139, 26, 26, 0.3);
 }
 
-.stepContent button:disabled {
-  opacity: 0.5;
+.submitButton:disabled {
+  background: #ccc;
   cursor: not-allowed;
-  transform: none;
-  box-shadow: none;
+  opacity: 0.7;
 }
 
-.stepContent button:not(:disabled):active {
-  transform: translateY(0);
+.arrow {
+  font-size: 20px;
 }
 
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top-color: white;
+  animation: spin 1s linear infinite;
+  display: inline-block;
 }
 
-@keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateY(1rem);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
-/* Responsive adjustments */
-@media (max-width: 640px) {
-  .modalContainer {
-    max-width: 100%;
-    margin: 0;
-    border-radius: var(--radius-lg);
-  }
-  
-  .modalHeader {
-    padding: 1rem 1rem 0.5rem;
-  }
-  
-  .closeButton {
-    left: 1rem;
-    top: 1rem;
-  }
-  
-  .modalTitle {
-    font-size: 1.25rem;
-    padding-right: 2rem;
-  }
-  
-  .priceSection {
-    padding: 1rem;
-  }
-  
-  .priceTag {
-    font-size: 2.5rem;
-  }
-  
-  .stepContent {
-    padding: 1rem;
-  }
-  
-  .formGroup input {
-    padding: 0.75rem;
-  }
+.paymentFeatures {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin: 24px 0 16px;
 }
 
-@media (min-width: 768px) {
-  .modalContainer {
-    max-width: 32rem;
+.featureItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  color: #666;
+}
+
+.featureIcon {
+  width: 16px;
+  height: 16px;
+  color: #059669;
+}
+
+.paymentNote {
+  background: #f0f7ff;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 13px;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 16px;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+  .currencyToggle {
+    flex-direction: column;
+  }
+  
+  .currencyButton {
+    flex-direction: row;
+    justify-content: space-between;
+    padding: 12px 16px;
+  }
+  
+  .currencyIcon {
+    margin-bottom: 0;
+    margin-right: 8px;
+  }
+  
+  .currencyCode {
+    margin-bottom: 0;
+    margin-right: auto;
+  }
+  
+  .currencyPrice {
+    margin-bottom: 0;
+    margin-right: 8px;
+  }
+  
+  .paymentFeatures {
+    flex-wrap: wrap;
   }
 }
