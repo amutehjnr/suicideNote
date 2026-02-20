@@ -1,10 +1,11 @@
-// SuicideNote.jsx
-import React, { useState, useEffect, useCallback } from 'react';
+// src/pages/ReaderPage.jsx
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import PaymentService from '../../services/PaymentService';
 import toast from 'react-hot-toast';
-import './SuicideNote.css';
+import './ReaderPage.css'; // We'll use CSS instead of modules for the HTML styles
 
-// Book content divided into multiple pages/chapters (matching the HTML structure)
+// Book content divided into multiple pages/chapters
 const BOOK_CONTENT = [
   {
     page: 1,
@@ -61,8 +62,10 @@ It's Friday, November 15, 2024. 11:47 PM. NEPA took light around nine—unusual,
     chapter: "Chapter 1: The Note Begins (Continued)",
     content: `My name is Eliora Oluwafemi Adetayo. Eliora means my God is light, Oluwafemi—God loves me, and Adetayo—the crown meets joy. My parents named me like I was supposed to be something. Like these names would protect me or guide me or make me into a relevant person.
 
-I am twenty-six years old. I have a degree in Business Administration from Lagos State University, Second Class Lower. I work as a warehouse associate for a Chinese import company in Apapa, scanning inventory and recording stock numbers. I make ₦65,000 a month. After transport, food, and rent—which my parents helped pay this year because I couldn't manage it alone—I have maybe ₦8,000 left for everything else. I live in Ojuelegba in a room so small I can touch opposite walls if I spread my arms wide enough.`,
-    wordCount: 130
+I am twenty-six years old. I have a degree in Business Administration from Lagos State University, Second Class Lower. I work as a warehouse associate for a Chinese import company in Apapa, scanning inventory and recording stock numbers. I make ₦65,000 a month. After transport, food, and rent—which my parents helped pay this year because I couldn't manage it alone—I have maybe ₦8,000 left for everything else. I live in Ojuelegba in a room so small I can touch opposite walls if I spread my arms wide enough.
+
+This is my life. This has been my life for two and a half years, and I can't see how it will ever be different.`,
+    wordCount: 150
   },
   {
     page: 6,
@@ -72,7 +75,7 @@ I am twenty-six years old. I have a degree in Business Administration from Lagos
 I wake up at 5 AM every day because my commute takes two hours. Danfo from Ojuelegba to CMS, then another from CMS to Apapa. I stand for most of the journey because there are never enough seats. I smell like sweat and exhaust fumes before I even get to work.
 
 At work, I scan boxes. Boxes from China, boxes from India, boxes from Turkey. Boxes of shoes, boxes of clothes, boxes of electronics. Beep. Next. Beep. Next. Beep. Next. Eight hours of beeping.`,
-    wordCount: 125
+    wordCount: 130
   },
   {
     page: 7,
@@ -82,7 +85,7 @@ At work, I scan boxes. Boxes from China, boxes from India, boxes from Turkey. Bo
 I eat lunch at my station—bread and egg from Mama Chidi's stall outside. ₦300. Sometimes I skip and just drink water. The hunger reminds me I'm alive, at least. That's something.
 
 At 5 PM, I reverse the journey. Two more hours standing. More sweat. More exhaust. More bodies pressed against mine. More pretending I don't exist.`,
-    wordCount: 115
+    wordCount: 120
   },
   {
     page: 8,
@@ -92,7 +95,7 @@ At 5 PM, I reverse the journey. Two more hours standing. More sweat. More exhaus
 I boil water for noodles. Indomie, chicken flavor. ₦200. While it cooks, I scroll through Instagram. Friends from university getting married. Having babies. Traveling to Dubai. Starting businesses. I watch their stories like I'm watching a movie about another universe.
 
 I eat the noodles straight from the pot. No plate to wash. I drink the broth. It's salty and hot and for a moment, it fills the emptiness. Then it's gone, and the emptiness returns, bigger than before.`,
-    wordCount: 120
+    wordCount: 140
   },
   {
     page: 9,
@@ -102,7 +105,7 @@ I eat the noodles straight from the pot. No plate to wash. I drink the broth. It
 I masturbate. Not because I'm thinking about anyone or because I want to—but because when the urge comes, I don't have the energy to resist. It's a biological function, like blinking or breathing. A moment of feeling something, then shame, then nothing.
 
 After, I lie in the dark and listen to the sounds of Ojuelegba. Motorcycles revving. People arguing. Music from a bar down the street. A baby crying. Life happening all around me, while I'm frozen in this room.`,
-    wordCount: 115
+    wordCount: 130
   },
   {
     page: 10,
@@ -112,7 +115,7 @@ After, I lie in the dark and listen to the sounds of Ojuelegba. Motorcycles revv
 Tola, my older sister. She has three children and a husband who works in the UK. She sends me ₦10,000 every month "for transport." I take it even though it hurts. She thinks she's helping. She doesn't know she's reminding me how much I've failed.
 
 Deji, my younger brother. He's in medical school. He'll be a doctor. He'll save lives. He already has a future. I don't want to taint it with my darkness.`,
-    wordCount: 110
+    wordCount: 120
   },
   {
     page: 11,
@@ -122,7 +125,7 @@ Deji, my younger brother. He's in medical school. He'll be a doctor. He'll save 
 I sleep until noon. The room is hot when I wake up. Sweat sticks my body to the mattress. I get up, take a bucket bath. The water is cold and for a moment, I feel clean. Then I put on the same clothes I wore yesterday.
 
 I should go out. To the mall. To a cafe. To church. But the thought of pretending to be normal for hours exhausts me. So I stay in. I scroll. I sleep some more. I wait for Monday.`,
-    wordCount: 105
+    wordCount: 110
   },
   {
     page: 12,
@@ -142,7 +145,7 @@ She sighs. "Okay o. But next week, you must come. Pastor is preaching about brea
 I won't.
 
 After the call, I feel worse. I've disappointed her again. I'm disappointing everyone. Myself most of all.`,
-    wordCount: 95
+    wordCount: 100
   },
   {
     page: 13,
@@ -154,7 +157,7 @@ At work, Mr. Chen yelled at me because I missed a box. "Stupid! Stupid girl!" he
 On the way home, a danfo conductor grabbed my arm too hard. "Enter now! We're going!" I pulled away. He called me a witch. People laughed.
 
 In my room, I looked at myself in the small mirror. My eyes were empty. My face was pale. My hair was dry. I looked like a ghost of the girl I used to be.`,
-    wordCount: 100
+    wordCount: 110
   },
   {
     page: 14,
@@ -166,7 +169,7 @@ I'll write this note. Then I'll take all the paracetamol in the cabinet. Then I'
 It makes sense. Really, it does. I'm a burden. To my parents. To my siblings. To myself. I'm taking up space and air and food that someone better could use.
 
 I'm writing this so maybe, someday, someone will understand why. Not forgive. Just understand.`,
-    wordCount: 100
+    wordCount: 110
   },
   {
     page: 15,
@@ -180,7 +183,7 @@ I had friends. We'd sit under the trees at LASU and talk about our dreams. Mine 
 We'd plan it in detail. The menu. The decor. The music. We even picked a name: "The Quiet Place."
 
 What happened to that girl? Where did she go?`,
-    wordCount: 95
+    wordCount: 110
   },
   {
     page: 16,
@@ -190,7 +193,7 @@ What happened to that girl? Where did she go?`,
 We went to Chicken Republic to celebrate. We ate and laughed. My father said, "Now the real life begins." I believed him. I thought it would be wonderful.
 
 That was four years ago. Four years of scanning boxes. Four years of loneliness. Four years of becoming a ghost.`,
-    wordCount: 90
+    wordCount: 100
   },
   {
     page: 17,
@@ -204,7 +207,7 @@ I stare at the message. A stranger reaching out. A simple request. Help with dec
 I should ignore it. Delete it. Block the number.
 
 But something in me hesitates. Just for a second.`,
-    wordCount: 85
+    wordCount: 90
   },
   {
     page: 18,
@@ -220,7 +223,7 @@ Maybe that's what I need. Not to be helped, but to help. To be useful. To matter
 I pick up my phone. My fingers hover over the keyboard.
 
 What do I say?`,
-    wordCount: 90
+    wordCount: 100
   },
   {
     page: 19,
@@ -250,7 +253,7 @@ I take a deep breath. The room is still hot. The fan is still just moving hot ai
 But for today, I'm alive. And for today, that's enough.
 
 Tomorrow, I'll help with decorations.`,
-    wordCount: 90
+    wordCount: 100
   },
   {
     page: 21,
@@ -274,7 +277,7 @@ Remember that I almost left. Remember that I stayed.
 Remember that healing isn't a straight line. Some days are still hard. Some nights are still long. But there are more good days now. More reasons to stay.
 
 This isn't a happy ending. It's a continuing story. My story.`,
-    wordCount: 85
+    wordCount: 90
   },
   {
     page: 23,
@@ -291,30 +294,11 @@ You matter. Your story matters. Keep writing it.
 
 With hope,
 Loba Yusuf`,
-    wordCount: 95
+    wordCount: 100
   }
 ];
 
-// Mock PaymentService (replace with actual implementation)
-const PaymentService = {
-  validateAccessCode: async (code, ebookId) => {
-    console.log('Validating access code:', code, 'for ebook:', ebookId);
-    // For demo, accept any code or allow free access
-    return { success: true, data: { valid: true } };
-  },
-  
-  verifyPayment: async (reference) => {
-    console.log('Verifying payment reference:', reference);
-    return { 
-      success: true, 
-      data: { 
-        accessCode: `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-      } 
-    };
-  }
-};
-
-const SuicideNote = () => {
+const ReaderPage = () => {
   const { ebookId = 'suicide-note-2026' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -333,19 +317,17 @@ const SuicideNote = () => {
   const [chapOpen, setChapOpen] = useState(false);
   const [currentChapter, setCurrentChapter] = useState('Chapter 1: The Note Begins');
   
-  // New state from ReaderPage
+  // State from ReaderPage
   const [accessCode, setAccessCode] = useState('');
   const [isValidAccess, setIsValidAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [bookmark, setBookmark] = useState(null);
+  const [progress, setProgress] = useState(0);
 
-  // Chapters list (dynamically generated from BOOK_CONTENT)
-  const chapters = BOOK_CONTENT.map(page => page.chapter);
-
-  // Initialize access and load saved progress
+  // Initialize access
   useEffect(() => {
     const initialize = async () => {
-      console.log('📖 Reader initialized for ebook:', ebookId);
+      console.log('📖 ReaderPage initialized for ebook:', ebookId);
       
       const urlParams = new URLSearchParams(location.search);
       const codeFromUrl = urlParams.get('accessCode');
@@ -371,10 +353,16 @@ const SuicideNote = () => {
               if (page > 0 && page <= BOOK_CONTENT.length) {
                 setCurrentPage(page);
                 setCurrentChapter(BOOK_CONTENT[page - 1].chapter);
+                setProgress(Math.round((page / BOOK_CONTENT.length) * 100));
               }
             }
             
             setIsLoading(false);
+            return;
+          } else {
+            localStorage.removeItem(`ebook_access_${ebookId}`);
+            toast.error('Access expired. Please re-enter your access code.');
+            navigate('/');
             return;
           }
         }
@@ -387,46 +375,54 @@ const SuicideNote = () => {
             setIsValidAccess(true);
             localStorage.setItem(`ebook_access_${ebookId}`, codeFromUrl);
             toast.success('Access granted! Enjoy reading.');
+          } else {
+            toast.error('Invalid access code');
+            navigate('/');
           }
         }
         // Handle payment reference
         else if (purchaseRef) {
           const result = await PaymentService.verifyPayment(purchaseRef);
           if (result.success) {
-            const generatedCode = result.data?.accessCode;
+            const generatedCode = result.data?.accessCode || 
+              `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
             setAccessCode(generatedCode);
             setIsValidAccess(true);
             localStorage.setItem(`ebook_access_${ebookId}`, generatedCode);
             toast.success('Payment verified! Enjoy reading.');
+          } else {
+            toast.error('Payment verification failed');
+            navigate('/');
           }
         }
-        // For demo: grant free access
+        // No access - redirect
         else {
-          // Remove this in production - this is just for demo
-          setIsValidAccess(true);
-          setAccessCode('SN-DEMO-ACCESS');
+          toast.error('Please purchase the book to read');
+          navigate('/');
         }
-        
       } catch (error) {
-        console.error('Initialization error:', error);
+        console.error('Reader initialization error:', error);
         toast.error('Error accessing book');
+        navigate('/');
       } finally {
         setIsLoading(false);
       }
     };
     
     initialize();
-  }, [ebookId, location]);
+  }, [ebookId, navigate, location]);
 
   // Save bookmark when page changes
   useEffect(() => {
     if (isValidAccess && currentPage) {
       localStorage.setItem(`bookmark_${ebookId}`, currentPage.toString());
       setBookmark(currentPage);
+      const newProgress = Math.round((currentPage / BOOK_CONTENT.length) * 100);
+      setProgress(newProgress);
     }
   }, [currentPage, ebookId, isValidAccess]);
 
-  // Effects
+  // Save font size
   useEffect(() => {
     localStorage.setItem('rdr_fontSize', fontSize);
   }, [fontSize]);
@@ -444,49 +440,54 @@ const SuicideNote = () => {
     }
   };
 
-  // Progress bar
-  const progressPercentage = (currentPage / TOTAL_PAGES) * 100;
-
   // Chapter toggle
   const handleChapterToggle = () => {
     setChapOpen(!chapOpen);
   };
 
-  const handleChapterSelect = (chapter) => {
-    const pageIndex = chapters.findIndex(ch => ch === chapter);
-    if (pageIndex !== -1) {
-      setCurrentPage(pageIndex + 1);
-      setCurrentChapter(chapter);
-    }
+  const handleChapterSelect = (chapter, pageNum) => {
+    setCurrentPage(pageNum);
+    setCurrentChapter(chapter);
     setChapOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   // Page navigation
+  const goToPage = (pageNumber) => {
+    if (pageNumber >= 1 && pageNumber <= BOOK_CONTENT.length) {
+      setCurrentPage(pageNumber);
+      setCurrentChapter(BOOK_CONTENT[pageNumber - 1].chapter);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
   const handlePrevPage = () => {
     if (currentPage > 1) {
-      setCurrentPage(prev => prev - 1);
-      setCurrentChapter(BOOK_CONTENT[currentPage - 2].chapter);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      goToPage(currentPage - 1);
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < TOTAL_PAGES) {
-      setCurrentPage(prev => prev + 1);
-      setCurrentChapter(BOOK_CONTENT[currentPage].chapter);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      goToPage(currentPage + 1);
     }
   };
 
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'ArrowRight') {
+      if (e.key === 'ArrowRight' || e.key === ' ') {
         e.preventDefault();
         handleNextPage();
       } else if (e.key === 'ArrowLeft') {
         e.preventDefault();
         handlePrevPage();
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        goToPage(1);
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        goToPage(BOOK_CONTENT.length);
       }
     };
 
@@ -495,30 +496,14 @@ const SuicideNote = () => {
   }, [currentPage]);
 
   // Get current page content
-  const currentContent = BOOK_CONTENT[currentPage - 1];
+  const currentContent = BOOK_CONTENT.find(page => page.page === currentPage) || BOOK_CONTENT[3];
 
   // Loading state
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        background: 'var(--bg)'
-      }}>
-        <div style={{ textAlign: 'center' }}>
-          <div className="loading-spinner" style={{
-            width: '40px',
-            height: '40px',
-            border: '3px solid var(--border)',
-            borderTopColor: 'var(--accent)',
-            borderRadius: '50%',
-            animation: 'spin 1s linear infinite',
-            margin: '0 auto 16px'
-          }}></div>
-          <p style={{ color: 'var(--text)' }}>Loading your book...</p>
-        </div>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p className="loading-text">Loading your book...</p>
       </div>
     );
   }
@@ -526,25 +511,10 @@ const SuicideNote = () => {
   // Access denied state
   if (!isValidAccess) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        justifyContent: 'center', 
-        alignItems: 'center', 
-        height: '100vh',
-        background: 'var(--bg)',
-        padding: '24px',
-        textAlign: 'center'
-      }}>
-        <h2 style={{ color: 'var(--accent)', marginBottom: '12px' }}>Access Denied</h2>
-        <p style={{ color: 'var(--text)', marginBottom: '24px', maxWidth: '400px' }}>
-          Please purchase the book to read the full content.
-        </p>
-        <button 
-          onClick={() => navigate('/')} 
-          className="nav-btn"
-          style={{ maxWidth: '200px', margin: '0 auto' }}
-        >
+      <div className="access-denied">
+        <h2>Access Denied</h2>
+        <p>Please purchase the book to read the full content.</p>
+        <button onClick={() => navigate('/')} className="nav-btn" style={{ maxWidth: '200px', margin: '0 auto' }}>
           Go to Homepage
         </button>
       </div>
@@ -585,14 +555,10 @@ const SuicideNote = () => {
           >
             +
           </button>
-          {bookmark && (
+          {bookmark && bookmark !== currentPage && (
             <button 
               className="font-btn" 
-              onClick={() => {
-                setCurrentPage(bookmark);
-                setCurrentChapter(BOOK_CONTENT[bookmark - 1].chapter);
-                window.scrollTo({ top: 0 });
-              }}
+              onClick={() => goToPage(bookmark)}
               style={{ borderLeft: '1px solid var(--border)' }}
               title="Go to bookmark"
             >
@@ -613,7 +579,7 @@ const SuicideNote = () => {
       >
         <div 
           className="progress-bar-fill" 
-          style={{ width: `${progressPercentage}%` }}
+          style={{ width: `${progress}%` }}
         ></div>
       </div>
 
@@ -631,14 +597,14 @@ const SuicideNote = () => {
         </button>
 
         <div className={`chapter-list ${chapOpen ? 'open' : ''}`} id="chapterList" role="list">
-          {chapters.map((chapter, index) => (
+          {BOOK_CONTENT.map((page) => (
             <button
-              key={index}
-              className={`chapter-item ${currentChapter === chapter ? 'current' : ''}`}
+              key={page.page}
+              className={`chapter-item ${currentPage === page.page ? 'current' : ''}`}
               role="listitem"
-              onClick={() => handleChapterSelect(chapter)}
+              onClick={() => handleChapterSelect(page.chapter, page.page)}
             >
-              {chapter} (Page {index + 1})
+              {page.chapter} (Page {page.page})
             </button>
           ))}
         </div>
@@ -650,26 +616,21 @@ const SuicideNote = () => {
           className="reading-text" 
           style={{ fontSize: `${fontSize}px` }}
         >
-          {currentContent.content.split('\n').map((paragraph, idx) => {
-            if (idx === 0 && currentPage === 4) {
-              return <p key={idx}><span className="opener">{paragraph}</span></p>;
-            }
-            return paragraph.trim() && <p key={idx}>{paragraph}</p>;
-          })}
-          
-          {/* Reading stats */}
-          <div style={{ 
-            marginTop: '32px', 
-            padding: '16px', 
-            background: 'rgba(0,0,0,0.03)', 
-            borderRadius: '8px',
-            fontSize: '13px',
-            color: '#666',
-            fontFamily: 'var(--sans)'
-          }}>
-            <div>📊 Page {currentPage} of {TOTAL_PAGES} • {currentContent.wordCount} words</div>
-            <div>⏱️ Reading time: ~{Math.max(1, Math.round(currentContent.wordCount / 200))} min</div>
+          {/* Chapter header (hidden in display but shown in toggle) */}
+          <div style={{ marginBottom: '20px', color: '#666', fontSize: '0.9em', fontFamily: 'var(--sans)' }}>
+            {currentChapter} • Page {currentPage} of {TOTAL_PAGES} • {currentContent.wordCount} words
           </div>
+          
+          {currentContent.content.split('\n').map((paragraph, idx) => {
+            if (paragraph.trim()) {
+              // Check if this is the first paragraph of Chapter 1 to add opener class
+              if (currentPage === 4 && idx === 0 && paragraph.includes('Someone.')) {
+                return <p key={idx}><span className="opener">{paragraph}</span></p>;
+              }
+              return <p key={idx}>{paragraph}</p>;
+            }
+            return null;
+          })}
         </article>
       </main>
 
@@ -696,7 +657,7 @@ const SuicideNote = () => {
         </button>
       </nav>
 
-      {/* ══ QUICK NAVIGATION (New) ═════════════════════════ */}
+      {/* ══ QUICK NAVIGATION (from ReaderPage) ═══════════════ */}
       <div style={{
         background: 'var(--bg)',
         borderTop: '1px solid var(--border)',
@@ -707,44 +668,31 @@ const SuicideNote = () => {
         flexWrap: 'wrap'
       }}>
         <button
-          onClick={() => {
-            setCurrentPage(1);
-            setCurrentChapter(BOOK_CONTENT[0].chapter);
-            window.scrollTo({ top: 0 });
-          }}
+          onClick={() => goToPage(1)}
           className="font-btn"
-          style={{ border: '1px solid var(--border)', borderRadius: '6px' }}
+          style={{ border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}
         >
           ⏮️ Start
         </button>
         <button
-          onClick={() => {
-            const newPage = Math.max(1, currentPage - 5);
-            setCurrentPage(newPage);
-            setCurrentChapter(BOOK_CONTENT[newPage - 1].chapter);
-            window.scrollTo({ top: 0 });
-          }}
+          onClick={() => goToPage(Math.max(1, currentPage - 5))}
           className="font-btn"
-          style={{ border: '1px solid var(--border)', borderRadius: '6px' }}
+          style={{ border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}
           disabled={currentPage <= 5}
         >
           ⏪ -5
         </button>
         <select
           value={currentPage}
-          onChange={(e) => {
-            const newPage = parseInt(e.target.value);
-            setCurrentPage(newPage);
-            setCurrentChapter(BOOK_CONTENT[newPage - 1].chapter);
-            window.scrollTo({ top: 0 });
-          }}
+          onChange={(e) => goToPage(parseInt(e.target.value))}
           style={{
-            padding: '6px 12px',
+            padding: '8px 12px',
             border: '1px solid var(--border)',
             borderRadius: '6px',
             background: '#fff',
             fontFamily: 'var(--sans)',
-            fontSize: '14px'
+            fontSize: '14px',
+            color: 'var(--text)'
           }}
         >
           {BOOK_CONTENT.map((page) => (
@@ -754,26 +702,17 @@ const SuicideNote = () => {
           ))}
         </select>
         <button
-          onClick={() => {
-            const newPage = Math.min(TOTAL_PAGES, currentPage + 5);
-            setCurrentPage(newPage);
-            setCurrentChapter(BOOK_CONTENT[newPage - 1].chapter);
-            window.scrollTo({ top: 0 });
-          }}
+          onClick={() => goToPage(Math.min(TOTAL_PAGES, currentPage + 5))}
           className="font-btn"
-          style={{ border: '1px solid var(--border)', borderRadius: '6px' }}
+          style={{ border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}
           disabled={currentPage >= TOTAL_PAGES - 4}
         >
           +5 ⏩
         </button>
         <button
-          onClick={() => {
-            setCurrentPage(TOTAL_PAGES);
-            setCurrentChapter(BOOK_CONTENT[TOTAL_PAGES - 1].chapter);
-            window.scrollTo({ top: 0 });
-          }}
+          onClick={() => goToPage(TOTAL_PAGES)}
           className="font-btn"
-          style={{ border: '1px solid var(--border)', borderRadius: '6px' }}
+          style={{ border: '1px solid var(--border)', borderRadius: '6px', padding: '8px 12px' }}
         >
           End ⏭️
         </button>
@@ -809,16 +748,9 @@ const SuicideNote = () => {
         </div>
 
         <div className="footer-meta">
-          Reading time: ~{Math.round(BOOK_CONTENT.reduce((acc, page) => acc + page.wordCount, 0) / 200)} min total &nbsp;·&nbsp; 
-          {TOTAL_PAGES} pages total
+          Reading time: ~{Math.round(currentContent.wordCount / 200)} min this page • {TOTAL_PAGES} pages total
         </div>
       </footer>
-
-      <style>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
     </>
   );
 };

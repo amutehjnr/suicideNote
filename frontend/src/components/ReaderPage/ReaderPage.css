@@ -1,3 +1,5 @@
+/* src/pages/ReaderPage.css */
+
 /* ── Reset & Base ─────────────────────────────── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -23,6 +25,58 @@ body {
   min-height: 100vh;
   padding-bottom: env(safe-area-inset-bottom);
   margin: 0;
+}
+
+/* Loading states */
+.loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background: var(--bg);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  color: var(--text);
+  font-family: var(--sans);
+}
+
+/* Access denied */
+.access-denied {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+  padding: 24px;
+  background: var(--bg);
+}
+
+.access-denied h2 {
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.access-denied p {
+  color: var(--text);
+  margin-bottom: 24px;
+  max-width: 400px;
 }
 
 /* ── Sticky Header ────────────────────────────── */
@@ -177,8 +231,9 @@ body {
 }
 
 .chapter-list.open {
-  max-height: 200px;
+  max-height: 400px;
   padding: 8px 4px 4px;
+  overflow-y: auto;
 }
 
 .chapter-item {
@@ -353,4 +408,8 @@ body {
 /* ── Mobile safe ──────────────────────────────── */
 @media (max-width: 480px) {
   .reading-area { padding: 20px 18px 12px; }
+  
+  .quick-nav-select {
+    max-width: 150px;
+  }
 }
