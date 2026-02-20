@@ -9,30 +9,12 @@ const crypto = require('crypto');
 const AccessCode = require('../models/AccessCode.model');
 const emailService = require('./email.service');
 
-// Initialize Stripe with error handling
-let stripe;
-try {
-  if (!process.env.STRIPE_SECRET_KEY) {
-    console.error('❌ STRIPE_SECRET_KEY is not defined in environment variables');
-    console.log('⚠️ Stripe payments will be disabled');
-    stripe = null;
-  } else {
-    const Stripe = require('stripe');
-    stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
-    console.log('✅ Stripe initialized successfully');
-  }
-} catch (error) {
-  console.error('❌ Failed to initialize Stripe:', error.message);
-  stripe = null;
-}
-
 const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
 // Constants
-const NGN_TO_USD_RATE = process.env.NGN_USD_RATE || 500;
-const EBOOK_PRICE_NGN = 2500; // ₦2,500
-const EBOOK_PRICE_USD = 500; // $5.00 in cents
+const EBOOK_PRICE_NGN = 2500; // ₦2,500 (in kobo)
+const EBOOK_PRICE_USD = 500; // $5.00 (in cents)
 
 // Helper function to send access code email
 async function sendAccessCodeEmail(purchase, accessCode) {
@@ -72,7 +54,7 @@ async function sendAccessCodeEmail(purchase, accessCode) {
 
 const paymentService = {
   /**
-   * Initialize Payment (supports both Paystack and Stripe)
+   * Initialize Payment (Paystack - supports both NGN and USD)
    */
   async initializePayment(userId, ebookIdentifier, affiliateCode, metadata, amount, currency = 'NGN') {
     try {
@@ -83,15 +65,6 @@ const paymentService = {
         currency,
         hasAffiliateCode: !!affiliateCode 
       });
-      
-      // Validate currency and Stripe availability
-      if (currency === 'USD' && !stripe) {
-        winston.error('❌ Stripe payments are not available - missing API key');
-        return { 
-          success: false, 
-          error: 'International payments are temporarily unavailable. Please try again later or use NGN.' 
-        };
-      }
       
       // Find ebook
       let ebook;
@@ -128,9 +101,6 @@ const paymentService = {
         return { success: false, error: 'User not found' };
       }
       
-      // Determine payment method based on currency
-      const paymentMethod = currency === 'USD' ? 'stripe' : 'paystack';
-      
       // Create purchase record with a temporary reference
       const tempRef = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
       
@@ -139,9 +109,9 @@ const paymentService = {
         ebook: ebook._id,
         amount: amount,
         currency: currency,
-        paymentMethod: paymentMethod,
+        paymentMethod: 'paystack',
         status: 'pending',
-        transactionReference: tempRef, // Set temporary reference
+        transactionReference: tempRef,
         affiliateCode: affiliateCode || null,
         metadata: {
           ...metadata,
@@ -152,12 +122,8 @@ const paymentService = {
       await purchase.save();
       winston.info('✅ Purchase created:', { purchaseId: purchase._id, currency, tempRef });
       
-      // Initialize payment based on currency
-      if (currency === 'USD') {
-        return await this.initializeStripePayment(user, ebook, purchase, amount, metadata);
-      } else {
-        return await this.initializePaystackPayment(user, ebook, purchase, amount, metadata);
-      }
+      // Initialize Paystack payment
+      return await this.initializePaystackPayment(user, ebook, purchase, amount, currency, metadata);
       
     } catch (error) {
       winston.error('🔥 Initialize payment error:', error);
@@ -170,16 +136,21 @@ const paymentService = {
   },
 
   /**
-   * Initialize Paystack Payment (NGN)
+   * Initialize Paystack Payment (supports both NGN and USD)
    */
-  async initializePaystackPayment(user, ebook, purchase, amountKobo, metadata) {
+  async initializePaystackPayment(user, ebook, purchase, amount, currency, metadata) {
     try {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const callbackUrl = `${frontendUrl}/thank-you`;
       
+      // Paystack expects amount in smallest currency unit
+      // For NGN: 2500 = ₦2,500 (kobo)
+      // For USD: 500 = $5.00 (cents)
+      
       const payload = {
         email: metadata.guestEmail || user.email,
-        amount: amountKobo,
+        amount: amount,
+        currency: currency,
         metadata: {
           purchaseId: purchase._id.toString(),
           ebookId: ebook._id.toString(),
@@ -187,14 +158,17 @@ const paymentService = {
           affiliateCode: metadata.affiliateCode || '',
           userId: user._id.toString(),
           paymentMethod: 'paystack',
-          currency: 'NGN',
+          currency: currency,
+          guestEmail: metadata.guestEmail,
+          guestName: metadata.guestName,
           ...metadata,
         },
         callback_url: callbackUrl,
       };
 
       winston.info('📤 Sending to Paystack:', {
-        amountKobo,
+        amount,
+        currency,
         userEmail: payload.email,
         ebookTitle: ebook.title
       });
@@ -218,12 +192,13 @@ const paymentService = {
 
       // Update purchase with Paystack reference
       purchase.paystackReference = response.data.data.reference;
-      purchase.transactionReference = response.data.data.reference; // Update with real reference
+      purchase.transactionReference = response.data.data.reference;
       await purchase.save();
 
       winston.info('✅ Paystack payment initialized:', {
         purchaseId: purchase._id,
         reference: response.data.data.reference,
+        currency: currency,
         url: response.data.data.authorization_url
       });
 
@@ -234,7 +209,7 @@ const paymentService = {
           reference: response.data.data.reference,
           purchaseId: purchase._id,
           paymentMethod: 'paystack',
-          currency: 'NGN',
+          currency: currency,
           ebook: {
             _id: ebook._id,
             title: ebook.title,
@@ -246,93 +221,16 @@ const paymentService = {
       winston.error('🔥 Paystack initialization error:', error);
       purchase.status = 'failed';
       await purchase.save();
-      return { success: false, error: 'Failed to initialize Paystack payment' };
-    }
-  },
-
-  /**
-   * Initialize Stripe Payment (USD)
-   */
-  async initializeStripePayment(user, ebook, purchase, amountCents, metadata) {
-    try {
-      if (!stripe) {
-        throw new Error('Stripe is not initialized. Check your STRIPE_SECRET_KEY environment variable.');
-      }
-
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      const successUrl = `${frontendUrl}/thank-you?session_id={CHECKOUT_SESSION_ID}`;
-      const cancelUrl = `${frontendUrl}/checkout-cancelled`;
-      
-      // Create Stripe checkout session
-      const session = await stripe.checkout.sessions.create({
-        payment_method_types: ['card'],
-        line_items: [
-          {
-            price_data: {
-              currency: 'usd',
-              product_data: {
-                name: ebook.title,
-                description: ebook.shortDescription || 'Digital ebook - Suicide Note by Loba Yusuf',
-                images: ebook.coverImage ? [ebook.coverImage] : [],
-              },
-              unit_amount: amountCents,
-            },
-            quantity: 1,
-          },
-        ],
-        mode: 'payment',
-        success_url: successUrl,
-        cancel_url: cancelUrl,
-        customer_email: metadata.guestEmail || user.email,
-        client_reference_id: purchase._id.toString(),
-        metadata: {
-          purchaseId: purchase._id.toString(),
-          ebookId: ebook._id.toString(),
-          ebookTitle: ebook.title,
-          userId: user._id.toString(),
-          affiliateCode: metadata.affiliateCode || '',
-          paymentMethod: 'stripe',
-          currency: 'USD',
-        },
-      });
-
-      // Update purchase with Stripe session ID
-      purchase.stripeSessionId = session.id;
-      purchase.stripePaymentIntentId = session.payment_intent;
-      purchase.transactionReference = session.id; // Set transaction reference
-      await purchase.save();
-
-      winston.info('✅ Stripe session created:', {
-        sessionId: session.id,
-        purchaseId: purchase._id,
-        url: session.url
-      });
-
-      return {
-        success: true,
-        data: {
-          authorizationUrl: session.url,
-          sessionId: session.id,
-          purchaseId: purchase._id,
-          paymentMethod: 'stripe',
-          currency: 'USD',
-          ebook: {
-            _id: ebook._id,
-            title: ebook.title,
-            price: ebook.price
-          }
-        },
+      return { 
+        success: false, 
+        error: 'Failed to initialize Paystack payment',
+        details: error.response?.data?.message || error.message 
       };
-    } catch (error) {
-      winston.error('🔥 Stripe initialization error:', error);
-      purchase.status = 'failed';
-      await purchase.save();
-      return { success: false, error: 'Failed to initialize Stripe payment: ' + error.message };
     }
   },
 
   /**
-   * Verify Payment (supports both Paystack and Stripe)
+   * Verify Payment (Paystack)
    */
   async verifyPayment(reference) {
     try {
@@ -342,24 +240,6 @@ const paymentService = {
         return { success: false, error: 'Payment reference is required' };
       }
       
-      // Check if it's a Stripe session ID (starts with 'cs_')
-      if (reference.startsWith('cs_')) {
-        return await this.verifyStripePayment(reference);
-      } else {
-        return await this.verifyPaystackPayment(reference);
-      }
-      
-    } catch (error) {
-      winston.error('🔥 Verify payment error:', error);
-      return { success: false, error: 'Failed to verify payment' };
-    }
-  },
-
-  /**
-   * Verify Paystack Payment
-   */
-  async verifyPaystackPayment(reference) {
-    try {
       const purchase = await Purchase.findOne({ 
         $or: [
           { paystackReference: reference },
@@ -376,7 +256,15 @@ const paymentService = {
         return {
           success: true,
           data: {
-            purchase,
+            purchase: {
+              _id: purchase._id,
+              amount: purchase.amount,
+              currency: purchase.currency,
+              status: purchase.status,
+              paidAt: purchase.paidAt,
+              ebook: purchase.ebook,
+              user: purchase.user
+            },
             paymentStatus: purchase.status,
             accessCode: existingAccessCode?.code,
             alreadyVerified: true
@@ -406,85 +294,23 @@ const paymentService = {
         bank: response.data.data.authorization?.bank,
         channel: response.data.data.channel,
         paidAt: new Date(response.data.data.paid_at),
+        reference: response.data.data.reference,
       };
 
       return await this.completeSuccessfulPayment(purchase, paymentDetails);
       
     } catch (error) {
       winston.error('🔥 Paystack verification error:', error);
-      return { success: false, error: 'Failed to verify Paystack payment' };
-    }
-  },
-
-  /**
-   * Verify Stripe Payment
-   */
-  async verifyStripePayment(sessionId) {
-    try {
-      if (!stripe) {
-        throw new Error('Stripe is not initialized. Cannot verify payment.');
-      }
-
-      // Retrieve the checkout session from Stripe
-      const session = await stripe.checkout.sessions.retrieve(sessionId, {
-        expand: ['payment_intent', 'line_items'],
-      });
-
-      if (session.payment_status !== 'paid') {
-        return { success: false, error: 'Payment not completed' };
-      }
-
-      // Find purchase by session ID or client_reference_id
-      const purchase = await Purchase.findOne({ 
-        $or: [
-          { stripeSessionId: sessionId },
-          { transactionReference: sessionId },
-          { _id: session.client_reference_id }
-        ]
-      }).populate('ebook').populate('user');
-      
-      if (!purchase) {
-        return { success: false, error: 'Purchase not found' };
-      }
-
-      if (purchase.status === 'completed') {
-        const existingAccessCode = await AccessCode.findOne({ purchase: purchase._id });
-        return {
-          success: true,
-          data: {
-            purchase,
-            paymentStatus: purchase.status,
-            accessCode: existingAccessCode?.code,
-            alreadyVerified: true
-          },
-        };
-      }
-
-      // Prepare payment details from Stripe
-      const paymentIntent = session.payment_intent;
-      const charge = paymentIntent?.charges?.data?.[0];
-      
-      const paymentDetails = {
-        authorizationCode: paymentIntent?.id,
-        cardType: charge?.payment_method_details?.card?.brand,
-        last4: charge?.payment_method_details?.card?.last4,
-        expMonth: charge?.payment_method_details?.card?.exp_month,
-        expYear: charge?.payment_method_details?.card?.exp_year,
-        bank: 'stripe',
-        channel: 'card',
-        paidAt: new Date(paymentIntent?.created * 1000),
+      return { 
+        success: false, 
+        error: 'Failed to verify Paystack payment',
+        details: error.response?.data?.message || error.message 
       };
-
-      return await this.completeSuccessfulPayment(purchase, paymentDetails);
-      
-    } catch (error) {
-      winston.error('🔥 Stripe verification error:', error);
-      return { success: false, error: 'Failed to verify Stripe payment: ' + error.message };
     }
   },
 
   /**
-   * Complete successful payment (common for both Paystack and Stripe)
+   * Complete successful payment
    */
   async completeSuccessfulPayment(purchase, paymentDetails) {
     try {
@@ -503,7 +329,7 @@ const paymentService = {
         });
       }
 
-      // Send email (only if not already sent)
+      // Send email
       const emailSent = await sendAccessCodeEmail(purchase, accessCode);
 
       // Update purchase
@@ -622,39 +448,35 @@ const paymentService = {
   },
 
   /**
-   * Request refund
+   * Validate access code
    */
-  async requestRefund(purchaseId, userId, reason) {
+  async validateAccessCode(code, ebookId) {
     try {
-      const purchase = await Purchase.findOne({ _id: purchaseId, user: userId });
-      if (!purchase) return { success: false, error: 'Purchase not found' };
-
-      if (purchase.status !== 'completed') {
-        return { success: false, error: 'Only completed purchases can be refunded' };
-      }
-
-      const purchaseDate = new Date(purchase.createdAt || purchase.paidAt);
-      const daysSincePurchase = (new Date() - purchaseDate) / (1000 * 60 * 60 * 24);
+      const accessCode = await AccessCode.findOne({ 
+        code: code.toUpperCase(),
+        ebook: ebookId,
+        isActive: true 
+      }).populate('ebook');
       
-      if (daysSincePurchase > 7) {
-        return { success: false, error: 'Refund period has expired (7 days)' };
+      if (!accessCode) {
+        return { success: false, error: 'Invalid access code' };
       }
-
-      purchase.refundRequested = true;
-      purchase.refundReason = reason || 'No reason provided';
-      purchase.refundRequestedAt = new Date();
-      await purchase.save();
-
-      winston.info('Refund requested:', {
-        purchaseId: purchase._id,
-        userId,
-        reason
-      });
-
-      return { success: true, message: 'Refund requested successfully', data: purchase };
+      
+      if (new Date() > accessCode.expiresAt) {
+        return { success: false, error: 'Access code has expired' };
+      }
+      
+      return { 
+        success: true, 
+        data: {
+          code: accessCode.code,
+          ebook: accessCode.ebook,
+          expiresAt: accessCode.expiresAt
+        } 
+      };
     } catch (error) {
-      winston.error('Request refund error:', error);
-      return { success: false, error: 'Failed to request refund', details: error.message };
+      winston.error('Validate access code error:', error);
+      return { success: false, error: 'Failed to validate access code' };
     }
   },
 
@@ -670,16 +492,16 @@ const paymentService = {
         displayAmount: '2,500',
         paymentMethod: 'paystack',
         icon: '🇳🇬',
-        description: 'Local cards, Bank Transfer, USSD'
+        description: 'Pay with Naira (Local cards, Bank Transfer, USSD)'
       },
       USD: {
         symbol: '$',
         code: 'USD',
         amount: EBOOK_PRICE_USD,
         displayAmount: '5.00',
-        paymentMethod: 'stripe',
+        paymentMethod: 'paystack',
         icon: '🌍',
-        description: 'International cards (Visa, Mastercard, etc.)'
+        description: 'Pay with Dollars (International cards via Paystack)'
       }
     };
   },

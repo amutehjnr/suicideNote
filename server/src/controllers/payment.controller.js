@@ -5,7 +5,7 @@ const winston = require('winston');
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
-// Setup Winston logger with console transport
+// Setup Winston logger
 const logger = winston.createLogger({
   level: 'info',
   format: winston.format.json(),
@@ -25,7 +25,7 @@ const COOKIE_OPTIONS = {
 
 const paymentController = {
   /**
-   * INITIALIZE PAYMENT - Updated for multi-currency
+   * INITIALIZE PAYMENT - Supports both NGN and USD via Paystack
    */
   async initializePayment(req, res) {
     try {
@@ -81,8 +81,8 @@ const paymentController = {
         ebookId,
         affiliateCodeToUse,
         metadata,
-        Math.floor(Number(amount)), // amount already in smallest unit
-        currency // Add currency parameter
+        Math.floor(Number(amount)),
+        currency
       );
 
       if (!result.success) {
@@ -192,18 +192,6 @@ const paymentController = {
   },
 
   /**
-   * STRIPE WEBHOOK
-   */
-  async handleStripeWebhook(req, res) {
-    try {
-      await paymentService.handleStripeWebhook(req, res);
-    } catch (error) {
-      logger.error('Stripe webhook error:', error);
-      return res.status(500).send('Webhook failed');
-    }
-  },
-
-  /**
    * GET CURRENCY OPTIONS
    */
   async getCurrencyOptions(req, res) {
@@ -220,35 +208,11 @@ const paymentController = {
   },
 
   /**
-   * GET USER PURCHASES
+   * VALIDATE ACCESS CODE
    */
-  async getUserPurchases(req, res) {
-    try {
-      const result = await paymentService.getUserPurchases(req.user._id);
-      if (!result.success) return res.status(400).json(result);
-      return res.status(200).json(result);
-    } catch (error) {
-      logger.error('Get purchases error:', error);
-      return res.status(500).json({ success: false, error: 'Failed to fetch purchases', details: error.message });
-    }
-  },
-
-  async getPurchaseById(req, res) {
-    try {
-      const result = await paymentService.getPurchaseById(req.params.id, req.user._id);
-      if (!result.success) return res.status(result.error === 'Purchase not found' ? 404 : 400).json(result);
-      return res.status(200).json(result);
-    } catch (error) {
-      logger.error('Get purchase by ID error:', error);
-      return res.status(500).json({ success: false, error: 'Failed to fetch purchase', details: error.message });
-    }
-  },
-
   async validateAccessCode(req, res) {
     try {
       const { code, ebookId, ebookSlug } = req.body;
-      
-      console.log('🔑 [VALIDATE] Request data:', req.body);
       
       if (!code) {
         return res.status(400).json({ 
@@ -258,7 +222,6 @@ const paymentController = {
       }
       
       const cleanCode = code.trim().toUpperCase();
-      console.log('🔑 Cleaned code:', cleanCode);
       
       const AccessCode = require('../models/AccessCode.model');
       const Ebook = require('../models/Ebook.model');
@@ -274,7 +237,6 @@ const paymentController = {
       }
       
       if (!ebook) {
-        console.log('❌ Ebook not found');
         return res.status(404).json({ 
           success: false, 
           error: 'Ebook not found' 
@@ -288,21 +250,6 @@ const paymentController = {
       });
       
       if (!accessCode) {
-        const anyAccessCode = await AccessCode.findOne({
-          code: cleanCode,
-          isActive: true
-        }).populate('ebook');
-        
-        if (anyAccessCode) {
-          return res.status(400).json({ 
-            success: false, 
-            error: 'This access code is for a different ebook',
-            details: anyAccessCode.ebook ? 
-              `This code is for: "${anyAccessCode.ebook.title}"` : 
-              'Unknown ebook'
-          });
-        }
-        
         return res.status(404).json({ 
           success: false, 
           error: 'Invalid access code' 
@@ -341,68 +288,45 @@ const paymentController = {
       });
       
     } catch (error) {
-      console.error('🔥 [BACKEND ERROR] Validate access code:', error);
+      logger.error('Validate access code error:', error);
       return res.status(500).json({ 
         success: false, 
-        error: 'Failed to validate access code',
-        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+        error: 'Failed to validate access code' 
       });
     }
   },
 
-  async requestRefund(req, res) {
+  /**
+   * GET USER PURCHASES
+   */
+  async getUserPurchases(req, res) {
     try {
-      const result = await paymentService.requestRefund(req.body.purchaseId, req.user._id, req.body.reason);
+      const result = await paymentService.getUserPurchases(req.user._id);
       if (!result.success) return res.status(400).json(result);
       return res.status(200).json(result);
     } catch (error) {
-      logger.error('Request refund error:', error);
-      return res.status(500).json({ success: false, error: 'Failed to request refund', details: error.message });
+      logger.error('Get purchases error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to fetch purchases', details: error.message });
     }
   },
 
-  async getAffiliateEarnings(req, res) {
+  /**
+   * GET PURCHASE BY ID
+   */
+  async getPurchaseById(req, res) {
     try {
-      const affiliate = await Affiliate.findOne({ user: req.user._id });
-      if (!affiliate) return res.status(404).json({ success: false, error: 'Affiliate not found' });
-      return res.status(200).json({ success: true, data: affiliate });
-    } catch (error) {
-      logger.error('Affiliate earnings error:', error);
-      return res.status(500).json({ success: false, error: 'Failed to fetch affiliate earnings', details: error.message });
-    }
-  },
-
-  async requestPayout(req, res) {
-    try {
-      const affiliate = await Affiliate.findOne({ user: req.user._id });
-      if (!affiliate) return res.status(404).json({ success: false, error: 'Affiliate not found' });
-
-      const result = await paymentService.processAffiliatePayout(affiliate._id, req.body.amount);
-      if (!result.success) return res.status(400).json(result);
-
+      const result = await paymentService.getPurchaseById(req.params.id, req.user._id);
+      if (!result.success) return res.status(result.error === 'Purchase not found' ? 404 : 400).json(result);
       return res.status(200).json(result);
     } catch (error) {
-      logger.error('Affiliate payout error:', error);
-      return res.status(500).json({ success: false, error: 'Failed to process payout', details: error.message });
+      logger.error('Get purchase by ID error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to fetch purchase', details: error.message });
     }
   },
 
-  async updateBankDetails(req, res) {
-    try {
-      const { accountNumber, accountName, bankCode, bankName } = req.body;
-      const affiliate = await Affiliate.findOne({ user: req.user._id });
-      if (!affiliate) return res.status(404).json({ success: false, error: 'Affiliate not found' });
-
-      affiliate.bankDetails = { accountNumber, accountName, bankCode, bankName };
-      await affiliate.save();
-
-      return res.status(200).json({ success: true, message: 'Bank details updated', data: affiliate.bankDetails });
-    } catch (error) {
-      logger.error('Update bank details error:', error);
-      return res.status(500).json({ success: false, error: 'Failed to update bank details', details: error.message });
-    }
-  },
-
+  /**
+   * TRACK AFFILIATE CLICK
+   */
   async trackAffiliateClick(req, res) {
     try {
       const { affiliateCode, campaignName } = req.query;

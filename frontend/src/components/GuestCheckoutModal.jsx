@@ -16,7 +16,7 @@ const GuestCheckoutModal = ({
 }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
-  const [currency, setCurrency] = useState('NGN'); // 'NGN' or 'USD'
+  const [currency, setCurrency] = useState('NGN');
   const [isLoading, setIsLoading] = useState(false);
   const [currencyOptions, setCurrencyOptions] = useState({
     NGN: {
@@ -26,16 +26,16 @@ const GuestCheckoutModal = ({
       displayAmount: '2,500',
       paymentMethod: 'paystack',
       icon: '🇳🇬',
-      description: 'Local cards, Bank Transfer, USSD'
+      description: 'Pay with Naira (Local cards, Bank Transfer, USSD)'
     },
     USD: {
       symbol: '$',
       code: 'USD',
       amount: 500,
       displayAmount: '5.00',
-      paymentMethod: 'stripe',
+      paymentMethod: 'paystack',
       icon: '🌍',
-      description: 'International cards (Visa, Mastercard, etc.)'
+      description: 'Pay with Dollars (International cards)'
     }
   });
 
@@ -73,15 +73,13 @@ const GuestCheckoutModal = ({
     setIsLoading(true);
 
     try {
-      // Get the selected currency option
       const selectedOption = currencyOptions[currency];
       
-      // Build payment data with currency
       const paymentData = {
         ebookId: String(ebookId),
         email: email.trim(),
         name: name.trim() || email.split('@')[0],
-        amount: selectedOption.amount, // Amount in smallest unit
+        amount: selectedOption.amount,
         currency: currency,
       };
 
@@ -101,18 +99,16 @@ const GuestCheckoutModal = ({
         const authUrl = result.data?.authorizationUrl || result.data?.authorization_url;
         
         if (authUrl) {
-          console.log(`🔗 Redirecting to ${currency} payment:`, authUrl);
+          console.log(`🔗 Redirecting to Paystack (${currency}):`, authUrl);
           
-          // Save purchase info temporarily
           localStorage.setItem('pending_purchase', JSON.stringify({
-            reference: result.data.reference || result.data.sessionId,
+            reference: result.data.reference,
             ebookTitle: ebookTitle,
             amount: currency === 'USD' ? 5 : ebookPrice,
             currency: currency,
             timestamp: new Date().toISOString()
           }));
           
-          // Redirect to payment gateway
           window.location.href = authUrl;
         } else {
           console.error('❌ No authorization URL in response:', result);
@@ -146,7 +142,6 @@ const GuestCheckoutModal = ({
           </div>
 
           <div className={styles.priceSection}>
-            {/* Currency Toggle */}
             <div className={styles.currencyToggle}>
               <button
                 className={`${styles.currencyButton} ${currency === 'NGN' ? styles.active : ''}`}
@@ -156,7 +151,7 @@ const GuestCheckoutModal = ({
                 <span className={styles.currencyIcon}>{currencyOptions.NGN.icon}</span>
                 <span className={styles.currencyCode}>NGN</span>
                 <span className={styles.currencyPrice}>{currencyOptions.NGN.symbol}{currencyOptions.NGN.displayAmount}</span>
-                <span className={styles.currencyMethod}>{currencyOptions.NGN.paymentMethod}</span>
+                <span className={styles.currencyMethod}>Paystack</span>
               </button>
               <button
                 className={`${styles.currencyButton} ${currency === 'USD' ? styles.active : ''}`}
@@ -166,7 +161,7 @@ const GuestCheckoutModal = ({
                 <span className={styles.currencyIcon}>{currencyOptions.USD.icon}</span>
                 <span className={styles.currencyCode}>USD</span>
                 <span className={styles.currencyPrice}>{currencyOptions.USD.symbol}{currencyOptions.USD.displayAmount}</span>
-                <span className={styles.currencyMethod}>{currencyOptions.USD.paymentMethod}</span>
+                <span className={styles.currencyMethod}>Paystack</span>
               </button>
             </div>
             
@@ -232,17 +227,9 @@ const GuestCheckoutModal = ({
               </div>
             </div>
 
-            {currency === 'USD' && (
-              <div className={styles.paymentNote}>
-                <Icon name="Info" /> International payments processed by Stripe
-              </div>
-            )}
-
-            {currency === 'NGN' && (
-              <div className={styles.paymentNote}>
-                <Icon name="Info" /> Nigerian payments processed by Paystack
-              </div>
-            )}
+            <div className={styles.paymentNote}>
+              <Icon name="Info" /> Powered by Paystack - Secure payments in {currency}
+            </div>
           </div>
         </div>
       </div>

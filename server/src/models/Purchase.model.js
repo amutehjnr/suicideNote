@@ -25,7 +25,7 @@ const purchaseSchema = new mongoose.Schema({
   paymentMethod: {
     type: String,
     required: true,
-    enum: ['paystack', 'stripe', 'bank_transfer', 'wallet'],
+    enum: ['paystack', 'bank_transfer', 'wallet'],
     default: 'paystack',
   },
   transactionReference: {
@@ -37,15 +37,6 @@ const purchaseSchema = new mongoose.Schema({
     type: String,
     sparse: true,
     index: true,
-  },
-  stripeSessionId: {
-    type: String,
-    sparse: true,
-    index: true,
-  },
-  stripePaymentIntentId: {
-    type: String,
-    sparse: true,
   },
   status: {
     type: String,
@@ -111,7 +102,6 @@ const purchaseSchema = new mongoose.Schema({
 purchaseSchema.index({ user: 1 });
 purchaseSchema.index({ ebook: 1 });
 purchaseSchema.index({ paystackReference: 1 }, { sparse: true });
-purchaseSchema.index({ stripeSessionId: 1 }, { sparse: true });
 purchaseSchema.index({ status: 1 });
 purchaseSchema.index({ createdAt: -1 });
 purchaseSchema.index({ 'affiliate.affiliateCode': 1 });
