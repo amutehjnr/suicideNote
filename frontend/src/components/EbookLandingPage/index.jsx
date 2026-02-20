@@ -198,42 +198,37 @@ useEffect(() => {
 
   // Fetch real data from API
   const fetchRealData = async () => {
-    const ebookId = 'suicide-note-2026';
+  const ebookId = 'suicide-note-2026';
+  
+  try {
+    const ebookResponse = await ebookAPI.getById(ebookId);
+    console.log('🔍 API Response:', ebookResponse.data); // ADD THIS
     
-    try {
-      const ebookResponse = await ebookAPI.getById(ebookId);
-      if (ebookResponse.data?.success) {
-        const ebook = ebookResponse.data.data.ebook || ebookResponse.data.data;
+    if (ebookResponse.data?.success) {
+      const ebook = ebookResponse.data.data.ebook || ebookResponse.data.data;
+      console.log('📦 Ebook data:', ebook); // ADD THIS
+      console.log('💰 Price from API:', ebook.price); // ADD THIS
+      
+      // Update stats with real data
+      if (ebook.price || ebook.salesCount || ebook.ratings) {
+        // DON'T use API price if it's 25 - keep your default 2500
+        const apiPrice = ebook.price || ebook.currentPrice;
+        const finalPrice = apiPrice === 25 ? 2500 : (apiPrice || prev.price);
         
-        // Update stats with real data
-        if (ebook.price || ebook.salesCount || ebook.ratings) {
-          setStats(prev => ({
-            ...prev,
-            readers: ebook.salesCount || ebook.readerCount || prev.readers,
-            rating: ebook.ratings?.average || ebook.averageRating || prev.rating,
-            price: ebook.price || ebook.currentPrice || prev.price,
-            affiliateCommission: Math.floor((ebook.price || ebook.currentPrice || prev.price) * (ebook.affiliateCommissionRate || ebook.affiliateRate || 0.5)),
-            affiliateRate: ebook.affiliateCommissionRate || ebook.affiliateRate || 0.5
-          }));
-        }
-        
-        // Fetch reviews
-        try {
-          const reviewsResponse = await ebookAPI.getReviews(ebookId);
-          if (reviewsResponse.data?.success) {
-            const reviewsData = reviewsResponse.data.data.reviews || reviewsResponse.data.data;
-            if (Array.isArray(reviewsData) && reviewsData.length > 0) {
-              setReviews(reviewsData);
-            }
-          }
-        } catch (error) {
-          console.log('Using default reviews');
-        }
+        setStats(prev => ({
+          ...prev,
+          readers: ebook.salesCount || ebook.readerCount || prev.readers,
+          rating: ebook.ratings?.average || ebook.averageRating || prev.rating,
+          price: finalPrice,  // Use the corrected price
+          affiliateCommission: Math.floor(finalPrice * (ebook.affiliateCommissionRate || ebook.affiliateRate || 0.5)),
+          affiliateRate: ebook.affiliateCommissionRate || ebook.affiliateRate || 0.5
+        }));
       }
-    } catch (error) {
-      console.log('Using default data');
     }
-  };
+  } catch (error) {
+    console.log('Using default data');
+  }
+};
 
   // Main purchase handler
   const handlePurchase = () => {
