@@ -1,11 +1,8 @@
-// src/pages/ReaderPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import PaymentService from '../../services/PaymentService';
-import toast from 'react-hot-toast';
 import './ReaderPage.css';
 
-// Book content divided into multiple pages/chapters
+// Book content data
 const BOOK_CONTENT = [
   {
     page: 1,
@@ -58,7 +55,7 @@ Someone. Anyone. Maybe no one.
 
 I'm using loose sheets torn from an old exercise book that I used in my final year at LASU, pages still blank after the semester ended. I told myself I'd use them for something eventually. Grocery lists, maybe. Or tracking my Clash of Clans progress. But they've sat in that wardrobe for two years, and tonight, I finally know what they're for.
 
-It's Friday, November 15, 2024. 11:47 PM. NEPA took light around nine—unusual, because they normally let us have power until at least ten on weekends. I'm sitting at the small table in my self-contain, writing by the light of my phone's flashlight propped against the wall. The battery is at 23%.`,
+It's Friday, November 15, 2024. 11:47 PM. NEPA took light around nine—unusual, because they normally let us have power until at least ten on weekends. I'm sitting at the small table in my self-contain, writing by the light of my phone's flashlight propped against the wall. The battery is at 23%. When it dies, I'll have to stop, but by then this should be finished.`,
     wordCount: 180
   },
   {
@@ -83,235 +80,271 @@ At work, I scan boxes. Boxes from China, boxes from India, boxes from Turkey. Bo
   },
   {
     page: 7,
-    chapter: "Chapter 2: The Daily Grind",
-    content: `My supervisor is Mr. Chen. He doesn't speak much English, just points and says "fast, fast" or "check, check." Sometimes he brings me a bottle of water. Sometimes he doesn't. I don't know if it's kindness or just making sure his scanner doesn't break down from dehydration.
+    chapter: "Chapter 1: The Note Begins (Continued)",
+    content: `The other workers call me "Miss University" because of my degree. They mean it kindly, I think. Like I'm too educated to be here. Like this is temporary for me. But it's not temporary. It's been two and a half years. And when I go home at night, I sit in my room and stare at the wall until it's time to sleep and do it all over again.
 
-I eat lunch at my station—bread and egg from Mama Chidi's stall outside. ₦300. Sometimes I skip and just drink water. The hunger reminds me I'm alive, at least. That's something.
+On Sundays, I go to church. Not because I believe—I stopped believing sometime in my third year of university—but because my mother calls every Sunday afternoon to ask if I went, and it's easier to say yes than to explain.
 
-At 5 PM, I reverse the journey. Two more hours standing. More sweat. More exhaust. More bodies pressed against mine. More pretending I don't exist.`,
-    wordCount: 120
+I have friends. Sort of. There's Chioma from work, who invites me to her birthday parties and wedding engagements. There's Emeka, who I dated briefly in 2022 until he said I was "too heavy" and stopped calling. There's the girl who sells puff-puff at the bus stop, who knows I like mine with extra sugar and always saves me the freshest ones when she sees me coming.
+
+But none of them know me. None of them see me. And I've stopped trying to make them.`,
+    wordCount: 180
   },
   {
     page: 8,
-    chapter: "Chapter 2: The Daily Grind (Continued)",
-    content: `Home. The room is hot even though it's November. Harmattan is supposed to be coming, but Lagos doesn't always get the memo. I turn on the small standing fan my father bought me last Christmas. It moves the hot air around but doesn't cool anything.
+    chapter: "Chapter 2: The Silence",
+    content: `The first time I thought about dying, I was sixteen years old.
 
-I boil water for noodles. Indomie, chicken flavor. ₦200. While it cooks, I scroll through Instagram. Friends from university getting married. Having babies. Traveling to Dubai. Starting businesses. I watch their stories like I'm watching a movie about another universe.
+It was during my SS2 holiday. My parents had just told me I'd be repeating the class because my results weren't good enough. Not failing, just not good enough. My father didn't shout—he never shouts. He just looked at me with that disappointment that's worse than anger, and said, "We expected more from you, Eliora."
 
-I eat the noodles straight from the pot. No plate to wash. I drink the broth. It's salty and hot and for a moment, it fills the emptiness. Then it's gone, and the emptiness returns, bigger than before.`,
+I went to my room and lay on my bed and thought about what it would feel like to just stop existing. Not to die, exactly, but to disappear. To become nothing. To not have to feel the weight of everyone's expectations crushing my chest.
+
+I didn't tell anyone. You don't tell anyone things like that. You swallow them and keep moving, because that's what we do.`,
     wordCount: 140
   },
   {
     page: 9,
-    chapter: "Chapter 3: The Nights",
-    content: `Night is the hardest. During the day, there's noise. There's movement. There's pretending. But at night, in this room, there's just me and my thoughts. And my thoughts are not good company.
+    chapter: "Chapter 2: The Silence (Continued)",
+    content: `Ten years later, and I still haven't told anyone.
 
-I masturbate. Not because I'm thinking about anyone or because I want to—but because when the urge comes, I don't have the energy to resist. It's a biological function, like blinking or breathing. A moment of feeling something, then shame, then nothing.
+The thoughts come and go like Lagos traffic. Sometimes they're just there, background noise, the danfos and okadas of my mind. Other times they're gridlock, overwhelming, immobilizing.
 
-After, I lie in the dark and listen to the sounds of Ojuelegba. Motorcycles revving. People arguing. Music from a bar down the street. A baby crying. Life happening all around me, while I'm frozen in this room.`,
-    wordCount: 130
-  },
-  {
-    page: 10,
-    chapter: "Chapter 3: The Nights (Continued)",
-    content: `Sometimes I think about calling someone. My mother. She'd ask about work. About church. About when I'm getting married. I'd lie and say everything is fine. She'd believe me because she wants to believe me.
+I've learned to function with them. To wake up and go to work and smile when I'm supposed to and laugh when I'm supposed to and say all the right things. I've learned to be a person while slowly disappearing inside.
 
-Tola, my older sister. She has three children and a husband who works in the UK. She sends me ₦10,000 every month "for transport." I take it even though it hurts. She thinks she's helping. She doesn't know she's reminding me how much I've failed.
-
-Deji, my younger brother. He's in medical school. He'll be a doctor. He'll save lives. He already has a future. I don't want to taint it with my darkness.`,
+My mother calls it "carrying my cross." The pastor calls it "spiritual warfare." My friends would call it "overthinking" if they knew. But they don't know. I make sure they don't know.`,
     wordCount: 120
   },
   {
+    page: 10,
+    chapter: "Chapter 3: The Weight",
+    content: `The weight is physical now.
+
+I feel it in my chest when I wake up, like someone's sitting on me. I feel it in my shoulders when I walk to the bus stop. I feel it in my throat when I try to speak.
+
+Some days, getting out of bed takes everything I have. Some days, I don't get out of bed until I absolutely have to. Some days, I lie there and count the cracks in the ceiling and wonder if anyone would notice if I just stayed there forever.
+
+They would notice, eventually. My boss would call. My mother would call. Someone would come. And then what? What would they find? A girl who couldn't carry her cross anymore. A woman who couldn't fight the war.`,
+    wordCount: 130
+  },
+  {
     page: 11,
-    chapter: "Chapter 4: The Weekend",
-    content: `Saturday. No work. This should be a good thing. Time to rest. Time to live. But without the structure of work, I don't know what to do with myself.
+    chapter: "Chapter 3: The Weight (Continued)",
+    content: `I went to a general hospital once, in 2023. Sat in the queue for three hours, waited to see a doctor, tried to explain that I couldn't breathe, that my chest hurt, that I hadn't slept properly in months.
 
-I sleep until noon. The room is hot when I wake up. Sweat sticks my body to the mattress. I get up, take a bucket bath. The water is cold and for a moment, I feel clean. Then I put on the same clothes I wore yesterday.
+The doctor prescribed painkillers. Said it was probably stress, maybe malaria. Told me to rest and drink more water.
 
-I should go out. To the mall. To a cafe. To church. But the thought of pretending to be normal for hours exhausts me. So I stay in. I scroll. I sleep some more. I wait for Monday.`,
-    wordCount: 110
+I paid for the consultation, bought the painkillers, went home, and never went back.
+
+This is what help looks like in Nigeria. This is what it means to be broken in a country that doesn't have the resources to fix you. I'm not angry about it—I understand. There are people with malaria, with typhoid, with actual physical illnesses waiting in those queues. Who am I to take their place because my brain is sick?`,
+    wordCount: 150
   },
   {
     page: 12,
-    chapter: "Chapter 4: The Weekend (Continued)",
-    content: `Sunday. My mother calls. "Eliora, how are you? Are you coming for service?"
+    chapter: "Chapter 4: The Note Takes Shape",
+    content: `So I'm writing this instead.
 
-"I have to work, Mummy." Lie.
+I'm writing because I need someone to know that I tried. That I really, really tried.
 
-"On Sunday? What kind of work is that?"
+I tried to be happy. I tried to be grateful. I tried to count my blessings and focus on the positive and look on the bright side. I tried therapy apps and meditation videos and self-help books. I tried praying harder, fasting longer, believing stronger.
 
-"It's Chinese company, Mummy. They don't know Sunday."
+I tried to be enough. For my parents, for my friends, for myself.
 
-She sighs. "Okay o. But next week, you must come. Pastor is preaching about breakthrough."
-
-"I will, Mummy."
-
-I won't.
-
-After the call, I feel worse. I've disappointed her again. I'm disappointing everyone. Myself most of all.`,
+And I'm tired. I'm so tired.`,
     wordCount: 100
   },
   {
     page: 13,
-    chapter: "Chapter 5: The Breaking Point",
-    content: `It's been building for months. Years, maybe. But today something broke.
+    chapter: "Chapter 4: The Note Takes Shape (Continued)",
+    content: `My phone is at 17% now. I need to hurry.
 
-At work, Mr. Chen yelled at me because I missed a box. "Stupid! Stupid girl!" he shouted. Everyone looked. Everyone saw. I didn't cry. I just kept scanning. Beep. Next. Beep. Next.
+If you're reading this—if anyone is reading this—I want you to know that it's not your fault. It's not anyone's fault. Sometimes people break and there's no one to blame. Sometimes things just end.
 
-On the way home, a danfo conductor grabbed my arm too hard. "Enter now! We're going!" I pulled away. He called me a witch. People laughed.
+Tell my mother I loved her. Tell her I'm sorry I wasn't the daughter she deserved. Tell her I tried, I really tried.
 
-In my room, I looked at myself in the small mirror. My eyes were empty. My face was pale. My hair was dry. I looked like a ghost of the girl I used to be.`,
-    wordCount: 110
+Tell my father I forgive him for all the silences. Tell him I understand now that silence was his way of loving, even if I couldn't feel it.
+
+Tell Tola to be happy. Tell her to hold her children tight and never let them forget they're loved.
+
+Tell Deji to study hard, to become the doctor he's always wanted to be. Tell him his big sister believed in him, even when she couldn't believe in herself.`,
+    wordCount: 150
   },
   {
     page: 14,
-    chapter: "Chapter 5: The Breaking Point (Continued)",
-    content: `That's when I decided. Not in a dramatic way. Not with tears or anger. Just quietly. Like deciding what to eat for dinner.
+    chapter: "Chapter 4: The Note Takes Shape (Continued)",
+    content: `And tell Chioma, Emeka, the puff-puff girl—tell them I appreciated them. Tell them their small kindnesses meant something. Tell them they kept me alive longer than they'll ever know.
 
-I'll write this note. Then I'll take all the paracetamol in the cabinet. Then I'll go to sleep and not wake up.
+I don't know who will find this. Maybe my landlord, when they come to clear out my room. Maybe my mother, if she comes to check on me. Maybe no one. Maybe it will sit in this wardrobe for years, like the exercise books did, until someone finally throws it away.
 
-It makes sense. Really, it does. I'm a burden. To my parents. To my siblings. To myself. I'm taking up space and air and food that someone better could use.
-
-I'm writing this so maybe, someday, someone will understand why. Not forgive. Just understand.`,
-    wordCount: 110
+That's okay. I don't need to be found. I just need to be honest. For once in my life, I need to be honest.`,
+    wordCount: 120
   },
   {
     page: 15,
-    chapter: "Chapter 6: The Memory",
-    content: `But as I write, I remember something.
+    chapter: "Chapter 5: Lagos",
+    content: `Lagos is a character in this story, I suppose. It deserves its own chapter.
 
-University. Third year. I was happy then. Or at least, I thought I was.
+Lagos is the city that raised me, destroyed me, and never noticed either. Lagos is noise and chaos and beauty and brutality all at once. Lagos is twenty million people living on top of each other, touching but never connecting.
 
-I had friends. We'd sit under the trees at LASU and talk about our dreams. Mine was to start a business. A small cafe where people could come and feel at home. Where the coffee would be good and the wifi would be free and no one would be lonely.
+I hate Lagos. I love Lagos. I don't know how to separate myself from it anymore.
 
-We'd plan it in detail. The menu. The decor. The music. We even picked a name: "The Quiet Place."
+The okada riders who weave through traffic like they're invincible. The market women who shout their prices with lungs of iron. The street children who tap on car windows with hands too small to be working. The partygoers who fill clubs every weekend, dancing like there's no tomorrow.
 
-What happened to that girl? Where did she go?`,
-    wordCount: 110
+There's always tomorrow, though. That's the problem.`,
+    wordCount: 130
   },
   {
     page: 16,
-    chapter: "Chapter 6: The Memory (Continued)",
-    content: `I remember graduation day. My parents were so proud. My mother wore her best aso-ebi. My father took photos with everyone. Tola came with her husband. Deji was there in his school uniform.
+    chapter: "Chapter 5: Lagos (Continued)",
+    content: `I remember the first time I saw the lagoon. I was twelve, visiting a cousin on the island. We stood on the Third Mainland Bridge, and she pointed at the water and said, "People jump, you know. When they can't take it anymore."
 
-We went to Chicken Republic to celebrate. We ate and laughed. My father said, "Now the real life begins." I believed him. I thought it would be wonderful.
+I didn't understand then. I looked at the water and thought about how dirty it was, how you'd have to be really desperate to jump into that.
 
-That was four years ago. Four years of scanning boxes. Four years of loneliness. Four years of becoming a ghost.`,
-    wordCount: 100
+Now I understand.
+
+Now I look at the lagoon and think about how easy it would be. How quick. How final.
+
+But I won't jump. I'm not that kind of desperate. I'm the kind that just stops. That lies down and doesn't get up. That writes a note and waits.`,
+    wordCount: 130
   },
   {
     page: 17,
-    chapter: "Chapter 7: The Interruption",
-    content: `My phone buzzes. A WhatsApp message. It's from a number I don't recognize.
+    chapter: "Chapter 6: The Morning After",
+    content: `It's Saturday morning now. November 16. 6:32 AM.
 
-"Hello Eliora, this is Mrs. Okonkwo from church. Your mother gave me your number. We're having a youth program tomorrow. Can you come and help with decorations?"
+I fell asleep writing. Woke up to my phone dead, the room dark, the note still on the table. I found my charger, plugged it in, waited for enough battery to continue.
 
-I stare at the message. A stranger reaching out. A simple request. Help with decorations.
+The sun is coming up. I can hear Lagos waking outside my window. The danfos starting their routes. The traders opening their shops. The world continuing, indifferent to whatever I decide.
 
-I should ignore it. Delete it. Block the number.
+I made tea. Sat here drinking it, watching the light change, wondering if today is the day.
 
-But something in me hesitates. Just for a second.`,
-    wordCount: 90
+Is there ever a right day for this? Is there ever a wrong one?`,
+    wordCount: 110
   },
   {
     page: 18,
-    chapter: "Chapter 7: The Interruption (Continued)",
-    content: `I put down the pen. The note is unfinished. The pills are still in the cabinet.
+    chapter: "Chapter 6: The Morning After (Continued)",
+    content: `I thought about calling someone. Anyone. Just to hear a voice that isn't mine.
 
-I look at the message again. "Can you come and help with decorations?"
+But who do you call at 6 AM on a Saturday? Who do you call to say, "I'm thinking about dying" without ruining their entire day?
 
-It's such a normal thing. Such a human thing. Not "Are you okay?" Not "Do you need help?" Just "Can you help?"
+So I didn't call. I made tea and wrote and waited for the feeling to pass. It didn't pass. It's still here, sitting with me, drinking its own tea.
 
-Maybe that's what I need. Not to be helped, but to help. To be useful. To matter to someone, even in a small way.
-
-I pick up my phone. My fingers hover over the keyboard.
-
-What do I say?`,
-    wordCount: 100
+We're having breakfast together, me and my death wish. We're old friends now. We've known each other for ten years. I don't know how to be without it anymore.`,
+    wordCount: 120
   },
   {
     page: 19,
-    chapter: "Chapter 8: The Decision",
-    content: `I type: "Yes, I can help. What time?"
+    chapter: "Chapter 7: Reasons",
+    content: `My mother always said, "When you feel like giving up, count your blessings."
 
-I send it before I can change my mind.
+So I'm counting.
 
-The reply comes immediately: "Thank you! 4 PM at the church hall. God bless you."
+I have a roof over my head. I have food to eat. I have a job, even if it doesn't pay much. I have family who loves me, even if they don't understand. I have friends, even if they're distant. I have my health, mostly.
 
-God bless you. Three words. Simple. Common. But they feel like a hand reaching into the darkness.
+I have reasons to live. I know I have reasons to live.
 
-I look at the unfinished note. At the pen. At the pills.
+But knowing and feeling are different things. I know I should want to stay. I know there are people who would miss me. I know tomorrow might be better. I know all of this, rationally, logically, in my mind.
 
-Maybe not today. Maybe just for today, I'll choose to live.`,
-    wordCount: 90
+But in my chest, in my bones, in the place where feeling lives—I'm empty. I've been empty for so long I don't remember what full feels like.`,
+    wordCount: 140
   },
   {
     page: 20,
-    chapter: "Chapter 8: The Decision (Continued)",
-    content: `I tear up the note. Not all of it—I keep the first page. As a reminder. Of how close I came. Of how thin the line is between staying and going.
+    chapter: "Chapter 7: Reasons (Continued)",
+    content: `They say suicide is permanent solution to a temporary problem. They say it gets better. They say you have so much to live for.
 
-I flush the pills down the toilet. They swirl and disappear. Gone.
+They don't understand that when you've been fighting for ten years, "temporary" loses its meaning. When every day is a battle, when every morning is a choice, when every night is a question—temporary becomes permanent. This is my normal. This has always been my normal.
 
-I take a deep breath. The room is still hot. The fan is still just moving hot air. I'm still broke. I still hate my job.
+I don't want to die. I just want the pain to stop. I want the weight to lift. I want to breathe without feeling like someone's sitting on my chest.
 
-But for today, I'm alive. And for today, that's enough.
-
-Tomorrow, I'll help with decorations.`,
-    wordCount: 100
+And I can't find a way to make that happen while I'm alive.`,
+    wordCount: 120
   },
   {
     page: 21,
-    chapter: "Epilogue: One Year Later",
-    content: `I never finished that note. I'm glad.
+    chapter: "Chapter 8: The Almost Ending",
+    content: `My phone is charged now. 100%. Ready for whatever comes next.
 
-The church program led to another. Then to volunteering at a youth center. Then to meeting people. Real people, not just Instagram profiles.
+I've been writing for hours. The pages are covered, front and back. I have maybe one page left in the exercise book, and then it's done.
 
-I still work at the warehouse. But now I'm saving for my cafe. ₦5,000 a month. It'll take years, but I have years now.
+I don't know what I'll do when I finish. Maybe I'll go out. Maybe I'll take a walk, see the city one last time. Maybe I'll buy puff-puff from the girl at the bus stop, eat it slowly, remember what it feels like to enjoy something.
 
-I go to therapy once a month. It's expensive, but it helps. Talking helps.`,
-    wordCount: 80
+Maybe I'll come back here and lie down and not get up. Maybe I'll call someone. Maybe I'll do nothing at all.
+
+The thing about being this tired is that even decisions feel impossible. Even choosing to live or die feels like too much.`,
+    wordCount: 140
   },
   {
     page: 22,
-    chapter: "Epilogue: One Year Later (Continued)",
-    content: `I'm writing this from The Quiet Place. Not my dream cafe—not yet. But a quiet corner in a public library where I come to read and write and remember.
+    chapter: "Chapter 8: The Almost Ending (Continued)",
+    content: `If this is the end—if this is where my story stops—I want you to know that I'm not angry. I'm not sad. I'm just tired. Deeply, completely, eternally tired.
 
-Remember that I almost left. Remember that I stayed.
+I want you to know that I loved. In my own way, in my small way, I loved. My family, my friends, this chaotic city, this broken country. I loved it all, even when it hurt.
 
-Remember that healing isn't a straight line. Some days are still hard. Some nights are still long. But there are more good days now. More reasons to stay.
+And I want you to know that if you're reading this and you feel like I feel—if you're carrying this same weight—I'm sorry. I'm so sorry. I wish I could tell you it gets better. I wish I could promise you tomorrow will be different.
 
-This isn't a happy ending. It's a continuing story. My story.`,
-    wordCount: 90
+But I can't promise that. All I can say is: I understand. I understand completely. And whatever you decide, whatever happens, I hope you find peace. I hope we both find peace.`,
+    wordCount: 150
   },
   {
     page: 23,
-    chapter: "Author's Note",
-    content: `To the reader,
+    chapter: "Afterword",
+    content: `This book is not a suicide note. It is a novel.
 
-If you're reading this and you understand Eliora's pain, please know: You are not alone. Your pain is real. Your struggle is valid. And there is hope, even when you can't see it.
+But the feelings in it are real. The pain, the loneliness, the exhaustion—these are real for millions of people every day. If you are one of them, please reach out. Please talk to someone. Please keep fighting, even when it feels impossible.
 
-Reach out. To a friend. To a family member. To a helpline. To me, if you want (loba@suicidenote.com).
+Nigeria Emergency: 112
+Lagos Emergency: 767 or 112
+Mentally Aware Nigeria Initiative (MANI): 0809 111 0555
 
-Keep fighting. One day at a time. One hour at a time. One breath at a time.
+You are not alone. You are not broken. You are not too much.
 
-You matter. Your story matters. Keep writing it.
+You are enough.
 
-With hope,
-Loba Yusuf`,
-    wordCount: 100
+— Loba Yusuf, 2026`,
+    wordCount: 110
   }
 ];
+
+// Mock Payment Service
+const PaymentService = {
+  validateAccessCode: async (code, ebookId) => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        if (code && code.startsWith('SN-')) {
+          resolve({ success: true });
+        } else {
+          resolve({ success: false });
+        }
+      }, 500);
+    });
+  },
+  
+  verifyPayment: async (reference) => {
+    return new Promise(resolve => {
+      setTimeout(() => {
+        resolve({ 
+          success: true, 
+          data: { 
+            accessCode: `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+          } 
+        });
+      }, 500);
+    });
+  }
+};
 
 const ReaderPage = () => {
   const { ebookId = 'suicide-note-2026' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   
-  // State from HTML version
+  // Constants
   const MIN_FONT = 14;
   const MAX_FONT = 24;
   const TOTAL_PAGES = BOOK_CONTENT.length;
   
+  // State
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem('rdr_fontSize');
     return saved ? parseInt(saved) : 16;
@@ -320,8 +353,6 @@ const ReaderPage = () => {
   const [currentPage, setCurrentPage] = useState(4);
   const [chapOpen, setChapOpen] = useState(false);
   const [currentChapter, setCurrentChapter] = useState('Chapter 1: The Note Begins');
-  
-  // State from ReaderPage
   const [accessCode, setAccessCode] = useState('');
   const [isValidAccess, setIsValidAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -330,8 +361,6 @@ const ReaderPage = () => {
   // Initialize access
   useEffect(() => {
     const initialize = async () => {
-      console.log('📖 ReaderPage initialized for ebook:', ebookId);
-      
       const urlParams = new URLSearchParams(location.search);
       const codeFromUrl = urlParams.get('accessCode');
       const purchaseRef = urlParams.get('reference');
@@ -339,17 +368,14 @@ const ReaderPage = () => {
       try {
         setIsLoading(true);
         
-        // Check for saved access
         const savedCode = localStorage.getItem(`ebook_access_${ebookId}`);
         if (savedCode) {
-          console.log('✅ Found saved access code:', savedCode);
           const validationResult = await PaymentService.validateAccessCode(savedCode, ebookId);
           
           if (validationResult.success) {
             setAccessCode(savedCode);
             setIsValidAccess(true);
             
-            // Restore bookmark
             const savedBookmark = localStorage.getItem(`bookmark_${ebookId}`);
             if (savedBookmark) {
               const page = parseInt(savedBookmark);
@@ -363,27 +389,19 @@ const ReaderPage = () => {
             return;
           } else {
             localStorage.removeItem(`ebook_access_${ebookId}`);
-            toast.error('Access expired. Please re-enter your access code.');
-            navigate('/');
+            setIsLoading(false);
             return;
           }
         }
         
-        // Handle URL access code
         if (codeFromUrl) {
           const result = await PaymentService.validateAccessCode(codeFromUrl, ebookId);
           if (result.success) {
             setAccessCode(codeFromUrl);
             setIsValidAccess(true);
             localStorage.setItem(`ebook_access_${ebookId}`, codeFromUrl);
-            toast.success('Access granted! Enjoy reading.');
-          } else {
-            toast.error('Invalid access code');
-            navigate('/');
           }
-        }
-        // Handle payment reference
-        else if (purchaseRef) {
+        } else if (purchaseRef) {
           const result = await PaymentService.verifyPayment(purchaseRef);
           if (result.success) {
             const generatedCode = result.data?.accessCode || 
@@ -391,28 +409,17 @@ const ReaderPage = () => {
             setAccessCode(generatedCode);
             setIsValidAccess(true);
             localStorage.setItem(`ebook_access_${ebookId}`, generatedCode);
-            toast.success('Payment verified! Enjoy reading.');
-          } else {
-            toast.error('Payment verification failed');
-            navigate('/');
           }
-        }
-        // No access - redirect
-        else {
-          toast.error('Please purchase the book to read');
-          navigate('/');
         }
       } catch (error) {
         console.error('Reader initialization error:', error);
-        toast.error('Error accessing book');
-        navigate('/');
       } finally {
         setIsLoading(false);
       }
     };
     
     initialize();
-  }, [ebookId, navigate, location]);
+  }, [ebookId, location.search]);
 
   // Save bookmark when page changes
   useEffect(() => {
@@ -425,6 +432,7 @@ const ReaderPage = () => {
   // Save font size
   useEffect(() => {
     localStorage.setItem('rdr_fontSize', fontSize);
+    document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
   }, [fontSize]);
 
   // Update chapter when page changes
@@ -435,20 +443,51 @@ const ReaderPage = () => {
     }
   }, [currentPage]);
 
-  // Font controls
+  // Format page content for display
+  const formatPageContent = (content) => {
+    const paragraphs = content.split('\n\n');
+    return paragraphs.map((para, index) => {
+      const trimmed = para.trim();
+      if (!trimmed) return null;
+      
+      if (index === 0 && para.includes('Someone. Anyone.')) {
+        return <p key={index}><span className="opener">{trimmed}</span></p>;
+      }
+      
+      const lines = trimmed.split('\n');
+      if (lines.length > 1) {
+        return lines.map((line, lineIndex) => {
+          if (!line.trim()) return null;
+          return <p key={`${index}-${lineIndex}`}>{line.trim()}</p>;
+        });
+      }
+      
+      return <p key={index}>{trimmed}</p>;
+    });
+  };
+
+  // Get unique chapters
+  const getUniqueChapters = () => {
+    const seen = new Set();
+    return BOOK_CONTENT.filter(page => {
+      if (seen.has(page.chapter)) return false;
+      seen.add(page.chapter);
+      return true;
+    }).map(page => ({
+      chapter: page.chapter,
+      page: page.page
+    }));
+  };
+
+  // Handlers
   const handleFontDecrease = () => {
-    if (fontSize > MIN_FONT) {
-      setFontSize(prev => prev - 1);
-    }
+    if (fontSize > MIN_FONT) setFontSize(prev => prev - 1);
   };
 
   const handleFontIncrease = () => {
-    if (fontSize < MAX_FONT) {
-      setFontSize(prev => prev + 1);
-    }
+    if (fontSize < MAX_FONT) setFontSize(prev => prev + 1);
   };
 
-  // Chapter toggle
   const handleChapterToggle = () => {
     setChapOpen(!chapOpen);
   };
@@ -459,7 +498,6 @@ const ReaderPage = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Page navigation
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1);
@@ -477,94 +515,47 @@ const ReaderPage = () => {
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.key === 'ArrowRight' || e.key === ' ') {
-        e.preventDefault();
-        handleNextPage();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
+      if (!isValidAccess) return;
+      
+      if (e.key === 'ArrowLeft' && !e.ctrlKey && !e.metaKey) {
         handlePrevPage();
-      } else if (e.key === 'Home') {
-        e.preventDefault();
-        setCurrentPage(1);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-      } else if (e.key === 'End') {
-        e.preventDefault();
-        setCurrentPage(TOTAL_PAGES);
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+      } else if (e.key === 'ArrowRight' && !e.ctrlKey && !e.metaKey) {
+        handleNextPage();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage]);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [isValidAccess, currentPage]);
 
   // Progress percentage
   const progressPercentage = (currentPage / TOTAL_PAGES) * 100;
 
   // Current page content
   const currentContent = BOOK_CONTENT.find(page => page.page === currentPage) || BOOK_CONTENT[3];
+  
+  // Calculate total reading time
+  const totalWords = BOOK_CONTENT.reduce((sum, page) => sum + page.wordCount, 0);
+  const readingTimeMinutes = Math.ceil(totalWords / 200);
 
-  // Loading state
+  // Unique chapters for navigation
+  const uniqueChapters = getUniqueChapters();
+
   if (isLoading) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100vh',
-        background: '#f5f0eb'
-      }}>
-        <div style={{
-          width: '40px',
-          height: '40px',
-          border: '3px solid #ddd8d0',
-          borderTopColor: '#8b1a1a',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite',
-          marginBottom: '16px'
-        }}></div>
-        <p style={{ color: '#1a1a1a', fontFamily: '-apple-system, Helvetica Neue, sans-serif' }}>Loading your book...</p>
-        <style>{`
-          @keyframes spin {
-            to { transform: rotate(360deg); }
-          }
-        `}</style>
+      <div className="loading-container">
+        <div className="spinner"></div>
+        <p>Loading your book...</p>
       </div>
     );
   }
 
-  // Access denied state
   if (!isValidAccess) {
     return (
-      <div style={{ 
-        display: 'flex', 
-        flexDirection: 'column', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        height: '100vh',
-        background: '#f5f0eb',
-        padding: '24px',
-        textAlign: 'center'
-      }}>
-        <h2 style={{ color: '#8b1a1a', marginBottom: '12px', fontFamily: '-apple-system, Helvetica Neue, sans-serif' }}>Access Denied</h2>
-        <p style={{ color: '#1a1a1a', marginBottom: '24px', maxWidth: '400px', fontFamily: '-apple-system, Helvetica Neue, sans-serif' }}>
-          Please purchase the book to read the full content.
-        </p>
-        <button 
-          onClick={() => navigate('/')} 
-          style={{
-            background: '#fff',
-            border: '1px solid #ddd8d0',
-            borderRadius: '10px',
-            padding: '12px 24px',
-            fontFamily: '-apple-system, Helvetica Neue, sans-serif',
-            fontSize: '15px',
-            fontWeight: '500',
-            color: '#1a1a1a',
-            cursor: 'pointer'
-          }}
-        >
+      <div className="access-denied">
+        <h2>Access Denied</h2>
+        <p>Please purchase the book to read the full content.</p>
+        <button onClick={() => navigate('/')} className="home-btn">
           Go to Homepage
         </button>
       </div>
@@ -572,10 +563,10 @@ const ReaderPage = () => {
   }
 
   return (
-    <>
-      {/* ══ HEADER ══════════════════════════════════════════ */}
+    <div className="reader-page">
+      {/* Header */}
       <header className="header">
-        <button onClick={() => navigate('/')} className="header-back">
+        <button className="header-back" onClick={() => navigate('/')}>
           <svg width="9" height="15" viewBox="0 0 9 15" fill="none" aria-hidden="true">
             <path d="M8 1L1 7.5L8 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
@@ -608,22 +599,19 @@ const ReaderPage = () => {
         </div>
       </header>
 
-      {/* ══ PROGRESS BAR ═════════════════════════════════════ */}
+      {/* Progress Bar */}
       <div 
         className="progress-bar-wrap" 
         role="progressbar" 
         aria-valuenow={currentPage} 
         aria-valuemin="1" 
-        aria-valuemax={TOTAL_PAGES}
+        aria-valuemax={TOTAL_PAGES} 
         aria-label="Reading progress"
       >
-        <div 
-          className="progress-bar-fill" 
-          style={{ width: `${progressPercentage}%` }}
-        ></div>
+        <div className="progress-bar-fill" style={{ width: `${progressPercentage}%` }}></div>
       </div>
 
-      {/* ══ CHAPTER TOGGLE ══════════════════════════════════ */}
+      {/* Chapter Toggle */}
       <div className="chapter-toggle-wrap">
         <button 
           className="chapter-toggle-btn" 
@@ -637,55 +625,41 @@ const ReaderPage = () => {
         </button>
 
         <div className={`chapter-list ${chapOpen ? 'open' : ''}`} id="chapterList" role="list">
-          {BOOK_CONTENT.map((page) => (
+          {uniqueChapters.map((item, index) => (
             <button
-              key={page.page}
-              className={`chapter-item ${currentPage === page.page ? 'current' : ''}`}
+              key={index}
+              className={`chapter-item ${item.chapter === currentChapter ? 'current' : ''}`}
               role="listitem"
-              onClick={() => handleChapterSelect(page.chapter, page.page)}
+              onClick={() => handleChapterSelect(item.chapter, item.page)}
             >
-              {page.chapter}
+              {item.chapter}
             </button>
           ))}
         </div>
       </div>
 
-      {/* ══ READING CONTENT ═════════════════════════════════ */}
+      {/* Reading Content */}
       <main className="reading-area">
-        <article 
-          className="reading-text" 
-          id="readingText"
-          style={{ fontSize: `${fontSize}px` }}
-        >
-          {currentContent.content.split('\n').map((paragraph, idx) => {
-            if (!paragraph.trim()) return null;
-            
-            // Check if this is the first paragraph of Chapter 1 to add opener class
-            if (currentPage === 4 && idx === 0 && paragraph.includes('Someone.')) {
-              return <p key={idx}><span className="opener">{paragraph}</span></p>;
-            }
-            return <p key={idx}>{paragraph}</p>;
-          })}
+        <article className="reading-text">
+          {formatPageContent(currentContent.content)}
         </article>
       </main>
 
-      {/* ══ PAGE NAVIGATION ═════════════════════════════════ */}
+      {/* Page Navigation */}
       <nav className="page-nav" aria-label="Page navigation">
         <button 
           className="nav-btn" 
-          id="prevBtn"
           onClick={handlePrevPage}
           disabled={currentPage <= 1}
           aria-label="Previous page"
         >
           Previous
         </button>
-        <div className="page-indicator" id="pageIndicator" aria-live="polite">
+        <div className="page-indicator" aria-live="polite">
           Page {currentPage} of {TOTAL_PAGES}
         </div>
         <button 
           className="nav-btn" 
-          id="nextBtn"
           onClick={handleNextPage}
           disabled={currentPage >= TOTAL_PAGES}
           aria-label="Next page"
@@ -694,11 +668,11 @@ const ReaderPage = () => {
         </button>
       </nav>
 
-      {/* ══ FOOTER ══════════════════════════════════════════ */}
+      {/* Footer */}
       <footer className="site-footer">
         <div className="footer-section">
           <div className="footer-label">Your Access Code</div>
-          <div className="footer-code">{accessCode || 'SN-MLQFLMOV-3B9CF9'}</div>
+          <div className="footer-code">{accessCode}</div>
         </div>
 
         <div className="footer-section">
@@ -723,9 +697,11 @@ const ReaderPage = () => {
           </div>
         </div>
 
-        <div className="footer-meta">Reading time: ~{Math.max(1, Math.round(currentContent.wordCount / 200))} min &nbsp;·&nbsp; {TOTAL_PAGES} pages total</div>
+        <div className="footer-meta">
+          Reading time: ~{readingTimeMinutes} min &nbsp;·&nbsp; {TOTAL_PAGES} pages total
+        </div>
       </footer>
-    </>
+    </div>
   );
 };
 
