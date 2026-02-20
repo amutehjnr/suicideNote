@@ -166,6 +166,47 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Add near the top after database connection
+const fixIndexes = async () => {
+  try {
+    console.log('🔧 Checking database indexes...');
+    const Purchase = require('./models/Purchase.model');
+    
+    // Drop the problematic index if it exists
+    try {
+      await Purchase.collection.dropIndex('transactionReference_1');
+      console.log('✅ Dropped problematic transactionReference index');
+    } catch (error) {
+      // Index doesn't exist, that's fine
+    }
+    
+    // Create sparse index
+    try {
+      await Purchase.collection.createIndex(
+        { transactionReference: 1 }, 
+        { 
+          sparse: true, 
+          background: true,
+          name: 'transactionReference_sparse'
+        }
+      );
+      console.log('✅ Created sparse index for transactionReference');
+    } catch (error) {
+      console.log('ℹ️ Index may already exist:', error.message);
+    }
+    
+    console.log('✅ Index check completed');
+  } catch (error) {
+    console.error('❌ Error checking indexes:', error);
+  }
+};
+
+// Call this after database connection
+mongoose.connection.once('open', async () => {
+  console.log('✅ MongoDB connected');
+  await fixIndexes();
+});
+
 // ================== START SERVER ==================
 const PORT = process.env.PORT || 5000;
 

@@ -30,19 +30,20 @@ const purchaseSchema = new mongoose.Schema({
   },
   transactionReference: {
     type: String,
-    unique: true,
     sparse: true,
-    default: undefined,
+    index: true,
   },
   paystackReference: {
     type: String,
     sparse: true,
-  },
-  stripePaymentIntentId: {
-    type: String,
-    sparse: true,
+    index: true,
   },
   stripeSessionId: {
+    type: String,
+    sparse: true,
+    index: true,
+  },
+  stripePaymentIntentId: {
     type: String,
     sparse: true,
   },
@@ -85,6 +86,12 @@ const purchaseSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'AccessCode',
   },
+  refundRequested: {
+    type: Boolean,
+    default: false,
+  },
+  refundReason: String,
+  refundRequestedAt: Date,
   notes: String,
   completedAt: Date,
   refundedAt: Date,
@@ -103,7 +110,6 @@ const purchaseSchema = new mongoose.Schema({
 // Indexes
 purchaseSchema.index({ user: 1 });
 purchaseSchema.index({ ebook: 1 });
-purchaseSchema.index({ transactionReference: 1 }, { unique: true, sparse: true });
 purchaseSchema.index({ paystackReference: 1 }, { sparse: true });
 purchaseSchema.index({ stripeSessionId: 1 }, { sparse: true });
 purchaseSchema.index({ status: 1 });
@@ -133,7 +139,8 @@ purchaseSchema.virtual('formattedAmount').get(function() {
     style: 'currency',
     currency: this.currency,
   });
-  return formatter.format(this.amount / (this.currency === 'NGN' ? 100 : 100));
+  const amount = this.currency === 'NGN' ? this.amount : this.amount / 100;
+  return formatter.format(amount);
 });
 
 // Virtual for formatted commission amount
