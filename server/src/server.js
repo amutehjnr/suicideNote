@@ -8,6 +8,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const cookieParser = require('cookie-parser');
 const winston = require('winston');
 const path = require('path');
+const mongoose = require('mongoose'); // 👈 ADD THIS LINE
 const adminRoutes = require('./routes/admin.routes');
 
 console.log('🚀 Starting server...');
@@ -139,7 +140,7 @@ app.use(express.static(distPath));
 app.get('*', (req, res, next) => {
   // Skip API, admin, and health routes
   if (req.originalUrl.startsWith('/api')) return next();
-  if (req.originalUrl.startsWith('/admin')) return next(); // CRITICAL: Skip admin routes
+  if (req.originalUrl.startsWith('/admin')) return next();
   if (req.originalUrl.startsWith('/health')) return next();
 
   // Serve index.html for all other routes (React Router)
@@ -166,7 +167,8 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Add near the top after database connection
+// ================== DATABASE CONNECTION HANDLER ==================
+// Function to fix indexes
 const fixIndexes = async () => {
   try {
     console.log('🔧 Checking database indexes...');
@@ -178,6 +180,9 @@ const fixIndexes = async () => {
       console.log('✅ Dropped problematic transactionReference index');
     } catch (error) {
       // Index doesn't exist, that's fine
+      if (!error.message.includes('index not found')) {
+        console.log('ℹ️ Index transactionReference_1 does not exist');
+      }
     }
     
     // Create sparse index
@@ -201,12 +206,6 @@ const fixIndexes = async () => {
   }
 };
 
-// Call this after database connection
-mongoose.connection.once('open', async () => {
-  console.log('✅ MongoDB connected');
-  await fixIndexes();
-});
-
 // ================== START SERVER ==================
 const PORT = process.env.PORT || 5000;
 
@@ -216,6 +215,25 @@ const server = app.listen(PORT, () => {
   console.log(`✅ Test → http://localhost:${PORT}/test-simple`);
   console.log(`✅ Admin Login → http://localhost:${PORT}/admin/signin`);
   console.log(`✅ Admin Dashboard → http://localhost:${PORT}/admin/dashboard`);
+  
+  // Run index fix after server starts
+  setTimeout(async () => {
+    try {
+      // Check if mongoose is connected
+      if (mongoose.connection.readyState === 1) {
+        console.log('✅ MongoDB is connected, running index fix...');
+        await fixIndexes();
+      } else {
+        console.log('⏳ Waiting for MongoDB connection...');
+        mongoose.connection.once('connected', async () => {
+          console.log('✅ MongoDB connected, running index fix...');
+          await fixIndexes();
+        });
+      }
+    } catch (error) {
+      console.error('❌ Failed to run index fix:', error);
+    }
+  }, 2000); // Wait 2 seconds for connection to establish
 });
 
 server.on('error', (error) => {
