@@ -411,4 +411,96 @@ router.get('/:slug', async (req, res) => {
   }
 });
 
+// backend/routes/accessRoutes.js
+router.post('/validate', async (req, res) => {
+  try {
+    const { code, ebookId } = req.body;
+    
+    console.log('🔑 Validating access code:', { code, ebookId });
+    
+    if (!code || !ebookId) {
+      return res.status(400).json({
+        success: false,
+        error: 'Access code and ebook ID are required'
+      });
+    }
+    
+    // Clean the code
+    const cleanCode = code.trim().toUpperCase();
+    
+    // Find the access code
+    const accessCode = await AccessCode.findOne({ 
+      code: cleanCode,
+      ebook: ebookId
+    })
+    .populate('ebook', 'title author coverImage')
+    .populate('purchase', 'amount status reference')
+    .populate('user', 'name email');
+    
+    if (!accessCode) {
+      return res.status(404).json({
+        success: false,
+        error: 'Access code not found'
+      });
+    }
+    
+    // Check if code is active
+    if (!accessCode.isActive) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access code has been revoked'
+      });
+    }
+    
+    // Check if code has expired
+    if (new Date() > accessCode.expiresAt) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access code has expired'
+      });
+    }
+    
+    // Increment access count
+    await accessCode.incrementAccess({
+      device: req.headers['user-agent'],
+      ipAddress: req.ip
+    });
+    
+    // Return success with access info
+    res.json({
+      success: true,
+      data: {
+        accessCode: accessCode.code,
+        ebook: {
+          id: accessCode.ebook._id,
+          title: accessCode.ebook.title,
+          author: accessCode.ebook.author,
+          coverImage: accessCode.ebook.coverImage
+        },
+        purchase: accessCode.purchase ? {
+          id: accessCode.purchase._id,
+          amount: accessCode.purchase.amount,
+          status: accessCode.purchase.status,
+          reference: accessCode.purchase.reference
+        } : null,
+        user: accessCode.user ? {
+          name: accessCode.user.name,
+          email: accessCode.user.email
+        } : null,
+        accessCount: accessCode.accessCount,
+        lastAccessedAt: accessCode.lastAccessedAt,
+        expiresAt: accessCode.expiresAt,
+        isActive: accessCode.isActive
+      }
+    });
+    
+  } catch (error) {
+    console.error('Access validation error:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+});
+
 module.exports = router;

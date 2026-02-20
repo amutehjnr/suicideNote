@@ -51,9 +51,8 @@ router.get('/:slug', async (req, res) => {
       `);
     }
     
-    // Get frontend URL
-    const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://suicidenote.onrender.com';
-    const validateUrl = `${frontendUrl}/api/access/validate`; // Your existing validation endpoint
+    // Use relative URLs - they'll use the same origin
+    const validateUrl = '/api/access/validate'; // Your existing validation endpoint
     
     // Pre-fill the code if provided in URL
     const prefillCode = code ? code.trim().toUpperCase() : '';
@@ -255,7 +254,7 @@ router.get('/:slug', async (req, res) => {
               <div class="info-box">
                 <div class="info-title">🔑 Enter Your Access Code</div>
                 <div class="info-text">
-                  Please enter your access code to read "Suicide Note" by Loba Yusuf.
+                  Please enter your access code to read "${ebook.title}" by Loba Yusuf.
                   ${prefillCode ? 'We\'ve pre-filled the code from your email for you.' : ''}
                 </div>
               </div>
@@ -296,10 +295,10 @@ router.get('/:slug', async (req, res) => {
         </div>
         
         <script>
-          const validateUrl = ${JSON.stringify(validateUrl)};
+          const validateUrl = '/api/access/validate';
           const ebookSlug = ${JSON.stringify(ebook.slug)};
           const ebookId = ${JSON.stringify(ebook._id.toString())};
-          const readerUrl = ${JSON.stringify(frontendUrl + '/read/' + (ebook.slug || ebook._id))};
+          const readerUrl = '/read/' + ebookSlug;
           
           // Auto-submit if code is pre-filled
           window.addEventListener('DOMContentLoaded', () => {
@@ -344,8 +343,7 @@ router.get('/:slug', async (req, res) => {
                 },
                 body: JSON.stringify({
                   code: code,
-                  ebookId: ebookId,
-                  ebookSlug: ebookSlug
+                  ebookId: ebookId
                 })
               });
               

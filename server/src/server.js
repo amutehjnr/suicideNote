@@ -21,6 +21,7 @@ const authRoutes = require('./routes/auth.routes');
 const ebookRoutes = require('./routes/ebook.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const accessRoutes = require('./routes/accessRoutes');
+const emailAccessRoutes = require('./routes/emailAccess.routes');
 
 // ================== MIDDLEWARE ==================
 const authMiddleware = require('./middleware/auth.middleware');
@@ -120,6 +121,7 @@ app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/ebooks', ebookRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/access', accessRoutes);
+app.use('/access', emailAccessRoutes);
 
 // ================== HEALTH ==================
 app.get('/health', (req, res) => {

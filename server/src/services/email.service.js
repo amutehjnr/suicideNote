@@ -117,7 +117,6 @@ class EmailService {
     
     // Use the email access route instead of direct reader link
     const accessUrl = `${frontendUrl}/access/${ebook.slug || ebook._id}?code=${accessCode}`;
-    
     const htmlContent = `
       <!DOCTYPE html>
       <html>
