@@ -114,6 +114,8 @@ class EmailService {
    */
   async sendAccessCodeEmail(to, name, accessCode, ebook) {
     const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://suicidenote.onrender.com';
+    
+    // Use the email access route instead of direct reader link
     const accessUrl = `${frontendUrl}/access/${ebook.slug || ebook._id}?code=${accessCode}`;
     
     const htmlContent = `
@@ -128,6 +130,7 @@ class EmailService {
           .code-box { background: white; padding: 20px; text-align: center; border: 2px dashed #059669; font-family: monospace; font-size: 28px; font-weight: bold; color: #059669; margin: 20px 0; border-radius: 5px; }
           .button { display: inline-block; background: #059669; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }
           .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+          .note { font-size: 14px; color: #666; margin-top: 20px; }
         </style>
       </head>
       <body>
@@ -138,11 +141,25 @@ class EmailService {
           <div class="content">
             <h2>Hello ${'Valued Reader'},</h2>
             <p>Thank you for purchasing <strong>"${ebook.title}"</strong>! Your access code is ready below.</p>
+            
             <div class="code-box">${accessCode}</div>
+            
             <p style="text-align: center;">
-              <a href="${accessUrl}" class="button">Access Your Ebook</a>
+              <a href="${accessUrl}" class="button">📖 Access Your Ebook</a>
             </p>
-            <p>Keep this code safe - you'll need it to access your ebook.</p>
+            
+            <div style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p style="margin: 0; font-size: 14px;">
+                <strong>💡 Tip:</strong> Clicking the button above will:
+                <br>1. Validate your access code
+                <br>2. Automatically redirect you to the reader
+                <br>3. Save your code for future visits
+              </p>
+            </div>
+            
+            <p>You can also copy and save your code: <strong style="background: #f0f0f0; padding: 5px;">${accessCode}</strong></p>
+            
+            <p>Keep this email safe - you'll need this code to access your ebook.</p>
             <p>Happy reading!</p>
           </div>
           <div class="footer">
@@ -155,7 +172,7 @@ class EmailService {
     `;
 
     return this.sendEmailViaBrevo(to, `Your Access Code for ${ebook.title} - Suicide Note`, htmlContent);
-  }
+}
 
   async sendPurchaseConfirmationEmail(to, name, purchase, accessCode) {
     const formattedAmount = new Intl.NumberFormat('en-NG', {
