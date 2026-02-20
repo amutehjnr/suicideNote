@@ -56,6 +56,12 @@ const GuestCheckoutModal = ({
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
   const handleSubmit = async () => {
+    console.log('🔴 AMOUNT BEING SENT:', {
+      selectedCurrency: currency,
+      selectedOption: currencyOptions[currency],
+      amount: currencyOptions[currency].amount,
+      expectedDisplay: currency === 'NGN' ? '₦2,500' : '$5.00'
+    });
     if (!validateEmail(email)) {
       toast.error('Please enter a valid email');
       return;
