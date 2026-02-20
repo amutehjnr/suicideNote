@@ -17,8 +17,8 @@ async function createAdmin() {
 
     // Admin details - CHANGE THESE!
     const adminData = {
-      email: 'mustaeenms@gmail.com', // Your email
-      password: 'Musamarch@121', // Change this to a strong password
+      email: 'lobayusuf.author@gmail.com ', // Your email
+      password: 'Ab1@Ab1@', // Change this to a strong password
       name: 'Mustaeen',
       role: 'superadmin',
       permissions: [

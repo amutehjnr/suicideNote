@@ -1,11 +1,8 @@
-// src/pages/ReaderPage.jsx
+// SuicideNote.jsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Icon } from '../shared/Icons';
-import styles from './ReaderPage.module.css';
-import '../shared/styles.css';
-import PaymentService from '../../services/PaymentService';
 import toast from 'react-hot-toast';
+import './ReaderPage.module.css';
 
 // Book content divided into multiple pages/chapters
 const BOOK_CONTENT = [
@@ -60,7 +57,7 @@ Someone. Anyone. Maybe no one.
 
 I'm using loose sheets torn from an old exercise book that I used in my final year at LASU, pages still blank after the semester ended. I told myself I'd use them for something eventually. Grocery lists, maybe. Or tracking my Clash of Clans progress. But they've sat in that wardrobe for two years, and tonight, I finally know what they're for.
 
-It's Friday, November 15, 2024. 11:47 PM. NEPA took light around nine—unusual, because they normally let us have power until at least ten on weekends. I'm sitting at the small table in my self-contain, writing by the light of my phone's flashlight propped against the wall. The battery is at 23%. When it dies, I'll have to stop, but by then this should be finished.`,
+It's Friday, November 15, 2024. 11:47 PM. NEPA took light around nine—unusual, because they normally let us have power until at least ten on weekends. I'm sitting at the small table in my self-contain, writing by the light of my phone's flashlight propped against the wall. The battery is at 23%.`,
     wordCount: 180
   },
   {
@@ -304,130 +301,179 @@ Loba Yusuf`,
   }
 ];
 
+// Mock PaymentService (you'll need to implement this)
+const PaymentService = {
+  validateAccessCode: async (code, ebookId) => {
+    // Simulate API call
+    console.log('Validating access code:', code, 'for ebook:', ebookId);
+    
+    // Mock validation - accept any code that starts with "SN-" for demo
+    if (code && code.startsWith('SN-')) {
+      return { success: true, data: { valid: true } };
+    }
+    return { success: false, error: 'Invalid access code' };
+  },
+  
+  verifyPayment: async (reference) => {
+    // Simulate API call
+    console.log('Verifying payment reference:', reference);
+    
+    // Mock verification - accept any reference for demo
+    if (reference) {
+      return { 
+        success: true, 
+        data: { 
+          accessCode: `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+        } 
+      };
+    }
+    return { success: false, error: 'Payment verification failed' };
+  }
+};
+
+// Icon component (simplified version)
+const Icon = ({ name, className }) => {
+  // This is a simplified icon component - you'll need to implement actual icons
+  return <span className={`icon icon-${name.toLowerCase()} ${className || ''}`}>[{name}]</span>;
+};
+
 const ReaderPage = () => {
   const { ebookId = 'suicide-note-2026' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   
+  // State management
+  const MIN_FONT = 12;
+  const MAX_FONT = 24;
+  const TOTAL_PAGES = BOOK_CONTENT.length;
+  
   const [currentPage, setCurrentPage] = useState(1);
   const [accessCode, setAccessCode] = useState('');
   const [isValidAccess, setIsValidAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [fontSize, setFontSize] = useState(16);
+  const [fontSize, setFontSize] = useState(() => {
+    const saved = localStorage.getItem('rdr_fontSize');
+    return saved ? parseInt(saved) : 16;
+  });
   const [theme, setTheme] = useState('light');
   const [progress, setProgress] = useState(0);
   const [bookmark, setBookmark] = useState(null);
+  const [chapOpen, setChapOpen] = useState(false);
 
   // Initialize
   useEffect(() => {
-  const initialize = async () => {
-    console.log('📖 ReaderPage initialized for ebook:', ebookId);
-    
-    // Check for access code in URL params
-    const urlParams = new URLSearchParams(location.search);
-    const codeFromUrl = urlParams.get('accessCode');
-    const purchaseRef = urlParams.get('reference');
-    
-    // Try to validate access
-    try {
-      setIsLoading(true);
+    const initialize = async () => {
+      console.log('📖 ReaderPage initialized for ebook:', ebookId);
       
-      // First, check localStorage for existing access
-      const savedCode = localStorage.getItem(`ebook_access_${ebookId}`);
-      if (savedCode) {
-        console.log('✅ Found saved access code:', savedCode);
+      // Check for access code in URL params
+      const urlParams = new URLSearchParams(location.search);
+      const codeFromUrl = urlParams.get('accessCode');
+      const purchaseRef = urlParams.get('reference');
+      
+      // Try to validate access
+      try {
+        setIsLoading(true);
         
-        // ⚠️ IMPORTANT: Re-validate with database
-        console.log('🔒 Re-validating saved code with database...');
-        const validationResult = await PaymentService.validateAccessCode(savedCode, ebookId);
-        
-        if (validationResult.success) {
-          console.log('✅ Database re-validation successful');
-          setAccessCode(savedCode);
-          setIsValidAccess(true);
+        // First, check localStorage for existing access
+        const savedCode = localStorage.getItem(`ebook_access_${ebookId}`);
+        if (savedCode) {
+          console.log('✅ Found saved access code:', savedCode);
           
-          // Restore bookmark if exists
-          const savedBookmark = localStorage.getItem(`bookmark_${ebookId}`);
-          if (savedBookmark) {
-            const page = parseInt(savedBookmark);
-            if (page > 0 && page <= BOOK_CONTENT.length) {
-              setCurrentPage(page);
-              setProgress(Math.round((page / BOOK_CONTENT.length) * 100));
+          // ⚠️ IMPORTANT: Re-validate with database
+          console.log('🔒 Re-validating saved code with database...');
+          const validationResult = await PaymentService.validateAccessCode(savedCode, ebookId);
+          
+          if (validationResult.success) {
+            console.log('✅ Database re-validation successful');
+            setAccessCode(savedCode);
+            setIsValidAccess(true);
+            
+            // Restore bookmark if exists
+            const savedBookmark = localStorage.getItem(`bookmark_${ebookId}`);
+            if (savedBookmark) {
+              const page = parseInt(savedBookmark);
+              if (page > 0 && page <= BOOK_CONTENT.length) {
+                setCurrentPage(page);
+                setProgress(Math.round((page / BOOK_CONTENT.length) * 100));
+              }
             }
+            
+            setIsLoading(false);
+            return;
+          } else {
+            // Invalid saved code - clear it
+            console.error('❌ Saved code invalid:', validationResult.error);
+            localStorage.removeItem(`ebook_access_${ebookId}`);
+            toast.error('Access expired. Please re-enter your access code.');
+            navigate('/');
+            return;
           }
-          
-          setIsLoading(false);
-          return;
-        } else {
-          // Invalid saved code - clear it
-          console.error('❌ Saved code invalid:', validationResult.error);
-          localStorage.removeItem(`ebook_access_${ebookId}`);
-          toast.error('Access expired. Please re-enter your access code.');
-          navigate('/');
-          return;
         }
-      }
-      
-      // If code in URL, validate it
-      if (codeFromUrl) {
-        console.log('🔑 Validating access code from URL:', codeFromUrl);
-        const result = await PaymentService.validateAccessCode(codeFromUrl, ebookId);
         
-        if (result.success) {
-          setAccessCode(codeFromUrl);
-          setIsValidAccess(true);
-          localStorage.setItem(`ebook_access_${ebookId}`, codeFromUrl);
-          toast.success('Access granted! Enjoy reading.');
-        } else {
-          toast.error('Invalid access code');
+        // If code in URL, validate it
+        if (codeFromUrl) {
+          console.log('🔑 Validating access code from URL:', codeFromUrl);
+          const result = await PaymentService.validateAccessCode(codeFromUrl, ebookId);
+          
+          if (result.success) {
+            setAccessCode(codeFromUrl);
+            setIsValidAccess(true);
+            localStorage.setItem(`ebook_access_${ebookId}`, codeFromUrl);
+            toast.success('Access granted! Enjoy reading.');
+          } else {
+            toast.error('Invalid access code');
+            navigate('/');
+          }
+        }
+        // If purchase reference in URL, verify payment
+        else if (purchaseRef) {
+          console.log('💰 Verifying purchase reference:', purchaseRef);
+          const result = await PaymentService.verifyPayment(purchaseRef);
+          
+          if (result.success) {
+            // Generate access code from purchase
+            const generatedCode = result.data?.accessCode || 
+              `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+            
+            setAccessCode(generatedCode);
+            setIsValidAccess(true);
+            localStorage.setItem(`ebook_access_${ebookId}`, generatedCode);
+            
+            // Save purchase info
+            localStorage.setItem('recent_purchase', JSON.stringify({
+              purchase: result.data,
+              accessCode: generatedCode,
+              timestamp: new Date().toISOString()
+            }));
+            
+            toast.success('Payment verified! Enjoy reading.');
+          } else {
+            toast.error('Payment verification failed');
+            navigate('/');
+          }
+        }
+        // No access - redirect to home
+        else {
+          console.log('❌ No access found, redirecting...');
+          toast.error('Please purchase the book to read');
           navigate('/');
         }
-      }
-      // If purchase reference in URL, verify payment
-      else if (purchaseRef) {
-        console.log('💰 Verifying purchase reference:', purchaseRef);
-        const result = await PaymentService.verifyPayment(purchaseRef);
-        
-        if (result.success) {
-          // Generate access code from purchase
-          const generatedCode = result.data?.accessCode || 
-            `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-          
-          setAccessCode(generatedCode);
-          setIsValidAccess(true);
-          localStorage.setItem(`ebook_access_${ebookId}`, generatedCode);
-          
-          // Save purchase info
-          localStorage.setItem('recent_purchase', JSON.stringify({
-            purchase: result.data,
-            accessCode: generatedCode,
-            timestamp: new Date().toISOString()
-          }));
-          
-          toast.success('Payment verified! Enjoy reading.');
-        } else {
-          toast.error('Payment verification failed');
-          navigate('/');
-        }
-      }
-      // No access - redirect to home
-      else {
-        console.log('❌ No access found, redirecting...');
-        toast.error('Please purchase the book to read');
+      } catch (error) {
+        console.error('Reader initialization error:', error);
+        toast.error('Error accessing book');
         navigate('/');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error('Reader initialization error:', error);
-      toast.error('Error accessing book');
-      navigate('/');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  initialize();
-}, [ebookId, navigate, location]);
- 
+    };
+    
+    initialize();
+  }, [ebookId, navigate, location]);
+
+  // Effects
+  useEffect(() => {
+    localStorage.setItem('rdr_fontSize', fontSize);
+  }, [fontSize]);
 
   // Handle page navigation
   const goToPage = (pageNumber) => {
@@ -439,16 +485,17 @@ const ReaderPage = () => {
       // Save bookmark
       localStorage.setItem(`bookmark_${ebookId}`, pageNumber.toString());
       setBookmark(pageNumber);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
-  const nextPage = () => {
+  const handleNextPage = () => {
     if (currentPage < BOOK_CONTENT.length) {
       goToPage(currentPage + 1);
     }
   };
 
-  const prevPage = () => {
+  const handlePrevPage = () => {
     if (currentPage > 1) {
       goToPage(currentPage - 1);
     }
@@ -458,12 +505,16 @@ const ReaderPage = () => {
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'ArrowRight' || e.key === ' ') {
-        nextPage();
+        e.preventDefault();
+        handleNextPage();
       } else if (e.key === 'ArrowLeft') {
-        prevPage();
+        e.preventDefault();
+        handlePrevPage();
       } else if (e.key === 'Home') {
+        e.preventDefault();
         goToPage(1);
       } else if (e.key === 'End') {
+        e.preventDefault();
         goToPage(BOOK_CONTENT.length);
       }
     };
@@ -472,24 +523,52 @@ const ReaderPage = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [currentPage]);
 
+  // Font controls
+  const handleFontDecrease = () => {
+    if (fontSize > MIN_FONT) {
+      setFontSize(prev => prev - 1);
+    }
+  };
+
+  const handleFontIncrease = () => {
+    if (fontSize < MAX_FONT) {
+      setFontSize(prev => prev + 1);
+    }
+  };
+
+  // Theme toggle
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'light' ? 'dark' : 'light');
+  };
+
+  // Chapter toggle
+  const handleChapterToggle = () => {
+    setChapOpen(prev => !prev);
+  };
+
+  const handleChapterSelect = (page) => {
+    goToPage(page);
+    setChapOpen(false);
+  };
+
   // Current page content
   const currentContent = BOOK_CONTENT.find(page => page.page === currentPage) || BOOK_CONTENT[0];
 
   if (isLoading) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p className={styles.loadingText}>Loading your book...</p>
+      <div className="loading-container">
+        <div className="loading-spinner"></div>
+        <p className="loading-text">Loading your book...</p>
       </div>
     );
   }
 
   if (!isValidAccess) {
     return (
-      <div className={styles.accessDenied}>
+      <div className="access-denied">
         <h2>Access Denied</h2>
         <p>Please purchase the book to read the full content.</p>
-        <button onClick={() => navigate('/')} className="btn btn-primary">
+        <button onClick={() => navigate('/')} className="nav-btn">
           Go to Homepage
         </button>
       </div>
@@ -497,213 +576,247 @@ const ReaderPage = () => {
   }
 
   return (
-    <div className={`${styles.readerContainer} ${theme === 'dark' ? styles.darkTheme : ''}`}>
-      {/* Header */}
-      <header className={styles.readerHeader}>
-        <div className="container">
-          <div className={styles.headerContent}>
-            <div className={styles.bookInfo}>
-              <h1 className={styles.bookTitle}>Suicide Note</h1>
-              <p className={styles.bookAuthor}>by Loba Yusuf</p>
-            </div>
-            
-            <div className={styles.readerControls}>
-              <div className={styles.controlsGroup}>
-                <button 
-                  onClick={() => setTheme(theme === 'light' ? 'dark' : 'light')}
-                  className={styles.controlButton}
-                  title="Toggle theme"
-                >
-                  <Icon name={theme === 'light' ? 'Moon' : 'Sun'} />
-                </button>
-                
-                <button 
-                  onClick={() => setFontSize(Math.max(12, fontSize - 1))}
-                  className={styles.controlButton}
-                  title="Decrease font size"
-                >
-                  <Icon name="Minus" />
-                </button>
-                
-                <span className={styles.fontSizeLabel}>{fontSize}px</span>
-                
-                <button 
-                  onClick={() => setFontSize(Math.min(24, fontSize + 1))}
-                  className={styles.controlButton}
-                  title="Increase font size"
-                >
-                  <Icon name="Plus" />
-                </button>
-                
-                <button 
-                  onClick={() => goToPage(bookmark || 1)}
-                  className={styles.controlButton}
-                  title="Go to bookmark"
-                  disabled={!bookmark}
-                >
-                  <Icon name="Bookmark" />
-                </button>
-              </div>
-              
-              <button 
-                onClick={() => navigate('/')}
-                className={styles.backButton}
-              >
-                ← Back to Home
-              </button>
-            </div>
-          </div>
+    <div className={`reader-container ${theme === 'dark' ? 'dark-theme' : ''}`}>
+      {/* Sticky Header */}
+      <header className="header">
+        <button onClick={() => navigate('/')} className="header-back">
+          <svg width="9" height="15" viewBox="0 0 9 15" fill="none" aria-hidden="true">
+            <path d="M8 1L1 7.5L8 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+          Back
+        </button>
+
+        <div className="header-center">
+          <div className="header-title">Suicide Note</div>
+          <div className="header-author">by Loba Yusuf</div>
+        </div>
+
+        <div className="font-controls" role="group" aria-label="Font size controls">
+          <button 
+            className="font-btn theme-btn" 
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+          >
+            {theme === 'light' ? '🌙' : '☀️'}
+          </button>
+          <button 
+            className="font-btn" 
+            onClick={handleFontDecrease}
+            disabled={fontSize <= MIN_FONT}
+            aria-label="Decrease font size"
+          >
+            −
+          </button>
+          <span className="font-size-label">{fontSize}px</span>
+          <button 
+            className="font-btn" 
+            onClick={handleFontIncrease}
+            disabled={fontSize >= MAX_FONT}
+            aria-label="Increase font size"
+          >
+            +
+          </button>
+          <button 
+            className="font-btn bookmark-btn"
+            onClick={() => goToPage(bookmark || 1)}
+            disabled={!bookmark}
+            aria-label="Go to bookmark"
+          >
+            🔖
+          </button>
         </div>
       </header>
 
       {/* Progress Bar */}
-      <div className={styles.progressBar}>
+      <div 
+        className="progress-bar-wrap" 
+        role="progressbar" 
+        aria-valuenow={currentPage} 
+        aria-valuemin="1" 
+        aria-valuemax={TOTAL_PAGES}
+        aria-label="Reading progress"
+      >
         <div 
-          className={styles.progressFill} 
+          className="progress-bar-fill" 
           style={{ width: `${progress}%` }}
         ></div>
-        <div className={styles.progressText}>
-          Page {currentPage} of {BOOK_CONTENT.length} • {progress}% complete
+        <div className="progress-text">
+          Page {currentPage} of {TOTAL_PAGES} • {progress}% complete
         </div>
       </div>
 
-      {/* Reader Content */}
-      <main className={styles.readerMain}>
-        <div className="container">
-          <div className={styles.readerContent}>
-            {/* Chapter Header */}
-            <div className={styles.chapterHeader}>
-              <h2 className={styles.chapterTitle}>{currentContent.chapter}</h2>
-              <div className={styles.pageInfo}>
-                <span className={styles.pageNumber}>Page {currentPage}</span>
-                <span className={styles.wordCount}>• {currentContent.wordCount} words</span>
-              </div>
-            </div>
-            
-            {/* Page Content */}
-            <div 
-              className={styles.pageContent}
-              style={{ fontSize: `${fontSize}px` }}
+      {/* Chapter Toggle */}
+      <div className="chapter-toggle-wrap">
+        <button 
+          className="chapter-toggle-btn" 
+          onClick={handleChapterToggle}
+          aria-expanded={chapOpen}
+          aria-controls="chapterList"
+        >
+          <span className="chapter-toggle-icon">📖</span>
+          <span className="chapter-toggle-label">{currentContent.chapter}</span>
+          <span className={`chapter-chevron ${chapOpen ? 'open' : ''}`} aria-hidden="true">⌄</span>
+        </button>
+
+        <div className={`chapter-list ${chapOpen ? 'open' : ''}`} id="chapterList" role="list">
+          {BOOK_CONTENT.map((page) => (
+            <button
+              key={page.page}
+              className={`chapter-item ${currentPage === page.page ? 'current' : ''}`}
+              role="listitem"
+              onClick={() => handleChapterSelect(page.page)}
             >
-              {currentContent.content.split('\n').map((paragraph, idx) => (
-                <p key={idx} className={styles.paragraph}>
-                  {paragraph}
-                </p>
-              ))}
-            </div>
-            
-            {/* Navigation */}
-            <div className={styles.pageNavigation}>
-              <button 
-                onClick={prevPage}
-                className={styles.navButton}
-                disabled={currentPage === 1}
-              >
-                <Icon name="ChevronLeft" />
-                <span>Previous Page</span>
-              </button>
-              
-              <div className={styles.pageJump}>
-                <input
-                  type="number"
-                  min="1"
-                  max={BOOK_CONTENT.length}
-                  value={currentPage}
-                  onChange={(e) => goToPage(parseInt(e.target.value) || 1)}
-                  className={styles.pageInput}
-                />
-                <span className={styles.pageTotal}>/ {BOOK_CONTENT.length}</span>
-              </div>
-              
-              <button 
-                onClick={nextPage}
-                className={styles.navButton}
-                disabled={currentPage === BOOK_CONTENT.length}
-              >
-                <span>Next Page</span>
-                <Icon name="ChevronRight" />
-              </button>
+              {page.chapter} (Page {page.page})
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Reading Content */}
+      <main className="reading-area">
+        <article 
+          className="reading-text"
+          style={{ fontSize: `${fontSize}px` }}
+        >
+          <div className="chapter-header">
+            <h2 className="chapter-title">{currentContent.chapter}</h2>
+            <div className="page-info">
+              <span className="page-number">Page {currentPage}</span>
+              <span className="word-count">• {currentContent.wordCount} words</span>
             </div>
           </div>
-        </div>
+          
+          {currentContent.content.split('\n').map((paragraph, idx) => (
+            paragraph.trim() && (
+              <p key={idx} className="paragraph">
+                {paragraph}
+              </p>
+            )
+          ))}
+        </article>
       </main>
 
+      {/* Page Navigation */}
+      <nav className="page-nav" aria-label="Page navigation">
+        <button 
+          className="nav-btn" 
+          onClick={handlePrevPage}
+          disabled={currentPage <= 1}
+          aria-label="Previous page"
+        >
+          ← Previous
+        </button>
+        
+        <div className="page-jump">
+          <input
+            type="number"
+            min="1"
+            max={TOTAL_PAGES}
+            value={currentPage}
+            onChange={(e) => goToPage(parseInt(e.target.value) || 1)}
+            className="page-input"
+            aria-label="Jump to page"
+          />
+          <span className="page-total">/ {TOTAL_PAGES}</span>
+        </div>
+        
+        <button 
+          className="nav-btn" 
+          onClick={handleNextPage}
+          disabled={currentPage >= TOTAL_PAGES}
+          aria-label="Next page"
+        >
+          Next →
+        </button>
+      </nav>
+
       {/* Quick Navigation */}
-      <div className={styles.quickNav}>
-        <div className="container">
-          <div className={styles.quickNavContent}>
-            <button 
-              onClick={() => goToPage(1)}
-              className={styles.quickNavButton}
-            >
-              <Icon name="SkipBack" />
-              <span>Start</span>
-            </button>
-            
-            <button 
-              onClick={() => goToPage(Math.max(1, currentPage - 5))}
-              className={styles.quickNavButton}
-              disabled={currentPage <= 5}
-            >
-              <Icon name="ChevronsLeft" />
-              <span>-5 Pages</span>
-            </button>
-            
-            <div className={styles.chapterSelect}>
-              <select 
-                value={currentPage}
-                onChange={(e) => goToPage(parseInt(e.target.value))}
-                className={styles.chapterDropdown}
-              >
-                {BOOK_CONTENT.map((page) => (
-                  <option key={page.page} value={page.page}>
-                    {page.chapter} (Page {page.page})
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <button 
-              onClick={() => goToPage(Math.min(BOOK_CONTENT.length, currentPage + 5))}
-              className={styles.quickNavButton}
-              disabled={currentPage >= BOOK_CONTENT.length - 4}
-            >
-              <Icon name="ChevronsRight" />
-              <span>+5 Pages</span>
-            </button>
-            
-            <button 
-              onClick={() => goToPage(BOOK_CONTENT.length)}
-              className={styles.quickNavButton}
-            >
-              <Icon name="SkipForward" />
-              <span>End</span>
-            </button>
-          </div>
+      <div className="quick-nav">
+        <div className="quick-nav-content">
+          <button 
+            onClick={() => goToPage(1)}
+            className="quick-nav-btn"
+            title="Go to first page"
+          >
+            ⏮️ Start
+          </button>
+          
+          <button 
+            onClick={() => goToPage(Math.max(1, currentPage - 5))}
+            className="quick-nav-btn"
+            disabled={currentPage <= 5}
+            title="Go back 5 pages"
+          >
+            ⏪ -5
+          </button>
+          
+          <select 
+            value={currentPage}
+            onChange={(e) => goToPage(parseInt(e.target.value))}
+            className="chapter-select"
+            aria-label="Select chapter"
+          >
+            {BOOK_CONTENT.map((page) => (
+              <option key={page.page} value={page.page}>
+                {page.chapter} (Page {page.page})
+              </option>
+            ))}
+          </select>
+          
+          <button 
+            onClick={() => goToPage(Math.min(TOTAL_PAGES, currentPage + 5))}
+            className="quick-nav-btn"
+            disabled={currentPage >= TOTAL_PAGES - 4}
+            title="Go forward 5 pages"
+          >
+            +5 ⏩
+          </button>
+          
+          <button 
+            onClick={() => goToPage(TOTAL_PAGES)}
+            className="quick-nav-btn"
+            title="Go to last page"
+          >
+            End ⏭️
+          </button>
         </div>
       </div>
 
       {/* Footer */}
-      <footer className={styles.readerFooter}>
-        <div className="container">
-          <div className={styles.footerContent}>
-            <div className={styles.footerInfo}>
-              <p>Your Access Code: <code className={styles.accessCodeDisplay}>{accessCode}</code></p>
-              <p className={styles.crisisNote}>
-                If you're experiencing emotional distress, call Nigeria Emergency: 112 or Lagos Emergency: 767
-              </p>
-            </div>
-            
-            <div className={styles.readingStats}>
-              <div className={styles.statItem}>
-                <Icon name="Clock" className={styles.statIcon} />
-                <span>Reading time: ~{Math.round(currentContent.wordCount / 200)} min</span>
-              </div>
-              <div className={styles.statItem}>
-                <Icon name="BookOpen" className={styles.statIcon} />
-                <span>{BOOK_CONTENT.length} pages total</span>
-              </div>
-            </div>
+      <footer className="site-footer">
+        <div className="footer-section">
+          <div className="footer-label">Your Access Code</div>
+          <div className="footer-code">{accessCode}</div>
+        </div>
+
+        <div className="footer-section">
+          <div className="footer-distress">If you're experiencing emotional distress:</div>
+          <div className="footer-emergency">🇳🇬 Nigeria Emergency: <strong>112</strong></div>
+          <div className="footer-emergency">🏙️ Lagos Emergency: <strong>767</strong></div>
+        </div>
+
+        <div className="footer-section">
+          <div className="footer-label">Follow the Author</div>
+          <div className="footer-social-row">
+            <span className="social-icon fb" aria-hidden="true">f</span>
+            <a href="https://facebook.com/olorunloba.yusuf" className="footer-link" target="_blank" rel="noopener">olorunloba.yusuf</a>
+          </div>
+          <div className="footer-social-row">
+            <span className="social-icon ig" aria-hidden="true">ig</span>
+            <a href="https://instagram.com/loba_yusuf" className="footer-link" target="_blank" rel="noopener">@loba_yusuf</a>
+          </div>
+          <div className="footer-social-row">
+            <span className="social-icon tw" aria-hidden="true">𝕏</span>
+            <a href="https://twitter.com/loba_yusuf" className="footer-link" target="_blank" rel="noopener">@loba_yusuf</a>
+          </div>
+        </div>
+
+        <div className="footer-stats">
+          <div className="stat-item">
+            <span>Reading time: ~{Math.round(currentContent.wordCount / 200)} min this page</span>
+          </div>
+          <div className="stat-item">
+            <span>{TOTAL_PAGES} pages total</span>
           </div>
         </div>
       </footer>
