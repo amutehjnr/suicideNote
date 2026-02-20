@@ -319,16 +319,13 @@ const ReaderPage = () => {
   
   const [currentPage, setCurrentPage] = useState(4);
   const [chapOpen, setChapOpen] = useState(false);
+  const [currentChapter, setCurrentChapter] = useState('Chapter 1: The Note Begins');
   
   // State from ReaderPage
   const [accessCode, setAccessCode] = useState('');
   const [isValidAccess, setIsValidAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [bookmark, setBookmark] = useState(null);
-
-  // Get current chapter based on page
-  const currentContent = BOOK_CONTENT.find(page => page.page === currentPage) || BOOK_CONTENT[3];
-  const currentChapter = currentContent.chapter;
 
   // Initialize access
   useEffect(() => {
@@ -352,12 +349,13 @@ const ReaderPage = () => {
             setAccessCode(savedCode);
             setIsValidAccess(true);
             
-            // Restore bookmark if exists
+            // Restore bookmark
             const savedBookmark = localStorage.getItem(`bookmark_${ebookId}`);
             if (savedBookmark) {
               const page = parseInt(savedBookmark);
               if (page > 0 && page <= BOOK_CONTENT.length) {
                 setCurrentPage(page);
+                setCurrentChapter(BOOK_CONTENT[page - 1].chapter);
               }
             }
             
@@ -429,6 +427,14 @@ const ReaderPage = () => {
     localStorage.setItem('rdr_fontSize', fontSize);
   }, [fontSize]);
 
+  // Update chapter when page changes
+  useEffect(() => {
+    const content = BOOK_CONTENT.find(page => page.page === currentPage);
+    if (content) {
+      setCurrentChapter(content.chapter);
+    }
+  }, [currentPage]);
+
   // Font controls
   const handleFontDecrease = () => {
     if (fontSize > MIN_FONT) {
@@ -495,6 +501,9 @@ const ReaderPage = () => {
   // Progress percentage
   const progressPercentage = (currentPage / TOTAL_PAGES) * 100;
 
+  // Current page content
+  const currentContent = BOOK_CONTENT.find(page => page.page === currentPage) || BOOK_CONTENT[3];
+
   // Loading state
   if (isLoading) {
     return (
@@ -504,18 +513,18 @@ const ReaderPage = () => {
         alignItems: 'center', 
         justifyContent: 'center', 
         height: '100vh',
-        background: 'var(--bg)'
+        background: '#f5f0eb'
       }}>
         <div style={{
           width: '40px',
           height: '40px',
-          border: '3px solid var(--border)',
-          borderTopColor: 'var(--accent)',
+          border: '3px solid #ddd8d0',
+          borderTopColor: '#8b1a1a',
           borderRadius: '50%',
           animation: 'spin 1s linear infinite',
           marginBottom: '16px'
         }}></div>
-        <p style={{ color: 'var(--text)' }}>Loading your book...</p>
+        <p style={{ color: '#1a1a1a', fontFamily: '-apple-system, Helvetica Neue, sans-serif' }}>Loading your book...</p>
         <style>{`
           @keyframes spin {
             to { transform: rotate(360deg); }
@@ -534,25 +543,25 @@ const ReaderPage = () => {
         alignItems: 'center', 
         justifyContent: 'center', 
         height: '100vh',
-        background: 'var(--bg)',
+        background: '#f5f0eb',
         padding: '24px',
         textAlign: 'center'
       }}>
-        <h2 style={{ color: 'var(--accent)', marginBottom: '12px' }}>Access Denied</h2>
-        <p style={{ color: 'var(--text)', marginBottom: '24px', maxWidth: '400px' }}>
+        <h2 style={{ color: '#8b1a1a', marginBottom: '12px', fontFamily: '-apple-system, Helvetica Neue, sans-serif' }}>Access Denied</h2>
+        <p style={{ color: '#1a1a1a', marginBottom: '24px', maxWidth: '400px', fontFamily: '-apple-system, Helvetica Neue, sans-serif' }}>
           Please purchase the book to read the full content.
         </p>
         <button 
           onClick={() => navigate('/')} 
           style={{
             background: '#fff',
-            border: '1px solid var(--border)',
+            border: '1px solid #ddd8d0',
             borderRadius: '10px',
             padding: '12px 24px',
-            fontFamily: 'var(--sans)',
+            fontFamily: '-apple-system, Helvetica Neue, sans-serif',
             fontSize: '15px',
             fontWeight: '500',
-            color: 'var(--text)',
+            color: '#1a1a1a',
             cursor: 'pointer'
           }}
         >
@@ -645,6 +654,7 @@ const ReaderPage = () => {
       <main className="reading-area">
         <article 
           className="reading-text" 
+          id="readingText"
           style={{ fontSize: `${fontSize}px` }}
         >
           {currentContent.content.split('\n').map((paragraph, idx) => {
@@ -663,17 +673,19 @@ const ReaderPage = () => {
       <nav className="page-nav" aria-label="Page navigation">
         <button 
           className="nav-btn" 
+          id="prevBtn"
           onClick={handlePrevPage}
           disabled={currentPage <= 1}
           aria-label="Previous page"
         >
           Previous
         </button>
-        <div className="page-indicator" aria-live="polite">
+        <div className="page-indicator" id="pageIndicator" aria-live="polite">
           Page {currentPage} of {TOTAL_PAGES}
         </div>
         <button 
           className="nav-btn" 
+          id="nextBtn"
           onClick={handleNextPage}
           disabled={currentPage >= TOTAL_PAGES}
           aria-label="Next page"
@@ -711,7 +723,7 @@ const ReaderPage = () => {
           </div>
         </div>
 
-        <div className="footer-meta">Reading time: ~{Math.round(currentContent.wordCount / 200)} min &nbsp;·&nbsp; {TOTAL_PAGES} pages total</div>
+        <div className="footer-meta">Reading time: ~{Math.max(1, Math.round(currentContent.wordCount / 200))} min &nbsp;·&nbsp; {TOTAL_PAGES} pages total</div>
       </footer>
     </>
   );
