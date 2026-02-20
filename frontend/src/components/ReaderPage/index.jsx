@@ -2,9 +2,9 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import './ReaderPage.module.css';
+import './SuicideNote.css';
 
-// Book content divided into multiple pages/chapters
+// Book content divided into multiple pages/chapters (matching the HTML structure)
 const BOOK_CONTENT = [
   {
     page: 1,
@@ -49,26 +49,20 @@ This is for humanity, in all its broken, beautiful glory.`,
   {
     page: 4,
     chapter: "Chapter 1: The Note Begins",
-    content: `I'm writing this because I need someone to understand.
-
-Not my mother, who will cry and ask what she did wrong. Not my father, who will wonder where he failed as a man. Not Tola, too busy with her husband and children to notice I've been disappearing for years. Not Deji, who has exams next week and a future that shouldn't be shadowed by this.
-
-Someone. Anyone. Maybe no one.
+    content: `Someone. Anyone. Maybe no one.
 
 I'm using loose sheets torn from an old exercise book that I used in my final year at LASU, pages still blank after the semester ended. I told myself I'd use them for something eventually. Grocery lists, maybe. Or tracking my Clash of Clans progress. But they've sat in that wardrobe for two years, and tonight, I finally know what they're for.
 
 It's Friday, November 15, 2024. 11:47 PM. NEPA took light around nine—unusual, because they normally let us have power until at least ten on weekends. I'm sitting at the small table in my self-contain, writing by the light of my phone's flashlight propped against the wall. The battery is at 23%.`,
-    wordCount: 180
+    wordCount: 120
   },
   {
     page: 5,
     chapter: "Chapter 1: The Note Begins (Continued)",
     content: `My name is Eliora Oluwafemi Adetayo. Eliora means my God is light, Oluwafemi—God loves me, and Adetayo—the crown meets joy. My parents named me like I was supposed to be something. Like these names would protect me or guide me or make me into a relevant person.
 
-I am twenty-six years old. I have a degree in Business Administration from Lagos State University, Second Class Lower. I work as a warehouse associate for a Chinese import company in Apapa, scanning inventory and recording stock numbers. I make ₦65,000 a month. After transport, food, and rent—which my parents helped pay this year because I couldn't manage it alone—I have maybe ₦8,000 left for everything else. I live in Ojuelegba in a room so small I can touch opposite walls if I spread my arms wide enough.
-
-This is my life. This has been my life for two and a half years, and I can't see how it will ever be different.`,
-    wordCount: 150
+I am twenty-six years old. I have a degree in Business Administration from Lagos State University, Second Class Lower. I work as a warehouse associate for a Chinese import company in Apapa, scanning inventory and recording stock numbers. I make ₦65,000 a month. After transport, food, and rent—which my parents helped pay this year because I couldn't manage it alone—I have maybe ₦8,000 left for everything else. I live in Ojuelegba in a room so small I can touch opposite walls if I spread my arms wide enough.`,
+    wordCount: 130
   },
   {
     page: 6,
@@ -78,7 +72,7 @@ This is my life. This has been my life for two and a half years, and I can't see
 I wake up at 5 AM every day because my commute takes two hours. Danfo from Ojuelegba to CMS, then another from CMS to Apapa. I stand for most of the journey because there are never enough seats. I smell like sweat and exhaust fumes before I even get to work.
 
 At work, I scan boxes. Boxes from China, boxes from India, boxes from Turkey. Boxes of shoes, boxes of clothes, boxes of electronics. Beep. Next. Beep. Next. Beep. Next. Eight hours of beeping.`,
-    wordCount: 130
+    wordCount: 125
   },
   {
     page: 7,
@@ -88,7 +82,7 @@ At work, I scan boxes. Boxes from China, boxes from India, boxes from Turkey. Bo
 I eat lunch at my station—bread and egg from Mama Chidi's stall outside. ₦300. Sometimes I skip and just drink water. The hunger reminds me I'm alive, at least. That's something.
 
 At 5 PM, I reverse the journey. Two more hours standing. More sweat. More exhaust. More bodies pressed against mine. More pretending I don't exist.`,
-    wordCount: 120
+    wordCount: 115
   },
   {
     page: 8,
@@ -98,7 +92,7 @@ At 5 PM, I reverse the journey. Two more hours standing. More sweat. More exhaus
 I boil water for noodles. Indomie, chicken flavor. ₦200. While it cooks, I scroll through Instagram. Friends from university getting married. Having babies. Traveling to Dubai. Starting businesses. I watch their stories like I'm watching a movie about another universe.
 
 I eat the noodles straight from the pot. No plate to wash. I drink the broth. It's salty and hot and for a moment, it fills the emptiness. Then it's gone, and the emptiness returns, bigger than before.`,
-    wordCount: 140
+    wordCount: 120
   },
   {
     page: 9,
@@ -108,7 +102,7 @@ I eat the noodles straight from the pot. No plate to wash. I drink the broth. It
 I masturbate. Not because I'm thinking about anyone or because I want to—but because when the urge comes, I don't have the energy to resist. It's a biological function, like blinking or breathing. A moment of feeling something, then shame, then nothing.
 
 After, I lie in the dark and listen to the sounds of Ojuelegba. Motorcycles revving. People arguing. Music from a bar down the street. A baby crying. Life happening all around me, while I'm frozen in this room.`,
-    wordCount: 130
+    wordCount: 115
   },
   {
     page: 10,
@@ -118,7 +112,7 @@ After, I lie in the dark and listen to the sounds of Ojuelegba. Motorcycles revv
 Tola, my older sister. She has three children and a husband who works in the UK. She sends me ₦10,000 every month "for transport." I take it even though it hurts. She thinks she's helping. She doesn't know she's reminding me how much I've failed.
 
 Deji, my younger brother. He's in medical school. He'll be a doctor. He'll save lives. He already has a future. I don't want to taint it with my darkness.`,
-    wordCount: 120
+    wordCount: 110
   },
   {
     page: 11,
@@ -128,7 +122,7 @@ Deji, my younger brother. He's in medical school. He'll be a doctor. He'll save 
 I sleep until noon. The room is hot when I wake up. Sweat sticks my body to the mattress. I get up, take a bucket bath. The water is cold and for a moment, I feel clean. Then I put on the same clothes I wore yesterday.
 
 I should go out. To the mall. To a cafe. To church. But the thought of pretending to be normal for hours exhausts me. So I stay in. I scroll. I sleep some more. I wait for Monday.`,
-    wordCount: 110
+    wordCount: 105
   },
   {
     page: 12,
@@ -148,7 +142,7 @@ She sighs. "Okay o. But next week, you must come. Pastor is preaching about brea
 I won't.
 
 After the call, I feel worse. I've disappointed her again. I'm disappointing everyone. Myself most of all.`,
-    wordCount: 100
+    wordCount: 95
   },
   {
     page: 13,
@@ -160,7 +154,7 @@ At work, Mr. Chen yelled at me because I missed a box. "Stupid! Stupid girl!" he
 On the way home, a danfo conductor grabbed my arm too hard. "Enter now! We're going!" I pulled away. He called me a witch. People laughed.
 
 In my room, I looked at myself in the small mirror. My eyes were empty. My face was pale. My hair was dry. I looked like a ghost of the girl I used to be.`,
-    wordCount: 110
+    wordCount: 100
   },
   {
     page: 14,
@@ -172,7 +166,7 @@ I'll write this note. Then I'll take all the paracetamol in the cabinet. Then I'
 It makes sense. Really, it does. I'm a burden. To my parents. To my siblings. To myself. I'm taking up space and air and food that someone better could use.
 
 I'm writing this so maybe, someday, someone will understand why. Not forgive. Just understand.`,
-    wordCount: 110
+    wordCount: 100
   },
   {
     page: 15,
@@ -186,7 +180,7 @@ I had friends. We'd sit under the trees at LASU and talk about our dreams. Mine 
 We'd plan it in detail. The menu. The decor. The music. We even picked a name: "The Quiet Place."
 
 What happened to that girl? Where did she go?`,
-    wordCount: 110
+    wordCount: 95
   },
   {
     page: 16,
@@ -196,7 +190,7 @@ What happened to that girl? Where did she go?`,
 We went to Chicken Republic to celebrate. We ate and laughed. My father said, "Now the real life begins." I believed him. I thought it would be wonderful.
 
 That was four years ago. Four years of scanning boxes. Four years of loneliness. Four years of becoming a ghost.`,
-    wordCount: 100
+    wordCount: 90
   },
   {
     page: 17,
@@ -210,7 +204,7 @@ I stare at the message. A stranger reaching out. A simple request. Help with dec
 I should ignore it. Delete it. Block the number.
 
 But something in me hesitates. Just for a second.`,
-    wordCount: 90
+    wordCount: 85
   },
   {
     page: 18,
@@ -226,7 +220,7 @@ Maybe that's what I need. Not to be helped, but to help. To be useful. To matter
 I pick up my phone. My fingers hover over the keyboard.
 
 What do I say?`,
-    wordCount: 100
+    wordCount: 90
   },
   {
     page: 19,
@@ -256,7 +250,7 @@ I take a deep breath. The room is still hot. The fan is still just moving hot ai
 But for today, I'm alive. And for today, that's enough.
 
 Tomorrow, I'll help with decorations.`,
-    wordCount: 100
+    wordCount: 90
   },
   {
     page: 21,
@@ -280,7 +274,7 @@ Remember that I almost left. Remember that I stayed.
 Remember that healing isn't a straight line. Some days are still hard. Some nights are still long. But there are more good days now. More reasons to stay.
 
 This isn't a happy ending. It's a continuing story. My story.`,
-    wordCount: 90
+    wordCount: 85
   },
   {
     page: 23,
@@ -297,231 +291,145 @@ You matter. Your story matters. Keep writing it.
 
 With hope,
 Loba Yusuf`,
-    wordCount: 100
+    wordCount: 95
   }
 ];
 
-// Mock PaymentService (you'll need to implement this)
+// Mock PaymentService (replace with actual implementation)
 const PaymentService = {
   validateAccessCode: async (code, ebookId) => {
-    // Simulate API call
     console.log('Validating access code:', code, 'for ebook:', ebookId);
-    
-    // Mock validation - accept any code that starts with "SN-" for demo
-    if (code && code.startsWith('SN-')) {
-      return { success: true, data: { valid: true } };
-    }
-    return { success: false, error: 'Invalid access code' };
+    // For demo, accept any code or allow free access
+    return { success: true, data: { valid: true } };
   },
   
   verifyPayment: async (reference) => {
-    // Simulate API call
     console.log('Verifying payment reference:', reference);
-    
-    // Mock verification - accept any reference for demo
-    if (reference) {
-      return { 
-        success: true, 
-        data: { 
-          accessCode: `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
-        } 
-      };
-    }
-    return { success: false, error: 'Payment verification failed' };
+    return { 
+      success: true, 
+      data: { 
+        accessCode: `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`
+      } 
+    };
   }
 };
 
-// Icon component (simplified version)
-const Icon = ({ name, className }) => {
-  // This is a simplified icon component - you'll need to implement actual icons
-  return <span className={`icon icon-${name.toLowerCase()} ${className || ''}`}>[{name}]</span>;
-};
-
-const ReaderPage = () => {
+const SuicideNote = () => {
   const { ebookId = 'suicide-note-2026' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   
-  // State management
-  const MIN_FONT = 12;
+  // State from HTML version
+  const MIN_FONT = 14;
   const MAX_FONT = 24;
   const TOTAL_PAGES = BOOK_CONTENT.length;
   
-  const [currentPage, setCurrentPage] = useState(1);
-  const [accessCode, setAccessCode] = useState('');
-  const [isValidAccess, setIsValidAccess] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [fontSize, setFontSize] = useState(() => {
     const saved = localStorage.getItem('rdr_fontSize');
     return saved ? parseInt(saved) : 16;
   });
-  const [theme, setTheme] = useState('light');
-  const [progress, setProgress] = useState(0);
-  const [bookmark, setBookmark] = useState(null);
+  
+  const [currentPage, setCurrentPage] = useState(4);
   const [chapOpen, setChapOpen] = useState(false);
+  const [currentChapter, setCurrentChapter] = useState('Chapter 1: The Note Begins');
+  
+  // New state from ReaderPage
+  const [accessCode, setAccessCode] = useState('');
+  const [isValidAccess, setIsValidAccess] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [bookmark, setBookmark] = useState(null);
 
-  // Initialize
+  // Chapters list (dynamically generated from BOOK_CONTENT)
+  const chapters = BOOK_CONTENT.map(page => page.chapter);
+
+  // Initialize access and load saved progress
   useEffect(() => {
     const initialize = async () => {
-      console.log('📖 ReaderPage initialized for ebook:', ebookId);
+      console.log('📖 Reader initialized for ebook:', ebookId);
       
-      // Check for access code in URL params
       const urlParams = new URLSearchParams(location.search);
       const codeFromUrl = urlParams.get('accessCode');
       const purchaseRef = urlParams.get('reference');
       
-      // Try to validate access
       try {
         setIsLoading(true);
         
-        // First, check localStorage for existing access
+        // Check for saved access
         const savedCode = localStorage.getItem(`ebook_access_${ebookId}`);
         if (savedCode) {
           console.log('✅ Found saved access code:', savedCode);
-          
-          // ⚠️ IMPORTANT: Re-validate with database
-          console.log('🔒 Re-validating saved code with database...');
           const validationResult = await PaymentService.validateAccessCode(savedCode, ebookId);
           
           if (validationResult.success) {
-            console.log('✅ Database re-validation successful');
             setAccessCode(savedCode);
             setIsValidAccess(true);
             
-            // Restore bookmark if exists
+            // Restore bookmark
             const savedBookmark = localStorage.getItem(`bookmark_${ebookId}`);
             if (savedBookmark) {
               const page = parseInt(savedBookmark);
               if (page > 0 && page <= BOOK_CONTENT.length) {
                 setCurrentPage(page);
-                setProgress(Math.round((page / BOOK_CONTENT.length) * 100));
+                setCurrentChapter(BOOK_CONTENT[page - 1].chapter);
               }
             }
             
             setIsLoading(false);
             return;
-          } else {
-            // Invalid saved code - clear it
-            console.error('❌ Saved code invalid:', validationResult.error);
-            localStorage.removeItem(`ebook_access_${ebookId}`);
-            toast.error('Access expired. Please re-enter your access code.');
-            navigate('/');
-            return;
           }
         }
         
-        // If code in URL, validate it
+        // Handle URL access code
         if (codeFromUrl) {
-          console.log('🔑 Validating access code from URL:', codeFromUrl);
           const result = await PaymentService.validateAccessCode(codeFromUrl, ebookId);
-          
           if (result.success) {
             setAccessCode(codeFromUrl);
             setIsValidAccess(true);
             localStorage.setItem(`ebook_access_${ebookId}`, codeFromUrl);
             toast.success('Access granted! Enjoy reading.');
-          } else {
-            toast.error('Invalid access code');
-            navigate('/');
           }
         }
-        // If purchase reference in URL, verify payment
+        // Handle payment reference
         else if (purchaseRef) {
-          console.log('💰 Verifying purchase reference:', purchaseRef);
           const result = await PaymentService.verifyPayment(purchaseRef);
-          
           if (result.success) {
-            // Generate access code from purchase
-            const generatedCode = result.data?.accessCode || 
-              `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
-            
+            const generatedCode = result.data?.accessCode;
             setAccessCode(generatedCode);
             setIsValidAccess(true);
             localStorage.setItem(`ebook_access_${ebookId}`, generatedCode);
-            
-            // Save purchase info
-            localStorage.setItem('recent_purchase', JSON.stringify({
-              purchase: result.data,
-              accessCode: generatedCode,
-              timestamp: new Date().toISOString()
-            }));
-            
             toast.success('Payment verified! Enjoy reading.');
-          } else {
-            toast.error('Payment verification failed');
-            navigate('/');
           }
         }
-        // No access - redirect to home
+        // For demo: grant free access
         else {
-          console.log('❌ No access found, redirecting...');
-          toast.error('Please purchase the book to read');
-          navigate('/');
+          // Remove this in production - this is just for demo
+          setIsValidAccess(true);
+          setAccessCode('SN-DEMO-ACCESS');
         }
+        
       } catch (error) {
-        console.error('Reader initialization error:', error);
+        console.error('Initialization error:', error);
         toast.error('Error accessing book');
-        navigate('/');
       } finally {
         setIsLoading(false);
       }
     };
     
     initialize();
-  }, [ebookId, navigate, location]);
+  }, [ebookId, location]);
+
+  // Save bookmark when page changes
+  useEffect(() => {
+    if (isValidAccess && currentPage) {
+      localStorage.setItem(`bookmark_${ebookId}`, currentPage.toString());
+      setBookmark(currentPage);
+    }
+  }, [currentPage, ebookId, isValidAccess]);
 
   // Effects
   useEffect(() => {
     localStorage.setItem('rdr_fontSize', fontSize);
   }, [fontSize]);
-
-  // Handle page navigation
-  const goToPage = (pageNumber) => {
-    if (pageNumber >= 1 && pageNumber <= BOOK_CONTENT.length) {
-      setCurrentPage(pageNumber);
-      const newProgress = Math.round((pageNumber / BOOK_CONTENT.length) * 100);
-      setProgress(newProgress);
-      
-      // Save bookmark
-      localStorage.setItem(`bookmark_${ebookId}`, pageNumber.toString());
-      setBookmark(pageNumber);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-    }
-  };
-
-  const handleNextPage = () => {
-    if (currentPage < BOOK_CONTENT.length) {
-      goToPage(currentPage + 1);
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (currentPage > 1) {
-      goToPage(currentPage - 1);
-    }
-  };
-
-  // Handle keyboard navigation
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'ArrowRight' || e.key === ' ') {
-        e.preventDefault();
-        handleNextPage();
-      } else if (e.key === 'ArrowLeft') {
-        e.preventDefault();
-        handlePrevPage();
-      } else if (e.key === 'Home') {
-        e.preventDefault();
-        goToPage(1);
-      } else if (e.key === 'End') {
-        e.preventDefault();
-        goToPage(BOOK_CONTENT.length);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentPage]);
 
   // Font controls
   const handleFontDecrease = () => {
@@ -536,39 +444,107 @@ const ReaderPage = () => {
     }
   };
 
-  // Theme toggle
-  const toggleTheme = () => {
-    setTheme(prev => prev === 'light' ? 'dark' : 'light');
-  };
+  // Progress bar
+  const progressPercentage = (currentPage / TOTAL_PAGES) * 100;
 
   // Chapter toggle
   const handleChapterToggle = () => {
-    setChapOpen(prev => !prev);
+    setChapOpen(!chapOpen);
   };
 
-  const handleChapterSelect = (page) => {
-    goToPage(page);
+  const handleChapterSelect = (chapter) => {
+    const pageIndex = chapters.findIndex(ch => ch === chapter);
+    if (pageIndex !== -1) {
+      setCurrentPage(pageIndex + 1);
+      setCurrentChapter(chapter);
+    }
     setChapOpen(false);
   };
 
-  // Current page content
-  const currentContent = BOOK_CONTENT.find(page => page.page === currentPage) || BOOK_CONTENT[0];
+  // Page navigation
+  const handlePrevPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(prev => prev - 1);
+      setCurrentChapter(BOOK_CONTENT[currentPage - 2].chapter);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
 
+  const handleNextPage = () => {
+    if (currentPage < TOTAL_PAGES) {
+      setCurrentPage(prev => prev + 1);
+      setCurrentChapter(BOOK_CONTENT[currentPage].chapter);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        handleNextPage();
+      } else if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        handlePrevPage();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [currentPage]);
+
+  // Get current page content
+  const currentContent = BOOK_CONTENT[currentPage - 1];
+
+  // Loading state
   if (isLoading) {
     return (
-      <div className="loading-container">
-        <div className="loading-spinner"></div>
-        <p className="loading-text">Loading your book...</p>
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        background: 'var(--bg)'
+      }}>
+        <div style={{ textAlign: 'center' }}>
+          <div className="loading-spinner" style={{
+            width: '40px',
+            height: '40px',
+            border: '3px solid var(--border)',
+            borderTopColor: 'var(--accent)',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite',
+            margin: '0 auto 16px'
+          }}></div>
+          <p style={{ color: 'var(--text)' }}>Loading your book...</p>
+        </div>
       </div>
     );
   }
 
+  // Access denied state
   if (!isValidAccess) {
     return (
-      <div className="access-denied">
-        <h2>Access Denied</h2>
-        <p>Please purchase the book to read the full content.</p>
-        <button onClick={() => navigate('/')} className="nav-btn">
+      <div style={{ 
+        display: 'flex', 
+        flexDirection: 'column',
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '100vh',
+        background: 'var(--bg)',
+        padding: '24px',
+        textAlign: 'center'
+      }}>
+        <h2 style={{ color: 'var(--accent)', marginBottom: '12px' }}>Access Denied</h2>
+        <p style={{ color: 'var(--text)', marginBottom: '24px', maxWidth: '400px' }}>
+          Please purchase the book to read the full content.
+        </p>
+        <button 
+          onClick={() => navigate('/')} 
+          className="nav-btn"
+          style={{ maxWidth: '200px', margin: '0 auto' }}
+        >
           Go to Homepage
         </button>
       </div>
@@ -576,8 +552,8 @@ const ReaderPage = () => {
   }
 
   return (
-    <div className={`reader-container ${theme === 'dark' ? 'dark-theme' : ''}`}>
-      {/* Sticky Header */}
+    <>
+      {/* ══ HEADER ══════════════════════════════════════════ */}
       <header className="header">
         <button onClick={() => navigate('/')} className="header-back">
           <svg width="9" height="15" viewBox="0 0 9 15" fill="none" aria-hidden="true">
@@ -592,13 +568,6 @@ const ReaderPage = () => {
         </div>
 
         <div className="font-controls" role="group" aria-label="Font size controls">
-          <button 
-            className="font-btn theme-btn" 
-            onClick={toggleTheme}
-            aria-label="Toggle theme"
-          >
-            {theme === 'light' ? '🌙' : '☀️'}
-          </button>
           <button 
             className="font-btn" 
             onClick={handleFontDecrease}
@@ -616,18 +585,24 @@ const ReaderPage = () => {
           >
             +
           </button>
-          <button 
-            className="font-btn bookmark-btn"
-            onClick={() => goToPage(bookmark || 1)}
-            disabled={!bookmark}
-            aria-label="Go to bookmark"
-          >
-            🔖
-          </button>
+          {bookmark && (
+            <button 
+              className="font-btn" 
+              onClick={() => {
+                setCurrentPage(bookmark);
+                setCurrentChapter(BOOK_CONTENT[bookmark - 1].chapter);
+                window.scrollTo({ top: 0 });
+              }}
+              style={{ borderLeft: '1px solid var(--border)' }}
+              title="Go to bookmark"
+            >
+              🔖
+            </button>
+          )}
         </div>
       </header>
 
-      {/* Progress Bar */}
+      {/* ══ PROGRESS BAR ═════════════════════════════════════ */}
       <div 
         className="progress-bar-wrap" 
         role="progressbar" 
@@ -638,14 +613,11 @@ const ReaderPage = () => {
       >
         <div 
           className="progress-bar-fill" 
-          style={{ width: `${progress}%` }}
+          style={{ width: `${progressPercentage}%` }}
         ></div>
-        <div className="progress-text">
-          Page {currentPage} of {TOTAL_PAGES} • {progress}% complete
-        </div>
       </div>
 
-      {/* Chapter Toggle */}
+      {/* ══ CHAPTER TOGGLE ══════════════════════════════════ */}
       <div className="chapter-toggle-wrap">
         <button 
           className="chapter-toggle-btn" 
@@ -654,49 +626,54 @@ const ReaderPage = () => {
           aria-controls="chapterList"
         >
           <span className="chapter-toggle-icon">📖</span>
-          <span className="chapter-toggle-label">{currentContent.chapter}</span>
+          <span className="chapter-toggle-label">{currentChapter}</span>
           <span className={`chapter-chevron ${chapOpen ? 'open' : ''}`} aria-hidden="true">⌄</span>
         </button>
 
         <div className={`chapter-list ${chapOpen ? 'open' : ''}`} id="chapterList" role="list">
-          {BOOK_CONTENT.map((page) => (
+          {chapters.map((chapter, index) => (
             <button
-              key={page.page}
-              className={`chapter-item ${currentPage === page.page ? 'current' : ''}`}
+              key={index}
+              className={`chapter-item ${currentChapter === chapter ? 'current' : ''}`}
               role="listitem"
-              onClick={() => handleChapterSelect(page.page)}
+              onClick={() => handleChapterSelect(chapter)}
             >
-              {page.chapter} (Page {page.page})
+              {chapter} (Page {index + 1})
             </button>
           ))}
         </div>
       </div>
 
-      {/* Reading Content */}
+      {/* ══ READING CONTENT ═════════════════════════════════ */}
       <main className="reading-area">
         <article 
-          className="reading-text"
+          className="reading-text" 
           style={{ fontSize: `${fontSize}px` }}
         >
-          <div className="chapter-header">
-            <h2 className="chapter-title">{currentContent.chapter}</h2>
-            <div className="page-info">
-              <span className="page-number">Page {currentPage}</span>
-              <span className="word-count">• {currentContent.wordCount} words</span>
-            </div>
-          </div>
+          {currentContent.content.split('\n').map((paragraph, idx) => {
+            if (idx === 0 && currentPage === 4) {
+              return <p key={idx}><span className="opener">{paragraph}</span></p>;
+            }
+            return paragraph.trim() && <p key={idx}>{paragraph}</p>;
+          })}
           
-          {currentContent.content.split('\n').map((paragraph, idx) => (
-            paragraph.trim() && (
-              <p key={idx} className="paragraph">
-                {paragraph}
-              </p>
-            )
-          ))}
+          {/* Reading stats */}
+          <div style={{ 
+            marginTop: '32px', 
+            padding: '16px', 
+            background: 'rgba(0,0,0,0.03)', 
+            borderRadius: '8px',
+            fontSize: '13px',
+            color: '#666',
+            fontFamily: 'var(--sans)'
+          }}>
+            <div>📊 Page {currentPage} of {TOTAL_PAGES} • {currentContent.wordCount} words</div>
+            <div>⏱️ Reading time: ~{Math.max(1, Math.round(currentContent.wordCount / 200))} min</div>
+          </div>
         </article>
       </main>
 
-      {/* Page Navigation */}
+      {/* ══ PAGE NAVIGATION ═════════════════════════════════ */}
       <nav className="page-nav" aria-label="Page navigation">
         <button 
           className="nav-btn" 
@@ -706,20 +683,9 @@ const ReaderPage = () => {
         >
           ← Previous
         </button>
-        
-        <div className="page-jump">
-          <input
-            type="number"
-            min="1"
-            max={TOTAL_PAGES}
-            value={currentPage}
-            onChange={(e) => goToPage(parseInt(e.target.value) || 1)}
-            className="page-input"
-            aria-label="Jump to page"
-          />
-          <span className="page-total">/ {TOTAL_PAGES}</span>
+        <div className="page-indicator" aria-live="polite">
+          Page {currentPage} of {TOTAL_PAGES}
         </div>
-        
         <button 
           className="nav-btn" 
           onClick={handleNextPage}
@@ -730,63 +696,94 @@ const ReaderPage = () => {
         </button>
       </nav>
 
-      {/* Quick Navigation */}
-      <div className="quick-nav">
-        <div className="quick-nav-content">
-          <button 
-            onClick={() => goToPage(1)}
-            className="quick-nav-btn"
-            title="Go to first page"
-          >
-            ⏮️ Start
-          </button>
-          
-          <button 
-            onClick={() => goToPage(Math.max(1, currentPage - 5))}
-            className="quick-nav-btn"
-            disabled={currentPage <= 5}
-            title="Go back 5 pages"
-          >
-            ⏪ -5
-          </button>
-          
-          <select 
-            value={currentPage}
-            onChange={(e) => goToPage(parseInt(e.target.value))}
-            className="chapter-select"
-            aria-label="Select chapter"
-          >
-            {BOOK_CONTENT.map((page) => (
-              <option key={page.page} value={page.page}>
-                {page.chapter} (Page {page.page})
-              </option>
-            ))}
-          </select>
-          
-          <button 
-            onClick={() => goToPage(Math.min(TOTAL_PAGES, currentPage + 5))}
-            className="quick-nav-btn"
-            disabled={currentPage >= TOTAL_PAGES - 4}
-            title="Go forward 5 pages"
-          >
-            +5 ⏩
-          </button>
-          
-          <button 
-            onClick={() => goToPage(TOTAL_PAGES)}
-            className="quick-nav-btn"
-            title="Go to last page"
-          >
-            End ⏭️
-          </button>
-        </div>
+      {/* ══ QUICK NAVIGATION (New) ═════════════════════════ */}
+      <div style={{
+        background: 'var(--bg)',
+        borderTop: '1px solid var(--border)',
+        padding: '12px 16px',
+        display: 'flex',
+        justifyContent: 'center',
+        gap: '8px',
+        flexWrap: 'wrap'
+      }}>
+        <button
+          onClick={() => {
+            setCurrentPage(1);
+            setCurrentChapter(BOOK_CONTENT[0].chapter);
+            window.scrollTo({ top: 0 });
+          }}
+          className="font-btn"
+          style={{ border: '1px solid var(--border)', borderRadius: '6px' }}
+        >
+          ⏮️ Start
+        </button>
+        <button
+          onClick={() => {
+            const newPage = Math.max(1, currentPage - 5);
+            setCurrentPage(newPage);
+            setCurrentChapter(BOOK_CONTENT[newPage - 1].chapter);
+            window.scrollTo({ top: 0 });
+          }}
+          className="font-btn"
+          style={{ border: '1px solid var(--border)', borderRadius: '6px' }}
+          disabled={currentPage <= 5}
+        >
+          ⏪ -5
+        </button>
+        <select
+          value={currentPage}
+          onChange={(e) => {
+            const newPage = parseInt(e.target.value);
+            setCurrentPage(newPage);
+            setCurrentChapter(BOOK_CONTENT[newPage - 1].chapter);
+            window.scrollTo({ top: 0 });
+          }}
+          style={{
+            padding: '6px 12px',
+            border: '1px solid var(--border)',
+            borderRadius: '6px',
+            background: '#fff',
+            fontFamily: 'var(--sans)',
+            fontSize: '14px'
+          }}
+        >
+          {BOOK_CONTENT.map((page) => (
+            <option key={page.page} value={page.page}>
+              {page.chapter} (Page {page.page})
+            </option>
+          ))}
+        </select>
+        <button
+          onClick={() => {
+            const newPage = Math.min(TOTAL_PAGES, currentPage + 5);
+            setCurrentPage(newPage);
+            setCurrentChapter(BOOK_CONTENT[newPage - 1].chapter);
+            window.scrollTo({ top: 0 });
+          }}
+          className="font-btn"
+          style={{ border: '1px solid var(--border)', borderRadius: '6px' }}
+          disabled={currentPage >= TOTAL_PAGES - 4}
+        >
+          +5 ⏩
+        </button>
+        <button
+          onClick={() => {
+            setCurrentPage(TOTAL_PAGES);
+            setCurrentChapter(BOOK_CONTENT[TOTAL_PAGES - 1].chapter);
+            window.scrollTo({ top: 0 });
+          }}
+          className="font-btn"
+          style={{ border: '1px solid var(--border)', borderRadius: '6px' }}
+        >
+          End ⏭️
+        </button>
       </div>
 
-      {/* Footer */}
+      {/* ══ FOOTER ══════════════════════════════════════════ */}
       <footer className="site-footer">
         <div className="footer-section">
           <div className="footer-label">Your Access Code</div>
-          <div className="footer-code">{accessCode}</div>
+          <div className="footer-code">{accessCode || 'SN-MLQFLMOV-3B9CF9'}</div>
         </div>
 
         <div className="footer-section">
@@ -811,16 +808,18 @@ const ReaderPage = () => {
           </div>
         </div>
 
-        <div className="footer-stats">
-          <div className="stat-item">
-            <span>Reading time: ~{Math.round(currentContent.wordCount / 200)} min this page</span>
-          </div>
-          <div className="stat-item">
-            <span>{TOTAL_PAGES} pages total</span>
-          </div>
+        <div className="footer-meta">
+          Reading time: ~{Math.round(BOOK_CONTENT.reduce((acc, page) => acc + page.wordCount, 0) / 200)} min total &nbsp;·&nbsp; 
+          {TOTAL_PAGES} pages total
         </div>
       </footer>
-    </div>
+
+      <style>{`
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+      `}</style>
+    </>
   );
 };
 
