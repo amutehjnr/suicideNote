@@ -110,13 +110,14 @@ class EmailService {
   }
 
   /**
-   * Send Access Code Email via Brevo API
+   * Send Access Code Email via Brevo API - FIXED with proper name handling
    */
   async sendAccessCodeEmail(to, name, accessCode, ebook) {
     const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://suicidenote.onrender.com';
     
-    // Use the email access route instead of direct reader link
+    // This link will validate the code and redirect to dashboard
     const accessUrl = `${frontendUrl}/access/${ebook.slug || ebook._id}?code=${accessCode}`;
+    
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -129,7 +130,9 @@ class EmailService {
           .code-box { background: white; padding: 20px; text-align: center; border: 2px dashed #059669; font-family: monospace; font-size: 28px; font-weight: bold; color: #059669; margin: 20px 0; border-radius: 5px; }
           .button { display: inline-block; background: #059669; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }
           .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
-          .note { font-size: 14px; color: #666; margin-top: 20px; }
+          .dashboard-link { display: inline-block; margin-top: 15px; color: #059669; text-decoration: none; font-weight: bold; }
+          .dashboard-link:hover { text-decoration: underline; }
+          .note { font-size: 14px; color: #666; margin-top: 20px; background: #f5f5f5; padding: 15px; border-radius: 5px; }
         </style>
       </head>
       <body>
@@ -138,28 +141,34 @@ class EmailService {
             <h1>Thank You for Your Purchase!</h1>
           </div>
           <div class="content">
-            <h2>Hello ${'Valued Reader'},</h2>
+            <h2>Hello ${name || 'Valued Reader'},</h2>
             <p>Thank you for purchasing <strong>"${ebook.title}"</strong>! Your access code is ready below.</p>
             
             <div class="code-box">${accessCode}</div>
             
-            <p style="text-align: center;">
-              <a href="${accessUrl}" class="button">📖 Access Your Ebook</a>
-            </p>
-            
-            <div style="background: #e8f5e9; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p style="margin: 0; font-size: 14px;">
-                <strong>💡 Tip:</strong> Clicking the button above will:
-                <br>1. Validate your access code
-                <br>2. Automatically redirect you to the reader
-                <br>3. Save your code for future visits
-              </p>
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${accessUrl}" class="button">📖 Access Your Ebook Dashboard</a>
             </div>
             
-            <p>You can also copy and save your code: <strong style="background: #f0f0f0; padding: 5px;">${accessCode}</strong></p>
+            <div class="note">
+              <p style="margin: 0 0 10px 0;"><strong>🔗 How it works:</strong></p>
+              <p style="margin: 5px 0;">1. Click the button above</p>
+              <p style="margin: 5px 0;">2. Your access code will be automatically validated</p>
+              <p style="margin: 5px 0;">3. You'll be redirected to your personal reading dashboard</p>
+              <p style="margin: 5px 0;">4. The code will be saved for future visits</p>
+            </div>
+            
+            <p style="text-align: center; margin-top: 20px;">
+              <a href="${frontendUrl}" class="dashboard-link">🔐 Go to Login Page Instead</a>
+            </p>
+            
+            <p style="font-size: 14px; color: #666; border-top: 1px solid #eee; padding-top: 15px;">
+              <strong>Save your code:</strong> <span style="background: #f0f0f0; padding: 3px 8px; border-radius: 3px;">${accessCode}</span>
+            </p>
             
             <p>Keep this email safe - you'll need this code to access your ebook.</p>
             <p>Happy reading!</p>
+            <p><strong>The Suicide Note Team</strong></p>
           </div>
           <div class="footer">
             <p>© 2026 Suicide Note. All rights reserved.</p>
@@ -171,13 +180,77 @@ class EmailService {
     `;
 
     return this.sendEmailViaBrevo(to, `Your Access Code for ${ebook.title} - Suicide Note`, htmlContent);
-}
+  }
+
+  async sendFreeAccessEmail(to, name, accessCode, ebook, customMessage) {
+    const frontendUrl = process.env.FRONTEND_URL || 'https://suicidenote.onrender.com';
+    const accessUrl = `${frontendUrl}/access/${ebook.slug || ebook._id}?code=${accessCode}`;
+    
+    const htmlContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(to right, #9b59b6, #8e44ad); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .code-box { background: white; padding: 20px; text-align: center; border: 2px dashed #9b59b6; font-family: monospace; font-size: 28px; font-weight: bold; color: #9b59b6; margin: 20px 0; border-radius: 5px; }
+          .message-box { background: #e8f4fd; padding: 15px; border-left: 4px solid #3498db; margin: 20px 0; }
+          .button { display: inline-block; background: #9b59b6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+          .dashboard-link { display: inline-block; margin-top: 15px; color: #9b59b6; text-decoration: none; font-weight: bold; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🎁 You've Received Complimentary Access!</h1>
+          </div>
+          <div class="content">
+            <h2>Hello ${name || 'Valued Reader'},</h2>
+            
+            <div class="message-box">
+              <p>${customMessage || 'We\'re pleased to offer you complimentary access to our ebook.'}</p>
+            </div>
+            
+            <p>You now have free access to <strong>"${ebook.title}"</strong>. Your personal access code is below:</p>
+            
+            <div class="code-box">${accessCode}</div>
+            
+            <p style="text-align: center;">
+              <a href="${accessUrl}" class="button">Access Your Ebook Dashboard</a>
+            </p>
+            
+            <p style="text-align: center; margin-top: 15px;">
+              <a href="${frontendUrl}" class="dashboard-link">🔐 Go to Login Page</a>
+            </p>
+            
+            <p>This code will never expire. Keep it safe to access your ebook anytime.</p>
+            
+            <p>Happy reading!</p>
+            <p><strong>The Suicide Note Team</strong></p>
+          </div>
+          <div class="footer">
+            <p>© 2026 Suicide Note. All rights reserved.</p>
+            <p>Lagos, Nigeria</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    return this.sendEmailViaBrevo(to, `🎁 Complimentary Access to ${ebook.title}`, htmlContent);
+  }
 
   async sendPurchaseConfirmationEmail(to, name, purchase, accessCode) {
     const formattedAmount = new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: purchase.currency || 'NGN',
     }).format(purchase.amount / 100);
+
+    const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://suicidenote.onrender.com';
+    const accessUrl = `${frontendUrl}/access/${purchase.ebook?.slug || purchase.ebook}?code=${accessCode}`;
 
     const htmlContent = `
       <!DOCTYPE html>
@@ -200,7 +273,7 @@ class EmailService {
           </div>
           <div class="content">
             <h2>Hi ${name},</h2>
-            <p>Thank you for purchasing <strong>"Suicide Note"</strong>!</p>
+            <p>Thank you for purchasing <strong>"${purchase.ebook?.title || 'Suicide Note'}"</strong>!</p>
             
             <h3>Purchase Details:</h3>
             <ul>
@@ -211,11 +284,12 @@ class EmailService {
             
             <h3>Your Access Code:</h3>
             <div class="code">${accessCode}</div>
-            <p>Use this code to access the ebook anytime from <a href="${process.env.CLIENT_URL}">${process.env.CLIENT_URL}</a></p>
             
             <p style="text-align: center;">
-              <a href="${process.env.CLIENT_URL}/reader" class="button">Start Reading Now</a>
+              <a href="${accessUrl}" class="button">Access Your Reading Dashboard</a>
             </p>
+            
+            <p>This code will take you directly to your ebook reader after validation.</p>
             
             <div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
               <strong>💰 Want to Earn Your Money Back?</strong>
@@ -602,62 +676,6 @@ class EmailService {
 
     return this.sendEmailViaBrevo(to, '💰 Affiliate Payout Processed!', htmlContent);
   }
-
-  async sendFreeAccessEmail(to, name, accessCode, ebook, customMessage) {
-  const frontendUrl = process.env.FRONTEND_URL || 'https://suicidenote.onrender.com';
-  const accessUrl = `${frontendUrl}/access/${ebook.slug || ebook._id}?code=${accessCode}`;
-  
-  const htmlContent = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <style>
-        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(to right, #9b59b6, #8e44ad); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-        .code-box { background: white; padding: 20px; text-align: center; border: 2px dashed #9b59b6; font-family: monospace; font-size: 28px; font-weight: bold; color: #9b59b6; margin: 20px 0; border-radius: 5px; }
-        .message-box { background: #e8f4fd; padding: 15px; border-left: 4px solid #3498db; margin: 20px 0; }
-        .button { display: inline-block; background: #9b59b6; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; }
-        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
-      </style>
-    </head>
-    <body>
-      <div class="container">
-        <div class="header">
-          <h1>🎁 You've Received Complimentary Access!</h1>
-        </div>
-        <div class="content">
-          <h2>Hello ${"sir/ma"},</h2>
-          
-          <div class="message-box">
-            <p>${customMessage || 'We\'re pleased to offer you complimentary access to our ebook.'}</p>
-          </div>
-          
-          <p>You now have free access to <strong>"${ebook.title}"</strong>. Your personal access code is below:</p>
-          
-          <div class="code-box">${accessCode}</div>
-          
-          <p style="text-align: center;">
-            <a href="${accessUrl}" class="button">Access Your Ebook</a>
-          </p>
-          
-          <p>This code will never expire. Keep it safe to access your ebook anytime.</p>
-          
-          <p>Happy reading!</p>
-          <p><strong>The Suicide Note Team</strong></p>
-        </div>
-        <div class="footer">
-          <p>© 2026 Suicide Note. All rights reserved.</p>
-          <p>Lagos, Nigeria</p>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
-
-  return this.sendEmailViaBrevo(to, `🎁 Complimentary Access to ${ebook.title}`, htmlContent);
-}
 
   /**
    * Core method to send email via Brevo API
