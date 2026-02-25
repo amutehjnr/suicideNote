@@ -34,6 +34,7 @@ const AffiliateDashboard = () => {
   const [period, setPeriod] = useState('month');
   const [copiedLink, setCopiedLink] = useState('');
   const [isAffiliate, setIsAffiliate] = useState(false);
+  const [dataLoadErrors, setDataLoadErrors] = useState({});
 
   // Check if user is affiliate on mount
   useEffect(() => {
@@ -41,39 +42,121 @@ const AffiliateDashboard = () => {
   }, []);
 
   const checkAffiliateStatus = async () => {
-    const result = await AffiliateService.checkAffiliateStatus();
-    if (result.isAffiliate) {
-      setIsAffiliate(true);
-      loadDashboardData();
-    } else {
-      // Not an affiliate, show registration option
-      setIsAffiliate(false);
+    try {
+      const result = await AffiliateService.checkAffiliateStatus();
+      if (result.isAffiliate) {
+        setIsAffiliate(true);
+        loadDashboardData();
+      } else {
+        setIsAffiliate(false);
+        setIsLoading(false);
+      }
+    } catch (error) {
+      console.error('Error checking affiliate status:', error);
       setIsLoading(false);
+      toast.error('Failed to check affiliate status');
     }
   };
 
   const loadDashboardData = async () => {
     setIsLoading(true);
+    const errors = {};
+    
     try {
-      // Load all data in parallel
-      const [dashboardRes, earningsRes, referralsRes, campaignsRes, bankRes] = await Promise.all([
-        AffiliateService.getDashboard(),
-        AffiliateService.getEarnings(),
-        AffiliateService.getReferrals(1, 20),
-        AffiliateService.getCampaigns(),
-        AffiliateService.getBankDetails()
-      ]);
-
-      if (dashboardRes.success) setDashboardData(dashboardRes.data);
-      if (earningsRes.success) setEarnings(earningsRes.data);
-      if (referralsRes.success) setReferrals(referralsRes.data.referrals || []);
-      if (campaignsRes.success) setCampaigns(campaignsRes.data);
-      if (bankRes.success) {
-        setBankDetails(bankRes.data.bankDetails || {});
-        setHasBankDetails(bankRes.data.hasBankDetails || false);
+      // Load dashboard data first (most important)
+      const dashboardRes = await AffiliateService.getDashboard();
+      if (dashboardRes.success) {
+        setDashboardData(dashboardRes.data);
+      } else {
+        errors.dashboard = dashboardRes.error;
       }
+
+      // Load earnings (might be empty for new affiliates)
+      try {
+        const earningsRes = await AffiliateService.getEarnings();
+        if (earningsRes.success) {
+          setEarnings(earningsRes.data);
+        } else {
+          errors.earnings = earningsRes.error;
+          // Set default earnings if none
+          setEarnings({
+            total: { amount: 0, formatted: '₦0' },
+            pending: { amount: 0, formatted: '₦0' },
+            paid: { amount: 0, formatted: '₦0' },
+            thisMonth: { amount: 0, formatted: '₦0' },
+            lastMonth: { amount: 0, formatted: '₦0' },
+            byCampaign: []
+          });
+        }
+      } catch (e) {
+        console.error('Earnings fetch error:', e);
+        errors.earnings = 'Failed to fetch earnings';
+        setEarnings({
+          total: { amount: 0, formatted: '₦0' },
+          pending: { amount: 0, formatted: '₦0' },
+          paid: { amount: 0, formatted: '₦0' },
+          thisMonth: { amount: 0, formatted: '₦0' },
+          lastMonth: { amount: 0, formatted: '₦0' },
+          byCampaign: []
+        });
+      }
+
+      // Load referrals
+      try {
+        const referralsRes = await AffiliateService.getReferrals(1, 20);
+        if (referralsRes.success) {
+          setReferrals(referralsRes.data.referrals || []);
+        } else {
+          errors.referrals = referralsRes.error;
+          setReferrals([]);
+        }
+      } catch (e) {
+        console.error('Referrals fetch error:', e);
+        errors.referrals = 'Failed to fetch referrals';
+        setReferrals([]);
+      }
+
+      // Load campaigns
+      try {
+        const campaignsRes = await AffiliateService.getCampaigns();
+        if (campaignsRes.success) {
+          setCampaigns(campaignsRes.data || []);
+        } else {
+          errors.campaigns = campaignsRes.error;
+          setCampaigns([]);
+        }
+      } catch (e) {
+        console.error('Campaigns fetch error:', e);
+        errors.campaigns = 'Failed to fetch campaigns';
+        setCampaigns([]);
+      }
+
+      // Load bank details
+      try {
+        const bankRes = await AffiliateService.getBankDetails();
+        if (bankRes.success) {
+          setBankDetails(bankRes.data.bankDetails || {});
+          setHasBankDetails(bankRes.data.hasBankDetails || false);
+        } else {
+          errors.bank = bankRes.error;
+          setHasBankDetails(false);
+        }
+      } catch (e) {
+        console.error('Bank details fetch error:', e);
+        errors.bank = 'Failed to fetch bank details';
+        setHasBankDetails(false);
+      }
+
+      setDataLoadErrors(errors);
+      
+      // Show warning if some data failed to load
+      if (Object.keys(errors).length > 0) {
+        console.warn('Some data failed to load:', errors);
+        toast.error('Some dashboard data could not be loaded');
+      }
+      
     } catch (error) {
-      console.error('Error loading dashboard:', error);
+      console.error('Error loading dashboard data:', error);
       toast.error('Failed to load dashboard data');
     } finally {
       setIsLoading(false);
@@ -81,9 +164,16 @@ const AffiliateDashboard = () => {
   };
 
   const loadPerformanceReport = async (selectedPeriod) => {
-    const result = await AffiliateService.getPerformanceReport(selectedPeriod);
-    if (result.success) {
-      setPerformance(result.data);
+    try {
+      const result = await AffiliateService.getPerformanceReport(selectedPeriod);
+      if (result.success) {
+        setPerformance(result.data);
+      } else {
+        toast.error(result.error || 'Failed to load performance report');
+      }
+    } catch (error) {
+      console.error('Performance report error:', error);
+      toast.error('Failed to load performance report');
     }
   };
 
@@ -95,15 +185,21 @@ const AffiliateDashboard = () => {
 
   const handleRegisterAffiliate = async () => {
     setIsLoading(true);
-    const result = await AffiliateService.registerAffiliate();
-    if (result.success) {
-      toast.success('Successfully registered as an affiliate!');
-      setIsAffiliate(true);
-      loadDashboardData();
-    } else {
-      toast.error(result.error || 'Failed to register as affiliate');
+    try {
+      const result = await AffiliateService.registerAffiliate();
+      if (result.success) {
+        toast.success('Successfully registered as an affiliate!');
+        setIsAffiliate(true);
+        loadDashboardData();
+      } else {
+        toast.error(result.error || 'Failed to register as affiliate');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      toast.error('Failed to register as affiliate');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleCreateCampaign = async () => {
@@ -113,19 +209,25 @@ const AffiliateDashboard = () => {
     }
 
     setIsLoading(true);
-    const result = await AffiliateService.createCampaign(newCampaign);
-    if (result.success) {
-      toast.success('Campaign created successfully!');
-      setShowCampaignModal(false);
-      setNewCampaign({ name: '', description: '', medium: '', source: '' });
-      
-      // Refresh campaigns
-      const campaignsRes = await AffiliateService.getCampaigns();
-      if (campaignsRes.success) setCampaigns(campaignsRes.data);
-    } else {
-      toast.error(result.error || 'Failed to create campaign');
+    try {
+      const result = await AffiliateService.createCampaign(newCampaign);
+      if (result.success) {
+        toast.success('Campaign created successfully!');
+        setShowCampaignModal(false);
+        setNewCampaign({ name: '', description: '', medium: '', source: '' });
+        
+        // Refresh campaigns
+        const campaignsRes = await AffiliateService.getCampaigns();
+        if (campaignsRes.success) setCampaigns(campaignsRes.data);
+      } else {
+        toast.error(result.error || 'Failed to create campaign');
+      }
+    } catch (error) {
+      console.error('Create campaign error:', error);
+      toast.error('Failed to create campaign');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleUpdateBankDetails = async () => {
@@ -135,14 +237,20 @@ const AffiliateDashboard = () => {
     }
 
     setIsLoading(true);
-    const result = await AffiliateService.updateBankDetails(bankDetails);
-    if (result.success) {
-      toast.success('Bank details updated successfully!');
-      setHasBankDetails(true);
-    } else {
-      toast.error(result.error || 'Failed to update bank details');
+    try {
+      const result = await AffiliateService.updateBankDetails(bankDetails);
+      if (result.success) {
+        toast.success('Bank details updated successfully!');
+        setHasBankDetails(true);
+      } else {
+        toast.error(result.error || 'Failed to update bank details');
+      }
+    } catch (error) {
+      console.error('Update bank details error:', error);
+      toast.error('Failed to update bank details');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const handleRequestPayout = async () => {
@@ -154,18 +262,24 @@ const AffiliateDashboard = () => {
     const amount = parseFloat(payoutAmount) * 100; // Convert to kobo
 
     setIsLoading(true);
-    const result = await AffiliateService.requestPayout(amount);
-    if (result.success) {
-      toast.success('Payout requested successfully!');
-      setPayoutAmount('');
-      
-      // Refresh earnings
-      const earningsRes = await AffiliateService.getEarnings();
-      if (earningsRes.success) setEarnings(earningsRes.data);
-    } else {
-      toast.error(result.error || 'Failed to request payout');
+    try {
+      const result = await AffiliateService.requestPayout(amount);
+      if (result.success) {
+        toast.success('Payout requested successfully!');
+        setPayoutAmount('');
+        
+        // Refresh earnings
+        const earningsRes = await AffiliateService.getEarnings();
+        if (earningsRes.success) setEarnings(earningsRes.data);
+      } else {
+        toast.error(result.error || 'Failed to request payout');
+      }
+    } catch (error) {
+      console.error('Request payout error:', error);
+      toast.error('Failed to request payout');
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const copyToClipboard = (text) => {
@@ -176,20 +290,30 @@ const AffiliateDashboard = () => {
   };
 
   const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    }).format(amount / 100).replace('NGN', '₦');
+    if (!amount && amount !== 0) return '₦0';
+    try {
+      return new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      }).format(amount / 100).replace('NGN', '₦');
+    } catch (e) {
+      return '₦0';
+    }
   };
 
   const formatDate = (dateString) => {
-    return new Date(dateString).toLocaleDateString('en-NG', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric'
-    });
+    if (!dateString) return 'N/A';
+    try {
+      return new Date(dateString).toLocaleDateString('en-NG', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch (e) {
+      return 'N/A';
+    }
   };
 
   if (isLoading && !dashboardData) {
@@ -246,6 +370,13 @@ const AffiliateDashboard = () => {
     );
   }
 
+  // Use earnings data if available, otherwise use dashboard data
+  const displayEarnings = earnings || dashboardData?.earnings || {
+    total: { formatted: '₦0' },
+    pending: { formatted: '₦0' },
+    paid: { formatted: '₦0' }
+  };
+
   return (
     <div className={styles.container}>
       {/* Header */}
@@ -256,13 +387,13 @@ const AffiliateDashboard = () => {
             <div className={styles.headerStat}>
               <span className={styles.headerStatLabel}>Total Earnings</span>
               <span className={styles.headerStatValue}>
-                {dashboardData?.earnings?.formattedTotal || '₦0'}
+                {displayEarnings.total?.formatted || '₦0'}
               </span>
             </div>
             <div className={styles.headerStat}>
               <span className={styles.headerStatLabel}>Pending</span>
               <span className={styles.headerStatValue}>
-                {dashboardData?.earnings?.formattedPending || '₦0'}
+                {displayEarnings.pending?.formatted || '₦0'}
               </span>
             </div>
             <div className={styles.headerStat}>
@@ -338,21 +469,21 @@ const AffiliateDashboard = () => {
                 <div className={styles.statIcon}>💰</div>
                 <div className={styles.statInfo}>
                   <span className={styles.statLabel}>Total Earnings</span>
-                  <span className={styles.statValue}>{dashboardData.earnings?.formattedTotal}</span>
+                  <span className={styles.statValue}>{dashboardData.earnings?.formattedTotal || '₦0'}</span>
                 </div>
               </div>
               <div className={styles.statCard}>
                 <div className={styles.statIcon}>⏳</div>
                 <div className={styles.statInfo}>
                   <span className={styles.statLabel}>Pending</span>
-                  <span className={styles.statValue}>{dashboardData.earnings?.formattedPending}</span>
+                  <span className={styles.statValue}>{dashboardData.earnings?.formattedPending || '₦0'}</span>
                 </div>
               </div>
               <div className={styles.statCard}>
                 <div className={styles.statIcon}>✅</div>
                 <div className={styles.statInfo}>
                   <span className={styles.statLabel}>Paid</span>
-                  <span className={styles.statValue}>{dashboardData.earnings?.formattedPaid}</span>
+                  <span className={styles.statValue}>{dashboardData.earnings?.formattedPaid || '₦0'}</span>
                 </div>
               </div>
               <div className={styles.statCard}>
@@ -367,7 +498,7 @@ const AffiliateDashboard = () => {
                 <div className={styles.statInfo}>
                   <span className={styles.statLabel}>Conversion Rate</span>
                   <span className={styles.statValue}>
-                    {dashboardData.stats?.conversionRate?.toFixed(1)}%
+                    {dashboardData.stats?.conversionRate?.toFixed(1) || '0'}%
                   </span>
                 </div>
               </div>
@@ -435,6 +566,7 @@ const AffiliateDashboard = () => {
           </div>
         )}
 
+        {/* Rest of your tabs remain the same */}
         {/* Campaigns Tab */}
         {activeTab === 'campaigns' && (
           <div className={styles.campaigns}>
@@ -601,7 +733,7 @@ const AffiliateDashboard = () => {
                   <div className={styles.performanceCard}>
                     <span className={styles.performanceCardLabel}>Conversion Rate</span>
                     <span className={styles.performanceCardValue}>
-                      {performance.summary?.conversionRate?.toFixed(1)}%
+                      {performance.summary?.conversionRate?.toFixed(1) || '0'}%
                     </span>
                   </div>
                   <div className={styles.performanceCard}>
@@ -749,7 +881,7 @@ const AffiliateDashboard = () => {
                   <div className={styles.earningRow}>
                     <span>Pending Earnings:</span>
                     <span className={styles.earningAmount}>
-                      {dashboardData?.earnings?.formattedPending || '₦0'}
+                      {displayEarnings.pending?.formatted || '₦0'}
                     </span>
                   </div>
                   <div className={styles.earningRow}>
@@ -769,14 +901,14 @@ const AffiliateDashboard = () => {
                         value={payoutAmount}
                         onChange={(e) => setPayoutAmount(e.target.value)}
                         placeholder="Enter amount"
-                        min={dashboardData?.payout?.threshold / 100}
-                        max={dashboardData?.earnings?.pending / 100}
+                        min={dashboardData?.payout?.threshold ? dashboardData.payout.threshold / 100 : 50}
+                        max={displayEarnings.pending?.amount ? displayEarnings.pending.amount / 100 : 0}
                       />
                     </div>
                     <button
                       onClick={handleRequestPayout}
                       className={styles.payoutButton}
-                      disabled={isLoading || !payoutAmount || parseFloat(payoutAmount) < (dashboardData?.payout?.threshold / 100)}
+                      disabled={isLoading || !payoutAmount || parseFloat(payoutAmount) < (dashboardData?.payout?.threshold ? dashboardData.payout.threshold / 100 : 50)}
                     >
                       {isLoading ? 'Processing...' : 'Request Payout'}
                     </button>
