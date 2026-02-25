@@ -11,13 +11,15 @@ const GuestCheckoutModal = ({
   ebookId,
   ebookPrice,
   ebookTitle = 'Suicide Note',
-  affiliateCode,
-  campaignName,
+  affiliateCode: propAffiliateCode,
+  campaignName: propCampaignName,
 }) => {
   const [email, setEmail] = useState('');
   const [name, setName] = useState('');
   const [currency, setCurrency] = useState('NGN');
   const [isLoading, setIsLoading] = useState(false);
+  const [affiliateCode, setAffiliateCode] = useState(propAffiliateCode);
+  const [campaignName, setCampaignName] = useState(propCampaignName);
   const [currencyOptions, setCurrencyOptions] = useState({
     NGN: {
       symbol: '₦',
@@ -38,6 +40,33 @@ const GuestCheckoutModal = ({
       description: 'Pay with Dollars (International cards)'
     }
   });
+
+  // Get affiliate code from cookie on mount if not provided in props
+  useEffect(() => {
+    const loadAffiliateData = async () => {
+      // If affiliate code not provided in props, try to get from cookie
+      if (!propAffiliateCode) {
+        const cookieAffiliate = PaymentService.getAffiliateCodeFromCookie?.();
+        if (cookieAffiliate) {
+          setAffiliateCode(cookieAffiliate);
+          console.log('🎯 Found affiliate code in cookie:', cookieAffiliate);
+        }
+      }
+      
+      // If campaign name not provided in props, try to get from cookie
+      if (!propCampaignName) {
+        const cookieCampaign = PaymentService.getCampaignFromCookie?.();
+        if (cookieCampaign) {
+          setCampaignName(cookieCampaign);
+          console.log('📊 Found campaign in cookie:', cookieCampaign);
+        }
+      }
+    };
+
+    if (isOpen) {
+      loadAffiliateData();
+    }
+  }, [isOpen, propAffiliateCode, propCampaignName]);
 
   // Fetch currency options on mount
   useEffect(() => {
@@ -62,6 +91,7 @@ const GuestCheckoutModal = ({
       amount: currencyOptions[currency].amount,
       expectedDisplay: currency === 'NGN' ? '₦2,500' : '$5.00'
     });
+    
     if (!validateEmail(email)) {
       toast.error('Please enter a valid email');
       return;
@@ -89,13 +119,21 @@ const GuestCheckoutModal = ({
         currency: currency,
       };
 
+      // ✅ CRITICAL: Add affiliate code to payment data if available
       if (affiliateCode && affiliateCode.trim() !== '') {
         paymentData.affiliateCode = String(affiliateCode).trim();
+        console.log('🎯 Adding affiliate code to payment:', affiliateCode);
+      } else {
+        console.log('ℹ️ No affiliate code found for this payment');
       }
       
+      // Add campaign name if available
       paymentData.campaignName = campaignName?.trim() || 'direct-purchase';
 
-      console.log('📤 Sending payment data:', paymentData);
+      console.log('📤 Sending payment data with affiliate:', {
+        ...paymentData,
+        hasAffiliate: !!paymentData.affiliateCode
+      });
 
       const result = await PaymentService.initializePayment(paymentData);
 
@@ -105,15 +143,20 @@ const GuestCheckoutModal = ({
         const authUrl = result.data?.authorizationUrl || result.data?.authorization_url;
         
         if (authUrl) {
-          console.log(`🔗 Redirecting to Paystack (${currency}):`, authUrl);
+          console.log(`🔗 Redirecting to Paystack (${currency}) with affiliate:`, affiliateCode || 'none');
           
-          localStorage.setItem('pending_purchase', JSON.stringify({
+          // Store pending purchase with affiliate info
+          const pendingPurchase = {
             reference: result.data.reference,
             ebookTitle: ebookTitle,
             amount: currency === 'USD' ? 5 : ebookPrice,
             currency: currency,
+            affiliateCode: affiliateCode, // Store affiliate code with pending purchase
             timestamp: new Date().toISOString()
-          }));
+          };
+          
+          localStorage.setItem('pending_purchase', JSON.stringify(pendingPurchase));
+          console.log('💾 Saved pending purchase with affiliate:', pendingPurchase);
           
           window.location.href = authUrl;
         } else {
@@ -148,6 +191,13 @@ const GuestCheckoutModal = ({
           </div>
 
           <div className={styles.priceSection}>
+            {affiliateCode && (
+              <div className={styles.affiliateBadge}>
+                <span className={styles.affiliateIcon}>🎯</span>
+                <span className={styles.affiliateText}>Referred by affiliate</span>
+              </div>
+            )}
+            
             <div className={styles.currencyToggle}>
               <button
                 className={`${styles.currencyButton} ${currency === 'NGN' ? styles.active : ''}`}
@@ -217,6 +267,15 @@ const GuestCheckoutModal = ({
                 </>
               )}
             </button>
+
+            {affiliateCode && (
+              <div className={styles.affiliateNote}>
+                <Icon name="Gift" className={styles.affiliateNoteIcon} />
+                <span>
+                  You were referred by an affiliate. They'll earn commission on your purchase.
+                </span>
+              </div>
+            )}
 
             <div className={styles.paymentFeatures}>
               <div className={styles.featureItem}>

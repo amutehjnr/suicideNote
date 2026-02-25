@@ -4,6 +4,14 @@ const API_BASE_URL = '/api/v1';
 
 console.log('🔗 PaymentService initialized with API_URL:', API_BASE_URL);
 
+// Helper function to get cookie
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+};
+
 const PaymentService = {
   /**
    * Get currency options
@@ -49,11 +57,38 @@ const PaymentService = {
   },
 
   /**
-   * Initialize payment with currency support
+   * Get affiliate code from cookie
+   */
+  getAffiliateCodeFromCookie() {
+    return getCookie('affiliate_ref');
+  },
+
+  /**
+   * Get campaign from cookie
+   */
+  getCampaignFromCookie() {
+    return getCookie('affiliate_campaign');
+  },
+
+  /**
+   * Initialize payment with currency support and affiliate tracking
    */
   async initializePayment(paymentData) {
     try {
-      console.log('📤 Sending payment request:', paymentData);
+      // Get affiliate code from cookie if not provided in paymentData
+      if (!paymentData.affiliateCode) {
+        paymentData.affiliateCode = this.getAffiliateCodeFromCookie();
+      }
+      
+      // Get campaign from cookie if not provided
+      if (!paymentData.campaignName) {
+        paymentData.campaignName = this.getCampaignFromCookie();
+      }
+      
+      console.log('📤 Sending payment request with affiliate:', {
+        affiliateCode: paymentData.affiliateCode,
+        campaignName: paymentData.campaignName
+      });
       
       const response = await axios.post(
         `${API_BASE_URL}/payments/initialize`,

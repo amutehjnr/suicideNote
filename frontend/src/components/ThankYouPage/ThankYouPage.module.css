@@ -988,3 +988,14 @@
     text-align: center;
   }
 }
+
+.affiliateCredit {
+  margin-top: 16px;
+  padding: 12px;
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #166534;
+  text-align: center;
+}
