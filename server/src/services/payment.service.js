@@ -52,6 +52,129 @@ async function sendAccessCodeEmail(purchase, accessCode) {
   }
 }
 
+/**
+ * Handle affiliate commission when purchase is completed - PERMANENT FIX
+ */
+async function handleAffiliateCommission(purchase) {
+  try {
+    // Get affiliate code from multiple possible sources
+    let affiliateCode = purchase.affiliateCode || 
+                        purchase.metadata?.affiliateCode || 
+                        purchase.metadata?.affiliate ||
+                        (purchase.affiliate && purchase.affiliate.affiliateCode);
+    
+    if (!affiliateCode) {
+      winston.info('ℹ️ No affiliate code found for purchase:', purchase._id);
+      return; // No affiliate for this purchase
+    }
+    
+    winston.info(`🎯 Processing affiliate commission for code: ${affiliateCode}`, {
+      purchaseId: purchase._id,
+      amount: purchase.amount
+    });
+    
+    const affiliate = await Affiliate.findOne({ 
+      affiliateCode: affiliateCode.toString().toUpperCase(),
+      isActive: true 
+    });
+    
+    if (!affiliate) {
+      winston.warn(`❌ Affiliate not found for code: ${affiliateCode}`);
+      return;
+    }
+    
+    // Calculate commission (50% of purchase amount)
+    const commissionRate = 0.5; // 50% fixed rate
+    const commissionAmount = purchase.amount * commissionRate;
+    
+    winston.info(`💰 Commission calculation:`, {
+      purchaseAmount: purchase.amount,
+      commissionRate,
+      commissionAmount
+    });
+    
+    // Initialize fields if they don't exist
+    if (typeof affiliate.totalEarnings !== 'number') affiliate.totalEarnings = 0;
+    if (typeof affiliate.pendingEarnings !== 'number') affiliate.pendingEarnings = 0;
+    if (typeof affiliate.totalReferrals !== 'number') affiliate.totalReferrals = 0;
+    if (typeof affiliate.successfulReferrals !== 'number') affiliate.successfulReferrals = 0;
+    
+    // Update affiliate stats
+    affiliate.totalEarnings += commissionAmount;
+    affiliate.pendingEarnings += commissionAmount;
+    affiliate.totalReferrals += 1;
+    affiliate.successfulReferrals += 1;
+    
+    // Initialize arrays if they don't exist
+    if (!affiliate.referrals) affiliate.referrals = [];
+    if (!affiliate.sales) affiliate.sales = [];
+    
+    // Add to referrals list
+    affiliate.referrals.push({
+      purchaseId: purchase._id,
+      amount: purchase.amount,
+      commission: commissionAmount,
+      status: 'completed',
+      date: new Date()
+    });
+    
+    // Add to sales list
+    affiliate.sales.push({
+      purchaseId: purchase._id,
+      amount: purchase.amount,
+      commission: commissionAmount,
+      date: new Date(),
+      status: 'pending'
+    });
+    
+    // Update conversion rate
+    if (affiliate.clicks > 0) {
+      affiliate.conversionRate = ((affiliate.successfulReferrals || 0) / affiliate.clicks) * 100;
+    }
+    
+    // Save affiliate
+    await affiliate.save();
+    
+    // Update purchase with affiliate info
+    purchase.affiliate = {
+      affiliateCode: affiliate.affiliateCode,
+      commissionAmount: commissionAmount,
+      commissionRate: commissionRate,
+      isPaid: false
+    };
+    await purchase.save();
+    
+    winston.info('✅ Affiliate commission recorded successfully:', {
+      affiliateCode: affiliate.affiliateCode,
+      purchaseId: purchase._id,
+      commissionAmount,
+      totalEarnings: affiliate.totalEarnings,
+      pendingEarnings: affiliate.pendingEarnings,
+      totalReferrals: affiliate.totalReferrals
+    });
+    
+    // Send commission notification email
+    try {
+      const user = await User.findById(affiliate.user);
+      if (user && user.email) {
+        await emailService.sendAffiliateCommissionEmail(
+          user.email,
+          user.name || 'Affiliate',
+          purchase,
+          commissionAmount
+        );
+        winston.info('✅ Commission email sent to:', user.email);
+      }
+    } catch (emailError) {
+      winston.error('❌ Failed to send commission email:', emailError);
+    }
+    
+  } catch (error) {
+    winston.error('❌ Affiliate commission error:', error);
+    // Don't throw - we don't want to fail the payment if affiliate tracking fails
+  }
+}
+
 const paymentService = {
   /**
    * Initialize Payment (Paystack - supports both NGN and USD)
@@ -104,6 +227,13 @@ const paymentService = {
       // Create purchase record with a temporary reference
       const tempRef = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
       
+      // Ensure metadata includes affiliate code
+      const enrichedMetadata = {
+        ...metadata,
+        originalEbookIdentifier: ebookIdentifier,
+        affiliateCode: affiliateCode, // Store affiliate code in metadata
+      };
+      
       const purchase = new Purchase({
         user: userId,
         ebook: ebook._id,
@@ -112,18 +242,20 @@ const paymentService = {
         paymentMethod: 'paystack',
         status: 'pending',
         transactionReference: tempRef,
-        affiliateCode: affiliateCode || null,
-        metadata: {
-          ...metadata,
-          originalEbookIdentifier: ebookIdentifier,
-        },
+        affiliateCode: affiliateCode || null, // Store affiliate code directly
+        metadata: enrichedMetadata,
       });
       
       await purchase.save();
-      winston.info('✅ Purchase created:', { purchaseId: purchase._id, currency, tempRef });
+      winston.info('✅ Purchase created:', { 
+        purchaseId: purchase._id, 
+        currency, 
+        tempRef,
+        hasAffiliate: !!affiliateCode 
+      });
       
       // Initialize Paystack payment
-      return await this.initializePaystackPayment(user, ebook, purchase, amount, currency, metadata);
+      return await this.initializePaystackPayment(user, ebook, purchase, amount, currency, enrichedMetadata);
       
     } catch (error) {
       winston.error('🔥 Initialize payment error:', error);
@@ -170,7 +302,8 @@ const paymentService = {
         amount,
         currency,
         userEmail: payload.email,
-        ebookTitle: ebook.title
+        ebookTitle: ebook.title,
+        hasAffiliate: !!metadata.affiliateCode
       });
 
       const response = await axios.post(
@@ -199,6 +332,7 @@ const paymentService = {
         purchaseId: purchase._id,
         reference: response.data.data.reference,
         currency: currency,
+        hasAffiliate: !!metadata.affiliateCode,
         url: response.data.data.authorization_url
       });
 
@@ -310,108 +444,81 @@ const paymentService = {
   },
 
   /**
- * Complete successful payment
- */
-async completeSuccessfulPayment(purchase, paymentDetails) {
-  try {
-    // Check if access code already exists
-    let accessCode = await AccessCode.findOne({ purchase: purchase._id });
-    
-    if (!accessCode) {
-      // Create new access code
-      accessCode = await AccessCode.create({
-        code: `SN-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
-        user: purchase.user._id,
-        ebook: purchase.ebook._id,
-        purchase: purchase._id,
-        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-        isActive: true,
-      });
-    }
+   * Complete successful payment
+   */
+  async completeSuccessfulPayment(purchase, paymentDetails) {
+    try {
+      // Check if access code already exists
+      let accessCode = await AccessCode.findOne({ purchase: purchase._id });
+      
+      if (!accessCode) {
+        // Create new access code
+        accessCode = await AccessCode.create({
+          code: `SN-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
+          user: purchase.user._id,
+          ebook: purchase.ebook._id,
+          purchase: purchase._id,
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+          isActive: true,
+        });
+      }
 
-    // Send email
-    const emailSent = await sendAccessCodeEmail(purchase, accessCode);
+      // Send email
+      const emailSent = await sendAccessCodeEmail(purchase, accessCode);
 
-    // Update purchase
-    purchase.status = 'completed';
-    purchase.paidAt = new Date();
-    purchase.accessCode = accessCode._id;
-    purchase.paymentDetails = paymentDetails;
-    purchase.completedAt = new Date();
-    await purchase.save();
+      // Update purchase
+      purchase.status = 'completed';
+      purchase.paidAt = new Date();
+      purchase.accessCode = accessCode._id;
+      purchase.paymentDetails = paymentDetails;
+      purchase.completedAt = new Date();
+      await purchase.save();
 
-    // Update user's purchased ebooks
-    if (purchase.user) {
-      const user = await User.findById(purchase.user._id);
-      if (user) {
-        if (!user.purchasedEbooks) user.purchasedEbooks = [];
-        if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
-          user.purchasedEbooks.push(purchase.ebook._id);
-          await user.save();
+      // Update user's purchased ebooks
+      if (purchase.user) {
+        const user = await User.findById(purchase.user._id);
+        if (user) {
+          if (!user.purchasedEbooks) user.purchasedEbooks = [];
+          if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
+            user.purchasedEbooks.push(purchase.ebook._id);
+            await user.save();
+          }
         }
       }
-    }
 
-    // Handle affiliate commission if applicable
-    if (purchase.affiliateCode) {
-      await this.handleAffiliateCommission(purchase);
-    }
+      // ✅ CRITICAL: Handle affiliate commission if applicable
+      // Check multiple possible sources for affiliate code
+      const hasAffiliate = purchase.affiliateCode || 
+                           purchase.metadata?.affiliateCode || 
+                           purchase.metadata?.affiliate;
+      
+      if (hasAffiliate) {
+        winston.info('🎯 Found affiliate for purchase, processing commission...');
+        await handleAffiliateCommission(purchase);
+      } else {
+        winston.info('ℹ️ No affiliate found for this purchase');
+      }
 
-    return {
-      success: true,
-      data: {
-        purchase: {
-          _id: purchase._id,
-          amount: purchase.amount,
-          currency: purchase.currency,
-          status: purchase.status,
-          paidAt: purchase.paidAt,
-          ebook: purchase.ebook,
-          user: purchase.user
+      return {
+        success: true,
+        data: {
+          purchase: {
+            _id: purchase._id,
+            amount: purchase.amount,
+            currency: purchase.currency,
+            status: purchase.status,
+            paidAt: purchase.paidAt,
+            ebook: purchase.ebook,
+            user: purchase.user
+          },
+          paymentStatus: purchase.status,
+          accessCode: accessCode.code,
+          emailSent,
         },
-        paymentStatus: purchase.status,
-        accessCode: accessCode.code,
-        emailSent,
-      },
-    };
-  } catch (error) {
-    winston.error('🔥 Complete payment error:', error);
-    return { success: false, error: 'Failed to complete payment' };
-  }
-},
-
-  /**
-   * Handle affiliate commission
-   */
-  async handleAffiliateCommission(purchase) {
-    try {
-      const affiliate = await Affiliate.findOne({ affiliateCode: purchase.affiliateCode });
-      if (!affiliate) return;
-
-      const commissionRate = affiliate.commissionRate || 0.5; // 50% default
-      const commissionAmount = purchase.amount * commissionRate;
-
-      affiliate.earnings += commissionAmount;
-      affiliate.totalSales += 1;
-      
-      if (!affiliate.sales) affiliate.sales = [];
-      affiliate.sales.push({
-        purchaseId: purchase._id,
-        amount: purchase.amount,
-        commission: commissionAmount,
-        date: new Date(),
-        status: 'pending',
-      });
-      
-      await affiliate.save();
-
-      winston.info('✅ Affiliate commission recorded:', {
-        affiliateCode: purchase.affiliateCode,
-        purchaseId: purchase._id,
-        commissionAmount
-      });
+      };
     } catch (error) {
-      winston.error('❌ Affiliate commission error:', error);
+      winston.error('🔥 Complete payment error:', error);
+      return { success: false, error: 'Failed to complete payment' };
     }
   },
 
@@ -505,73 +612,6 @@ async completeSuccessfulPayment(purchase, paymentDetails) {
       }
     };
   },
-
-/**
- * Handle affiliate commission when purchase is completed
- */
-async handleAffiliateCommission(purchase) {
-  try {
-    if (!purchase.affiliateCode) {
-      return; // No affiliate for this purchase
-    }
-    
-    const affiliate = await Affiliate.findOne({ 
-      affiliateCode: purchase.affiliateCode,
-      isActive: true 
-    });
-    
-    if (!affiliate) {
-      winston.warn(`Affiliate not found for code: ${purchase.affiliateCode}`);
-      return;
-    }
-    
-    // Calculate commission (50% of purchase amount)
-    const commissionRate = affiliate.commissionRate || 0.5; // 50% default
-    const commissionAmount = purchase.amount * commissionRate;
-    
-    // Update purchase with commission info
-    purchase.affiliate = {
-      affiliateCode: purchase.affiliateCode,
-      commissionAmount: commissionAmount,
-      commissionRate: commissionRate,
-      isPaid: false,
-    };
-    
-    await purchase.save();
-    
-    // Add successful referral to affiliate
-    await affiliate.addSuccessfulReferral(
-      purchase.amount,
-      commissionAmount,
-      purchase.metadata?.campaignName
-    );
-    
-    winston.info('✅ Affiliate commission recorded:', {
-      affiliateCode: purchase.affiliateCode,
-      purchaseId: purchase._id,
-      commissionAmount,
-      remainingBalance: affiliate.pendingEarnings
-    });
-    
-    // Send commission notification email
-    try {
-      const user = await User.findById(affiliate.user);
-      if (user) {
-        await emailService.sendAffiliateCommissionEmail(
-          user.email,
-          user.name,
-          purchase,
-          commissionAmount
-        );
-      }
-    } catch (emailError) {
-      winston.error('Failed to send commission email:', emailError);
-    }
-    
-  } catch (error) {
-    winston.error('❌ Affiliate commission error:', error);
-  }
-},
 };
 
 module.exports = paymentService;

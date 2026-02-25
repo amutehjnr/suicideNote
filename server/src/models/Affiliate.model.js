@@ -5,162 +5,162 @@ const affiliateSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
     required: true,
-    unique: true,
+    unique: true
   },
   affiliateCode: {
     type: String,
     required: true,
     unique: true,
-    uppercase: true,
-  },
-  customLink: {
-    type: String,
-    unique: true,
-    sparse: true,
+    uppercase: true
   },
   referralLink: {
     type: String,
-    required: true,
-  },
-  totalEarnings: {
-    type: Number,
-    default: 0,
-    min: 0,
-  },
-  pendingEarnings: {
-    type: Number,
-    default: 0,
-    min: 0,
-  },
-  paidEarnings: {
-    type: Number,
-    default: 0,
-    min: 0,
-  },
-  totalReferrals: {
-    type: Number,
-    default: 0,
-  },
-  successfulReferrals: {
-    type: Number,
-    default: 0,
-  },
-  conversionRate: {
-    type: Number,
-    default: 0,
-    min: 0,
-    max: 100,
-  },
-  clicks: {
-    type: Number,
-    default: 0,
+    required: true
   },
   commissionRate: {
     type: Number,
-    default: 0.5, // 50% default
+    default: 0.5, // 50%
     min: 0,
-    max: 1,
+    max: 1
   },
-  paystackRecipientCode: {
-    type: String,
-    sparse: true,
-  },
-  bankDetails: {
-    accountNumber: String,
-    accountName: String,
-    bankCode: String,
-    bankName: String,
-  },
-  paymentThreshold: {
+  
+  // Earnings tracking
+  totalEarnings: {
     type: Number,
-    default: 5000, // Minimum ₦5000 to request payout
-    min: 0,
+    default: 0
   },
-  isActive: {
-    type: Boolean,
-    default: true,
+  pendingEarnings: {
+    type: Number,
+    default: 0
   },
-  isVerified: {
-    type: Boolean,
-    default: false,
+  paidEarnings: {
+    type: Number,
+    default: 0
   },
-  verificationData: {
-    idType: String,
-    idNumber: String,
-    idImage: String,
-    addressProof: String,
+  
+  // Stats tracking
+  clicks: {
+    type: Number,
+    default: 0
   },
-  performance: {
-    last30Days: {
-      referrals: { type: Number, default: 0 },
-      earnings: { type: Number, default: 0 },
-      clicks: { type: Number, default: 0 },
+  totalReferrals: {
+    type: Number,
+    default: 0
+  },
+  successfulReferrals: {
+    type: Number,
+    default: 0
+  },
+  conversionRate: {
+    type: Number,
+    default: 0
+  },
+  
+  // Referrals list
+  referrals: [{
+    purchaseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Purchase'
     },
-    last90Days: {
-      referrals: { type: Number, default: 0 },
-      earnings: { type: Number, default: 0 },
-      clicks: { type: Number, default: 0 },
+    amount: Number,
+    commission: Number,
+    status: {
+      type: String,
+      enum: ['pending', 'completed', 'cancelled'],
+      default: 'pending'
     },
-    allTime: {
-      referrals: { type: Number, default: 0 },
-      earnings: { type: Number, default: 0 },
-      clicks: { type: Number, default: 0 },
+    date: Date
+  }],
+  
+  // Sales list
+  sales: [{
+    purchaseId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Purchase'
     },
-  },
+    amount: Number,
+    commission: Number,
+    date: Date,
+    status: {
+      type: String,
+      enum: ['pending', 'paid', 'cancelled'],
+      default: 'pending'
+    }
+  }],
+  
+  // Campaigns
   campaigns: [{
     name: String,
+    description: String,
     link: String,
     clicks: { type: Number, default: 0 },
     conversions: { type: Number, default: 0 },
     earnings: { type: Number, default: 0 },
-    createdAt: Date,
+    createdAt: { type: Date, default: Date.now }
   }],
+  
+  // Bank details
+  bankDetails: {
+    accountNumber: String,
+    accountName: String,
+    bankCode: String,
+    bankName: String
+  },
+  paystackRecipientCode: String,
+  
+  // Settings
+  paymentThreshold: {
+    type: Number,
+    default: 5000 // ₦5,000 minimum payout
+  },
   notifications: {
     onSale: { type: Boolean, default: true },
     onPayout: { type: Boolean, default: true },
-    monthlyReport: { type: Boolean, default: true },
+    monthlyReport: { type: Boolean, default: true }
   },
   settings: {
     autoWithdraw: { type: Boolean, default: false },
-    withdrawThreshold: { type: Number, default: 10000 },
+    withdrawThreshold: { type: Number, default: 5000 },
     payoutMethod: { 
       type: String, 
       enum: ['paystack', 'bank', 'wallet'],
-      default: 'paystack',
-    },
+      default: 'paystack'
+    }
   },
-  statsUpdatedAt: {
-    type: Date,
-    default: Date.now,
+  
+  // Status
+  isVerified: {
+    type: Boolean,
+    default: false
   },
+  isActive: {
+    type: Boolean,
+    default: true
+  },
+  
+  // Performance data
+  performance: {
+    daily: mongoose.Schema.Types.Mixed,
+    weekly: mongoose.Schema.Types.Mixed,
+    monthly: mongoose.Schema.Types.Mixed,
+    last30Days: {
+      clicks: { type: Number, default: 0 },
+      referrals: { type: Number, default: 0 },
+      earnings: { type: Number, default: 0 }
+    }
+  },
+  
+  // Timestamps
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: Date.now
   },
   updatedAt: {
     type: Date,
-    default: Date.now,
-  },
-}, {
-  timestamps: true,
-});
-
-// Indexes
-affiliateSchema.index({ user: 1 }, { unique: true });
-affiliateSchema.index({ affiliateCode: 1 }, { unique: true });
-affiliateSchema.index({ totalEarnings: -1 });
-affiliateSchema.index({ successfulReferrals: -1 });
-affiliateSchema.index({ isActive: 1 });
-affiliateSchema.index({ createdAt: -1 });
-
-// Pre-save hook to update conversion rate
-affiliateSchema.pre('save', function(next) {
-  if (this.totalReferrals > 0) {
-    this.conversionRate = (this.successfulReferrals / this.totalReferrals) * 100;
+    default: Date.now
   }
-  
-  this.updatedAt = Date.now();
-  next();
+}, {
+  timestamps: true
 });
 
 // Virtual for formatted earnings
@@ -168,144 +168,96 @@ affiliateSchema.virtual('formattedTotalEarnings').get(function() {
   const formatter = new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   });
-  return formatter.format(this.totalEarnings / 100);
+  return formatter.format(this.totalEarnings / 100).replace('NGN', '₦');
 });
 
 affiliateSchema.virtual('formattedPendingEarnings').get(function() {
   const formatter = new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   });
-  return formatter.format(this.pendingEarnings / 100);
+  return formatter.format(this.pendingEarnings / 100).replace('NGN', '₦');
 });
 
 affiliateSchema.virtual('formattedPaidEarnings').get(function() {
   const formatter = new Intl.NumberFormat('en-NG', {
     style: 'currency',
     currency: 'NGN',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0
   });
-  return formatter.format(this.paidEarnings / 100);
+  return formatter.format(this.paidEarnings / 100).replace('NGN', '₦');
 });
 
-// Method to add referral click
-affiliateSchema.methods.addClick = async function(campaignName = null) {
-  this.clicks += 1;
-  this.totalReferrals += 1;
+// Methods
+affiliateSchema.methods.addClick = async function(campaignName) {
+  this.clicks = (this.clicks || 0) + 1;
   
   if (campaignName) {
     const campaign = this.campaigns.find(c => c.name === campaignName);
     if (campaign) {
-      campaign.clicks += 1;
-    } else {
-      this.campaigns.push({
-        name: campaignName,
-        link: `${this.referralLink}?campaign=${encodeURIComponent(campaignName)}`,
-        clicks: 1,
-        conversions: 0,
-        earnings: 0,
-        createdAt: new Date(),
-      });
+      campaign.clicks = (campaign.clicks || 0) + 1;
     }
   }
   
   await this.save();
+  return this;
 };
 
-// Method to add successful referral
-affiliateSchema.methods.addSuccessfulReferral = async function(amount, commission, campaignName = null) {
+affiliateSchema.methods.addSuccessfulReferral = async function(amount, commission, campaignName) {
+  // Initialize if undefined
+  if (typeof this.successfulReferrals !== 'number') this.successfulReferrals = 0;
+  if (typeof this.totalReferrals !== 'number') this.totalReferrals = 0;
+  if (typeof this.totalEarnings !== 'number') this.totalEarnings = 0;
+  if (typeof this.pendingEarnings !== 'number') this.pendingEarnings = 0;
+  
   this.successfulReferrals += 1;
+  this.totalReferrals += 1;
   this.totalEarnings += commission;
   this.pendingEarnings += commission;
   
+  if (this.clicks > 0) {
+    this.conversionRate = (this.successfulReferrals / this.clicks) * 100;
+  }
+  
   if (campaignName) {
     const campaign = this.campaigns.find(c => c.name === campaignName);
     if (campaign) {
-      campaign.conversions += 1;
-      campaign.earnings += commission;
+      campaign.conversions = (campaign.conversions || 0) + 1;
+      campaign.earnings = (campaign.earnings || 0) + commission;
     }
   }
   
-  // Update performance stats
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.setDate(now.getDate() - 30));
-  const ninetyDaysAgo = new Date(now.setDate(now.getDate() - 90));
-  
-  if (this.createdAt >= thirtyDaysAgo) {
-    this.performance.last30Days.referrals += 1;
-    this.performance.last30Days.earnings += commission;
-  }
-  
-  if (this.createdAt >= ninetyDaysAgo) {
-    this.performance.last90Days.referrals += 1;
-    this.performance.last90Days.earnings += commission;
-  }
-  
-  this.performance.allTime.referrals += 1;
-  this.performance.allTime.earnings += commission;
-  
   await this.save();
+  return this;
 };
 
-// Method to process payout
-affiliateSchema.methods.processPayout = async function(payoutService) {
-  if (this.pendingEarnings < this.paymentThreshold) {
-    throw new Error(`Minimum payout threshold of ₦${this.paymentThreshold/100} not reached`);
+affiliateSchema.methods.generateCampaignLink = function(campaignName, medium, source) {
+  const baseUrl = process.env.CLIENT_URL || 'https://suicidenote.onrender.com';
+  let link = `${baseUrl}/?ref=${this.affiliateCode}`;
+  
+  if (campaignName) {
+    link += `&campaign=${encodeURIComponent(campaignName)}`;
   }
-  
-  if (!this.bankDetails.accountNumber || !this.bankDetails.bankCode) {
-    throw new Error('Bank details not set up');
+  if (medium) {
+    link += `&medium=${encodeURIComponent(medium)}`;
   }
-  
-  const payoutAmount = this.pendingEarnings;
-  
-  // Initiate payout via Paystack
-  const payoutResult = await payoutService.initiateTransfer(
-    this.paystackRecipientCode,
-    payoutAmount,
-    `Affiliate commission payout for ${this.affiliateCode}`
-  );
-  
-  if (payoutResult.success) {
-    this.pendingEarnings = 0;
-    this.paidEarnings += payoutAmount;
-    await this.save();
-    
-    return {
-      success: true,
-      amount: payoutAmount,
-      reference: payoutResult.data.reference,
-    };
+  if (source) {
+    link += `&source=${encodeURIComponent(source)}`;
   }
-  
-  throw new Error(payoutResult.error);
-};
-
-// Method to get performance metrics
-affiliateSchema.methods.getPerformanceMetrics = function() {
-  return {
-    totalClicks: this.clicks,
-    totalReferrals: this.totalReferrals,
-    successfulReferrals: this.successfulReferrals,
-    conversionRate: this.conversionRate,
-    totalEarnings: this.formattedTotalEarnings,
-    pendingEarnings: this.formattedPendingEarnings,
-    paidEarnings: this.formattedPaidEarnings,
-    performance: this.performance,
-    campaigns: this.campaigns,
-  };
-};
-
-// Method to generate custom campaign link
-affiliateSchema.methods.generateCampaignLink = function(campaignName, medium = null, source = null) {
-  let link = `${this.referralLink}?campaign=${encodeURIComponent(campaignName)}`;
-  
-  if (medium) link += `&medium=${encodeURIComponent(medium)}`;
-  if (source) link += `&source=${encodeURIComponent(source)}`;
   
   return link;
 };
 
-const Affiliate = mongoose.model('Affiliate', affiliateSchema);
+// Pre-save middleware
+affiliateSchema.pre('save', function(next) {
+  this.updatedAt = Date.now();
+  next();
+});
 
-module.exports = Affiliate;
+module.exports = mongoose.model('Affiliate', affiliateSchema);

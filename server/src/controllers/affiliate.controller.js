@@ -1,4 +1,3 @@
-// controllers/affiliate.controller.js
 const AffiliateService = require('../services/affiliate.service');
 const Affiliate = require('../models/Affiliate.model');
 const Purchase = require('../models/Purchase.model');
@@ -97,24 +96,24 @@ const affiliateController = {
       
       const earnings = {
         total: {
-          amount: affiliate.totalEarnings,
-          formatted: affiliate.formattedTotalEarnings,
+          amount: affiliate.totalEarnings || 0,
+          formatted: affiliate.formattedTotalEarnings || '₦0',
         },
         pending: {
-          amount: affiliate.pendingEarnings,
-          formatted: affiliate.formattedPendingEarnings,
+          amount: affiliate.pendingEarnings || 0,
+          formatted: affiliate.formattedPendingEarnings || '₦0',
         },
         paid: {
-          amount: affiliate.paidEarnings,
-          formatted: affiliate.formattedPaidEarnings,
+          amount: affiliate.paidEarnings || 0,
+          formatted: affiliate.formattedPaidEarnings || '₦0',
         },
         thisMonth: await this.getEarningsThisMonth(affiliate._id),
         lastMonth: await this.getEarningsLastMonth(affiliate._id),
-        byCampaign: affiliate.campaigns.map(c => ({
+        byCampaign: (affiliate.campaigns || []).map(c => ({
           name: c.name,
-          earnings: c.earnings,
-          conversions: c.conversions,
-          clicks: c.clicks,
+          earnings: c.earnings || 0,
+          conversions: c.conversions || 0,
+          clicks: c.clicks || 0,
         })),
       };
       
@@ -157,8 +156,8 @@ const affiliateController = {
         customer: ref.user?.name || ref.metadata?.guestName || 'Anonymous',
         email: ref.user?.email || ref.metadata?.guestEmail,
         ebook: ref.ebook?.title || 'Suicide Note',
-        amount: ref.formattedAmount,
-        commission: ref.formattedCommission,
+        amount: this.formatCurrency(ref.amount),
+        commission: this.formatCurrency(ref.affiliate?.commissionAmount || 0),
         date: ref.createdAt,
         status: ref.status,
       }));
@@ -226,14 +225,14 @@ const affiliateController = {
     try {
       const affiliate = req.affiliate;
       
-      const campaigns = affiliate.campaigns.map(c => ({
+      const campaigns = (affiliate.campaigns || []).map(c => ({
         name: c.name,
         link: c.link,
-        clicks: c.clicks,
-        conversions: c.conversions,
-        earnings: c.earnings,
-        formattedEarnings: this.formatCurrency(c.earnings),
-        conversionRate: c.clicks > 0 ? (c.conversions / c.clicks * 100).toFixed(1) : 0,
+        clicks: c.clicks || 0,
+        conversions: c.conversions || 0,
+        earnings: c.earnings || 0,
+        formattedEarnings: this.formatCurrency(c.earnings || 0),
+        conversionRate: c.clicks > 0 ? ((c.conversions || 0) / c.clicks * 100).toFixed(1) : 0,
         createdAt: c.createdAt,
       }));
       
@@ -296,7 +295,7 @@ const affiliateController = {
         success: true,
         data: {
           bankDetails: affiliate.bankDetails || null,
-          isVerified: affiliate.isVerified,
+          isVerified: affiliate.isVerified || false,
           hasBankDetails: !!(affiliate.bankDetails?.accountNumber && affiliate.bankDetails?.bankCode),
         },
       });
@@ -485,8 +484,9 @@ const affiliateController = {
     end.setDate(0);
     end.setHours(23, 59, 59, 999);
     
+    const affiliate = await Affiliate.findById(affiliateId);
     const purchases = await Purchase.find({
-      'affiliate.affiliateCode': (await Affiliate.findById(affiliateId)).affiliateCode,
+      'affiliate.affiliateCode': affiliate.affiliateCode,
       status: 'completed',
       createdAt: { $gte: start, $lte: end },
     });
@@ -509,8 +509,9 @@ const affiliateController = {
     end.setDate(0);
     end.setHours(23, 59, 59, 999);
     
+    const affiliate = await Affiliate.findById(affiliateId);
     const purchases = await Purchase.find({
-      'affiliate.affiliateCode': (await Affiliate.findById(affiliateId)).affiliateCode,
+      'affiliate.affiliateCode': affiliate.affiliateCode,
       status: 'completed',
       createdAt: { $gte: start, $lte: end },
     });
@@ -528,8 +529,10 @@ const affiliateController = {
     const formatter = new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
     });
-    return formatter.format(amount / 100);
+    return formatter.format(amount / 100).replace('NGN', '₦');
   }
 };
 
