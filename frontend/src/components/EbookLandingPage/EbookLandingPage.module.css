@@ -490,33 +490,390 @@
   margin-bottom: 1rem;
 }
 
+/* ===== AFFILIATE LINK STYLES ===== */
 .linkBox {
-  margin-top: 1rem;
-  padding: 1rem;
-  background-color: var(--color-white);
-  border: 1px solid var(--color-green-light);
-  border-radius: var(--radius);
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 2px solid #22c55e;
+  border-radius: 16px;
+  padding: 24px;
+  margin-top: 20px;
+  box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.2);
 }
 
 .linkLabel {
-  font-size: 0.875rem;
-  color: var(--color-gray-600);
-  font-weight: 600;
-  margin-bottom: 0.5rem;
+  font-size: 18px;
+  font-weight: 700;
+  color: #166534;
+  margin-bottom: 16px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 
 .linkCode {
   display: block;
-  color: var(--color-green);
+  background: white;
+  padding: 16px 20px;
+  border-radius: 12px;
   font-family: 'Courier New', monospace;
-  font-size: 0.875rem;
+  font-size: 16px;
+  font-weight: 600;
+  color: #15803d;
+  border: 1px solid #86efac;
   word-break: break-all;
+  text-align: center;
+  margin-bottom: 16px;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
 }
 
+.linkActions {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 24px;
+}
+
+.copyButtonLarge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #22c55e;
+  color: white;
+  padding: 12px 32px;
+  border-radius: 50px;
+  font-weight: 600;
+  font-size: 16px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 6px -1px rgba(34, 197, 94, 0.3);
+}
+
+.copyButtonLarge:hover {
+  background: #16a34a;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 10px -1px rgba(34, 197, 94, 0.4);
+}
+
+.copyButtonLarge:active {
+  transform: translateY(0);
+}
+
+.copyButtonLarge svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Social Share Styles */
+.socialShare {
+  margin: 24px 0;
+  padding: 20px 0;
+  border-top: 1px dashed #86efac;
+  border-bottom: 1px dashed #86efac;
+}
+
+.shareLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: #166534;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.socialButtons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: center;
+}
+
+.twitterShare {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #1DA1F2;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.twitterShare:hover {
+  background: #0c85d0;
+  transform: translateY(-2px);
+}
+
+.whatsappShare {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #25D366;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.whatsappShare:hover {
+  background: #1da851;
+  transform: translateY(-2px);
+}
+
+.facebookShare {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #4267B2;
+  color: white;
+  padding: 10px 20px;
+  border-radius: 50px;
+  font-size: 14px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.facebookShare:hover {
+  background: #365899;
+  transform: translateY(-2px);
+}
+
+/* Calculator Styles */
+.calculator {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0;
+  border: 1px solid #e2e8f0;
+}
+
+.calculatorTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.sliderContainer {
+  margin: 20px 0;
+}
+
+.sliderLabel {
+  display: block;
+  font-size: 14px;
+  color: #475569;
+  margin-bottom: 8px;
+  font-weight: 500;
+}
+
+.slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: #e2e8f0;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #22c55e;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #22c55e;
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.sliderLabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.earningsDisplay {
+  text-align: center;
+  padding: 16px;
+  background: #f0fdf4;
+  border-radius: 12px;
+  margin-top: 16px;
+}
+
+.earningsAmount {
+  font-size: 32px;
+  font-weight: 800;
+  color: #166534;
+  line-height: 1.2;
+  margin-bottom: 4px;
+}
+
+.earningsText {
+  font-size: 14px;
+  color: #475569;
+}
+
+/* Email Confirmation Styles */
+.emailConfirmation {
+  margin-top: 20px;
+  padding: 16px;
+  background: #eff6ff;
+  border-radius: 12px;
+  border-left: 4px solid #3b82f6;
+}
+
+.confirmationText {
+  font-size: 14px;
+  color: #1e40af;
+  margin-bottom: 8px;
+}
+
+.userEmail {
+  font-weight: 700;
+  color: #1e3a8a;
+}
+
+.confirmationNote {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Link Note Styles */
 .linkNote {
-  font-size: 0.75rem;
-  color: var(--color-gray-500);
-  margin-top: 0.5rem;
+  font-size: 14px;
+  color: #166534;
+  margin-top: 16px;
+  text-align: center;
+  font-weight: 500;
+  background: #f0fdf4;
+  padding: 12px;
+  border-radius: 8px;
+}
+
+/* Success Message Styles */
+.successMessage {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.bigCheckIcon {
+  width: 48px;
+  height: 48px;
+  color: #22c55e;
+  margin-bottom: 12px;
+}
+
+.successHeading {
+  font-size: 24px;
+  font-weight: 800;
+  color: #166534;
+  margin-bottom: 8px;
+}
+
+.successText {
+  font-size: 16px;
+  color: #475569;
+}
+
+/* Social Sharing Guide */
+.sharingGuide {
+  margin: 24px 0;
+}
+
+.guideTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.socialGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+}
+
+.socialItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #f8fafc;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.twitterIcon {
+  color: #1DA1F2;
+  width: 20px;
+  height: 20px;
+}
+
+.whatsappIcon {
+  color: #25D366;
+  width: 20px;
+  height: 20px;
+}
+
+.facebookIcon {
+  color: #4267B2;
+  width: 20px;
+  height: 20px;
+}
+
+.emailIcon {
+  color: #64748b;
+  width: 20px;
+  height: 20px;
+}
+
+.socialName {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 2px;
+}
+
+.socialDescription {
+  font-size: 12px;
+  color: #64748b;
+}
+
+/* Tip Text */
+.tipText {
+  background: #fef3c7;
+  border-left: 4px solid #f59e0b;
+  padding: 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  color: #92400e;
+  margin: 20px 0;
+}
+
+.tipText strong {
+  color: #b45309;
 }
 
 .formNote {
@@ -770,6 +1127,14 @@
   .mobileMenu {
     display: none;
   }
+  
+  .socialButtons {
+    flex-direction: row;
+  }
+  
+  .socialGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 @media (min-width: 1024px) {
@@ -783,5 +1148,45 @@
   
   .ctaTitle {
     font-size: 3.5rem;
+  }
+  
+  .socialGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+/* Mobile Responsive for Affiliate Section */
+@media (max-width: 640px) {
+  .socialButtons {
+    flex-direction: column;
+  }
+  
+  .twitterShare,
+  .whatsappShare,
+  .facebookShare {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .socialGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .earningsAmount {
+    font-size: 24px;
+  }
+  
+  .linkCode {
+    font-size: 14px;
+    padding: 12px;
+  }
+  
+  .copyButtonLarge {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .linkBox {
+    padding: 16px;
   }
 }

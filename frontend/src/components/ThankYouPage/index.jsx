@@ -3,13 +3,16 @@ import { Icon } from '../shared/Icons';
 import styles from './ThankYouPage.module.css';
 import '../shared/styles.css';
 import PaymentService from '../../services/PaymentService';
+import AffiliateService from '../../services/AffiliateService';
 import { useLocation, useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const ThankYouPage = ({ onBackToHome }) => {
   const [affiliateEmail, setAffiliateEmail] = useState('');
+  const [affiliateName, setAffiliateName] = useState('');
   const [affiliateGenerated, setAffiliateGenerated] = useState(false);
   const [affiliateLink, setAffiliateLink] = useState('');
+  const [isAffiliateLoading, setIsAffiliateLoading] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [salesEstimate, setSalesEstimate] = useState(20);
@@ -19,6 +22,9 @@ const ThankYouPage = ({ onBackToHome }) => {
   const [user, setUser] = useState(null);
   const [currency, setCurrency] = useState('NGN');
   const [paymentMethod, setPaymentMethod] = useState('paystack');
+  const [affiliateCode, setAffiliateCode] = useState('');
+  const [commissionRate, setCommissionRate] = useState(0.5);
+  const [commissionAmount, setCommissionAmount] = useState(1250);
   
   const location = useLocation();
   const navigate = useNavigate();
@@ -73,6 +79,11 @@ const ThankYouPage = ({ onBackToHome }) => {
             setAccessCode(accessCodeData);
             setCurrency(purchaseCurrency);
             setPaymentMethod(purchaseMethod);
+            
+            // Set commission based on price
+            const price = purchaseData?.amount || 2500;
+            const commission = Math.floor(price * 0.5);
+            setCommissionAmount(commission);
             
             // Save to localStorage for future access
             localStorage.setItem('recent_purchase', JSON.stringify({
@@ -179,6 +190,9 @@ const ThankYouPage = ({ onBackToHome }) => {
           if (userData.email) {
             setAffiliateEmail(userData.email);
           }
+          if (userData.name) {
+            setAffiliateName(userData.name);
+          }
         }
         
         // Also check for guest user info
@@ -228,49 +242,90 @@ const ThankYouPage = ({ onBackToHome }) => {
       return;
     }
     
+    setIsAffiliateLoading(true);
+    
     try {
-      setIsLoading(true);
+      console.log('🔗 Generating affiliate link for:', affiliateEmail);
       
-      // Generate mock affiliate link (in real app, this would call your API)
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substr(2, 8).toUpperCase();
-      const mockAffiliateId = `AFF${timestamp.toString(36).toUpperCase()}${randomId}`;
+      // First, check if user is already an affiliate
+      const status = await AffiliateService.checkAffiliateStatus();
       
-      const link = `${window.location.origin}/?ref=${mockAffiliateId}`;
+      let result;
       
-      console.log('🔗 Generated affiliate link:', link);
-      
-      setAffiliateLink(link);
-      setAffiliateGenerated(true);
-      
-      // Save affiliate info to localStorage
-      localStorage.setItem('affiliate_info', JSON.stringify({
-        affiliateId: mockAffiliateId,
-        email: affiliateEmail,
-        link: link,
-        generatedAt: new Date().toISOString()
-      }));
-      
-      toast.success('Affiliate link generated!');
-      
-      // Scroll to generated link section
-      setTimeout(() => {
-        const element = document.getElementById('generated-link');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (!status.isAffiliate) {
+        // Register as affiliate
+        result = await AffiliateService.registerAffiliate();
+        
+        if (!result.success) {
+          toast.error(result.error || 'Failed to register as affiliate');
+          setIsAffiliateLoading(false);
+          return;
         }
-      }, 300);
+      }
+      
+      // Get dashboard data to get affiliate link
+      const dashboard = await AffiliateService.getDashboard();
+      
+      if (dashboard.success && dashboard.data) {
+        const affiliateData = dashboard.data.affiliate;
+        const link = affiliateData.link || AffiliateService.generateShareLink(affiliateData.code);
+        const rate = affiliateData.commissionRate || 50;
+        
+        setAffiliateLink(link);
+        setAffiliateCode(affiliateData.code);
+        setCommissionRate(rate / 100);
+        setAffiliateGenerated(true);
+        
+        // Save affiliate info to localStorage
+        localStorage.setItem('affiliate_info', JSON.stringify({
+          affiliateCode: affiliateData.code,
+          email: affiliateEmail,
+          name: affiliateName,
+          link: link,
+          generatedAt: new Date().toISOString()
+        }));
+        
+        toast.success('🎉 Affiliate link generated successfully!');
+        
+        // Scroll to generated link section
+        setTimeout(() => {
+          const element = document.getElementById('generated-link');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      } else {
+        // Fallback to generating local link if API fails
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 8).toUpperCase();
+        const mockAffiliateId = `AFF${timestamp.toString(36).toUpperCase()}${randomId}`;
+        const link = `${window.location.origin}/?ref=${mockAffiliateId}`;
+        
+        setAffiliateLink(link);
+        setAffiliateCode(mockAffiliateId);
+        setAffiliateGenerated(true);
+        
+        localStorage.setItem('affiliate_info', JSON.stringify({
+          affiliateId: mockAffiliateId,
+          email: affiliateEmail,
+          name: affiliateName,
+          link: link,
+          generatedAt: new Date().toISOString()
+        }));
+        
+        toast.success('Affiliate link generated!');
+      }
       
     } catch (error) {
       console.error('Affiliate generation error:', error);
       toast.error('Failed to generate affiliate link. Please try again.');
     } finally {
-      setIsLoading(false);
+      setIsAffiliateLoading(false);
     }
   };
 
   const calculateEarnings = (sales) => {
-    const earnings = sales * 1250;
+    const earnings = sales * commissionAmount;
     return earnings.toLocaleString('en-NG', {
       style: 'currency',
       currency: 'NGN',
@@ -436,7 +491,7 @@ const ThankYouPage = ({ onBackToHome }) => {
                   <span className="badge badge-yellow animate-pulse mb-4">⚡ WAIT! ONE MORE THING...</span>
                   <h2 className={styles.affiliateTitle}>Want to Earn Your Money Back?</h2>
                   <p className={styles.affiliateSubtitle}>
-                    You just invested ₦2,500. What if you could earn that back (and more) just by sharing this book?
+                    You just invested ₦{purchase?.amount || 2500}. What if you could earn that back (and more) just by sharing this book?
                   </p>
                 </div>
 
@@ -462,7 +517,7 @@ const ThankYouPage = ({ onBackToHome }) => {
                           <div className={styles.checkCircle}>
                             <Icon name="Check" className={styles.smallCheckIcon} />
                           </div>
-                          <span>Earn <strong className={styles.highlightGreen}>₦1,250 (50%)</strong> per sale</span>
+                          <span>Earn <strong className={styles.highlightGreen}>₦{commissionAmount} (50%)</strong> per sale</span>
                         </li>
                         <li className={styles.valueItem}>
                           <div className={styles.checkCircle}>
@@ -486,7 +541,7 @@ const ThankYouPage = ({ onBackToHome }) => {
                         <div className={styles.earningItem}>
                           <div className={styles.earningHeader}>
                             <span className={styles.earningLabel}>Just 2 sales:</span>
-                            <span className={styles.earningAmount}>₦2,500</span>
+                            <span className={styles.earningAmount}>₦{(commissionAmount * 2).toLocaleString()}</span>
                           </div>
                           <p className={styles.earningNote}>Your money back!</p>
                         </div>
@@ -494,7 +549,7 @@ const ThankYouPage = ({ onBackToHome }) => {
                         <div className={styles.earningItem}>
                           <div className={styles.earningHeader}>
                             <span className={styles.earningLabel}>20 sales:</span>
-                            <span className={styles.earningAmount}>₦25,000</span>
+                            <span className={styles.earningAmount}>₦{(commissionAmount * 20).toLocaleString()}</span>
                           </div>
                           <p className={styles.earningNote}>One good Twitter thread</p>
                         </div>
@@ -502,7 +557,7 @@ const ThankYouPage = ({ onBackToHome }) => {
                         <div className={styles.earningItem}>
                           <div className={styles.earningHeader}>
                             <span className={styles.earningLabel}>50 sales:</span>
-                            <span className={styles.earningAmount}>₦62,500</span>
+                            <span className={styles.earningAmount}>₦{(commissionAmount * 50).toLocaleString()}</span>
                           </div>
                           <p className={styles.earningNote}>Consistent sharing</p>
                         </div>
@@ -510,7 +565,7 @@ const ThankYouPage = ({ onBackToHome }) => {
                         <div className={styles.premiumEarning}>
                           <div className={styles.earningHeader}>
                             <span className={styles.premiumLabel}>100 sales:</span>
-                            <span className={styles.premiumAmount}>₦125,000</span>
+                            <span className={styles.premiumAmount}>₦{(commissionAmount * 100).toLocaleString()}</span>
                           </div>
                           <p className={styles.premiumNote}>Our top affiliate last month!</p>
                         </div>
@@ -525,12 +580,12 @@ const ThankYouPage = ({ onBackToHome }) => {
                     <div className={styles.socialAvatar}>T</div>
                     <div>
                       <p className={styles.socialText}>
-                        "I've earned <span className={styles.highlightYellow}>₦47,000 in just 2 months</span> by sharing this book on Twitter. I posted one thread about my mental health journey and how this book helped me. The book basically paid for itself after 2 sales, everything else is pure profit!"
+                        "I've earned <span className={styles.highlightYellow}>₦{(commissionAmount * 37.6).toLocaleString()} in just 2 months</span> by sharing this book on Twitter. I posted one thread about my mental health journey and how this book helped me. The book basically paid for itself after 2 sales, everything else is pure profit!"
                       </p>
                       <p className={styles.socialAuthor}>- Tunde O., Lagos</p>
                       <div className={styles.socialStats}>
                         <span>✓ 38 sales</span>
-                        <span>✓ ₦47,500 earned</span>
+                        <span>✓ ₦{(commissionAmount * 38).toLocaleString()} earned</span>
                         <span>✓ Started 2 months ago</span>
                       </div>
                     </div>
@@ -553,7 +608,7 @@ const ThankYouPage = ({ onBackToHome }) => {
                         value={salesEstimate}
                         onChange={(e) => setSalesEstimate(Number(e.target.value))}
                         className={styles.slider}
-                        disabled={isLoading}
+                        disabled={isAffiliateLoading}
                       />
                       <div className={styles.sliderLabels}>
                         <span>5 sales</span>
@@ -579,21 +634,39 @@ const ThankYouPage = ({ onBackToHome }) => {
                     <div>
                       <div className={styles.signupForm}>
                         <input
+                          type="text"
+                          placeholder="Your name (optional)"
+                          value={affiliateName}
+                          onChange={(e) => setAffiliateName(e.target.value)}
+                          className={`form-input ${styles.nameInput}`}
+                          disabled={isAffiliateLoading}
+                        />
+                        <input
                           type="email"
-                          placeholder="Enter your email address"
+                          placeholder="Enter your email address *"
                           value={affiliateEmail}
                           onChange={(e) => setAffiliateEmail(e.target.value)}
                           className={`form-input ${styles.emailInput}`}
-                          disabled={isLoading}
+                          disabled={isAffiliateLoading}
+                          required
                         />
                         <button
                           onClick={handleGenerateLink}
                           className={`btn btn-green ${styles.generateButton}`}
-                          disabled={isLoading || !affiliateEmail || !affiliateEmail.includes('@')}
+                          disabled={isAffiliateLoading || !affiliateEmail || !affiliateEmail.includes('@')}
                         >
-                          <Icon name="DollarSign" className={styles.dollarIcon} />
-                          <span>{isLoading ? 'Processing...' : 'Generate My Affiliate Link'}</span>
-                          <Icon name="ArrowRight" className={styles.arrowIcon} />
+                          {isAffiliateLoading ? (
+                            <>
+                              <span className="spinner-sm mr-2"></span>
+                              Processing...
+                            </>
+                          ) : (
+                            <>
+                              <Icon name="DollarSign" className={styles.dollarIcon} />
+                              <span>Generate My Affiliate Link</span>
+                              <Icon name="ArrowRight" className={styles.arrowIcon} />
+                            </>
+                          )}
                         </button>
                         <p className={styles.formNote}>
                           No approval needed. Start earning immediately.
@@ -635,6 +708,37 @@ const ThankYouPage = ({ onBackToHome }) => {
                             <Icon name="Copy" className={styles.copyIcon} />
                             <span>{copiedLink ? 'Copied!' : 'Copy'}</span>
                           </button>
+                        </div>
+                      </div>
+
+                      {/* Social Sharing Buttons */}
+                      <div className={styles.socialShareSection}>
+                        <h4 className={styles.shareTitle}>📱 Share Your Link Now:</h4>
+                        <div className={styles.socialShareButtons}>
+                          <a 
+                            href={`https://twitter.com/intent/tweet?text=${encodeURIComponent(`I just earned my money back from this powerful book about mental health in Nigeria. Join me as an affiliate and earn ₦${commissionAmount} per sale!`)}&url=${encodeURIComponent(affiliateLink)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.twitterShareButton}
+                          >
+                            <Icon name="Twitter" /> Twitter
+                          </a>
+                          <a 
+                            href={`https://wa.me/?text=${encodeURIComponent(`I just earned my money back from this powerful book about mental health in Nigeria. Get your affiliate link and earn ₦${commissionAmount} per sale! ${affiliateLink}`)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.whatsappShareButton}
+                          >
+                            <Icon name="MessageCircle" /> WhatsApp
+                          </a>
+                          <a 
+                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(affiliateLink)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={styles.facebookShareButton}
+                          >
+                            <Icon name="Facebook" /> Facebook
+                          </a>
                         </div>
                       </div>
 

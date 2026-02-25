@@ -3,6 +3,7 @@ import { Icon } from '../shared/Icons';
 import styles from './EbookLandingPage.module.css';
 import '../shared/styles.css';
 import PaymentService from '../../services/PaymentService';
+import AffiliateService from '../../services/AffiliateService';
 import GuestCheckoutModal from '../../components/GuestCheckoutModal';
 import { ebookAPI } from '../../services/api';
 import toast from 'react-hot-toast';
@@ -68,9 +69,14 @@ const EbookLandingPage = () => {
   const [hasAccess, setHasAccess] = useState(false);
   const [showReader, setShowReader] = useState(false);
   const [affiliateEmail, setAffiliateEmail] = useState('');
+  const [affiliateName, setAffiliateName] = useState('');
   const [affiliateLink, setAffiliateLink] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isAffiliateLoading, setIsAffiliateLoading] = useState(false);
   const [showGuestCheckout, setShowGuestCheckout] = useState(false);
+  const [affiliateGenerated, setAffiliateGenerated] = useState(false);
+  const [copiedLink, setCopiedLink] = useState(false);
+  const [salesEstimate, setSalesEstimate] = useState(20);
   
   const [reviews, setReviews] = useState([
     {
@@ -122,113 +128,113 @@ const EbookLandingPage = () => {
   });
 
   // Initialize and check for payment callback
-useEffect(() => {
-  const initialize = async () => {
-    // Check for payment callback in URL
-    const urlParams = new URLSearchParams(window.location.search);
-    const reference = urlParams.get('reference') || urlParams.get('trxref');
-    
-    console.log('🔍 Payment callback detected:', { reference, fullUrl: window.location.href });
-    
-    if (reference) {
-      // ⚠️ IMMEDIATELY clean the URL to prevent re-triggering
-      window.history.replaceState({}, document.title, window.location.pathname);
+  useEffect(() => {
+    const initialize = async () => {
+      // Check for payment callback in URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const reference = urlParams.get('reference') || urlParams.get('trxref');
       
-      try {
-        toast.loading('Verifying your payment...');
-        const result = await PaymentService.verifyPayment(reference);
+      console.log('🔍 Payment callback detected:', { reference, fullUrl: window.location.href });
+      
+      if (reference) {
+        // ⚠️ IMMEDIATELY clean the URL to prevent re-triggering
+        window.history.replaceState({}, document.title, window.location.pathname);
         
-        if (result.success) {
-          // Store purchase data
-          const purchaseData = {
-            purchase: result.data,
-            accessCode: result.data.accessCode || "SN-" + Math.random().toString(36).substring(2, 10).toUpperCase(),
-            timestamp: new Date().toISOString()
-          };
-          localStorage.setItem('recent_purchase', JSON.stringify(purchaseData));
+        try {
+          toast.loading('Verifying your payment...');
+          const result = await PaymentService.verifyPayment(reference);
           
-          // Store access code for reading
-          if (result.data.accessCode) {
-            localStorage.setItem(`ebook_access_suicide-note-2026`, result.data.accessCode);
+          if (result.success) {
+            // Store purchase data
+            const purchaseData = {
+              purchase: result.data,
+              accessCode: result.data.accessCode || "SN-" + Math.random().toString(36).substring(2, 10).toUpperCase(),
+              timestamp: new Date().toISOString()
+            };
+            localStorage.setItem('recent_purchase', JSON.stringify(purchaseData));
+            
+            // Store access code for reading
+            if (result.data.accessCode) {
+              localStorage.setItem(`ebook_access_suicide-note-2026`, result.data.accessCode);
+            }
+            
+            console.log('✅ Payment verified, redirecting to thank you page');
+            
+            // Clear any pending toasts
+            toast.dismiss();
+            
+            // Add small delay to ensure localStorage is saved
+            setTimeout(() => {
+              // ⚠️ ALWAYS redirect to production, no matter what
+              window.location.href = 'https://suicidenote.onrender.com/thank-you';
+            }, 300);
+            
+            return;
+          } else {
+            toast.error('Payment verification failed. Please contact support.');
           }
-          
-          console.log('✅ Payment verified, redirecting to thank you page');
-          
-          // ⚠️ CRITICAL: FORCE REDIRECT to production thank you page
-          // Clear any pending toasts
+        } catch (error) {
+          console.error('Payment verification error:', error);
+          toast.error('Failed to verify payment. Please try again.');
+        } finally {
           toast.dismiss();
-          
-          // Add small delay to ensure localStorage is saved
-          setTimeout(() => {
-            // ⚠️ ALWAYS redirect to production, no matter what
-            window.location.href = 'https://suicidenote.onrender.com/thank-you';
-          }, 300);
-          
-          return;
-        } else {
-          toast.error('Payment verification failed. Please contact support.');
         }
-      } catch (error) {
-        console.error('Payment verification error:', error);
-        toast.error('Failed to verify payment. Please try again.');
-      } finally {
-        toast.dismiss();
       }
-    }
+      
+      // Only run these if NOT in a payment callback
+      // Check existing access
+      const savedCode = localStorage.getItem(`ebook_access_suicide-note-2026`);
+      if (savedCode) {
+        setHasAccess(true);
+      }
+      
+      // Track affiliate click if present in URL
+      const affiliateCode = urlParams.get('ref');
+      if (affiliateCode) {
+        const campaign = urlParams.get('campaign');
+        PaymentService.trackAffiliateClick(affiliateCode, campaign);
+      }
+      
+      // Fetch real data in background
+      fetchRealData();
+    };
     
-    // Only run these if NOT in a payment callback
-    // Check existing access
-    const savedCode = localStorage.getItem(`ebook_access_suicide-note-2026`);
-    if (savedCode) {
-      setHasAccess(true);
-    }
-    
-    // Track affiliate click if present in URL
-    const affiliateCode = urlParams.get('ref');
-    if (affiliateCode) {
-      PaymentService.trackAffiliateClick(affiliateCode);
-    }
-    
-    // Fetch real data in background
-    fetchRealData();
-  };
-  
-  initialize();
-}, [navigate]);
+    initialize();
+  }, [navigate]);
 
   // Fetch real data from API
   const fetchRealData = async () => {
-  const ebookId = 'suicide-note-2026';
-  
-  try {
-    const ebookResponse = await ebookAPI.getById(ebookId);
-    console.log('🔍 API Response:', ebookResponse.data); // ADD THIS
+    const ebookId = 'suicide-note-2026';
     
-    if (ebookResponse.data?.success) {
-      const ebook = ebookResponse.data.data.ebook || ebookResponse.data.data;
-      console.log('📦 Ebook data:', ebook); // ADD THIS
-      console.log('💰 Price from API:', ebook.price); // ADD THIS
+    try {
+      const ebookResponse = await ebookAPI.getById(ebookId);
+      console.log('🔍 API Response:', ebookResponse.data);
       
-      // Update stats with real data
-      if (ebook.price || ebook.salesCount || ebook.ratings) {
-        // DON'T use API price if it's 25 - keep your default 2500
-        const apiPrice = ebook.price || ebook.currentPrice;
-        const finalPrice = apiPrice === 25 ? 2500 : (apiPrice || prev.price);
+      if (ebookResponse.data?.success) {
+        const ebook = ebookResponse.data.data.ebook || ebookResponse.data.data;
+        console.log('📦 Ebook data:', ebook);
+        console.log('💰 Price from API:', ebook.price);
         
-        setStats(prev => ({
-          ...prev,
-          readers: ebook.salesCount || ebook.readerCount || prev.readers,
-          rating: ebook.ratings?.average || ebook.averageRating || prev.rating,
-          price: finalPrice,  // Use the corrected price
-          affiliateCommission: Math.floor(finalPrice * (ebook.affiliateCommissionRate || ebook.affiliateRate || 0.5)),
-          affiliateRate: ebook.affiliateCommissionRate || ebook.affiliateRate || 0.5
-        }));
+        // Update stats with real data
+        if (ebook.price || ebook.salesCount || ebook.ratings) {
+          // DON'T use API price if it's 25 - keep your default 2500
+          const apiPrice = ebook.price || ebook.currentPrice;
+          const finalPrice = apiPrice === 25 ? 2500 : (apiPrice || stats.price);
+          
+          setStats(prev => ({
+            ...prev,
+            readers: ebook.salesCount || ebook.readerCount || prev.readers,
+            rating: ebook.ratings?.average || ebook.averageRating || prev.rating,
+            price: finalPrice,
+            affiliateCommission: Math.floor(finalPrice * (ebook.affiliateCommissionRate || ebook.affiliateRate || 0.5)),
+            affiliateRate: ebook.affiliateCommissionRate || ebook.affiliateRate || 0.5
+          }));
+        }
       }
+    } catch (error) {
+      console.log('Using default data');
     }
-  } catch (error) {
-    console.log('Using default data');
-  }
-};
+  };
 
   // Main purchase handler
   const handlePurchase = () => {
@@ -261,180 +267,175 @@ useEffect(() => {
   };
 
   // Access code validation
-// In EbookLandingPage.js, update handleAccessCode:
-const handleAccessCode = async () => {
-  if (!accessCode.trim()) {
-    toast.error('Please enter an access code');
-    return;
-  }
-  
-  console.log('🎬 handleAccessCode started with code:', accessCode);
-  
-  setIsLoading(true);
-  
-  try {
-    const result = await PaymentService.validateAccessCode(accessCode, 'suicide-note-2026');
-    console.log('🔑 Validation result:', result);
-    
-    if (result.success) {
-      console.log('✅ Access granted!');
-      
-      const cleanCode = accessCode.trim().toUpperCase();
-      localStorage.setItem(`ebook_access_suicide-note-2026`, cleanCode);
-      
-      // ⚠️ CRITICAL: Try multiple navigation methods
-      console.log('🧭 Attempting navigation methods...');
-      
-      // Method 1: Direct URL (always works)
-      console.log('Method 1: Direct URL redirect');
-      window.location.href = `/read/suicide-note-2026?accessCode=${cleanCode}&validated=true`;
-      
-      // Method 2: navigate with state (fallback)
-      setTimeout(() => {
-        console.log('Method 2: Using navigate()');
-        navigate(`/read/suicide-note-2026`, {
-          state: {
-            accessCode: cleanCode,
-            validationData: result.data,
-            timestamp: new Date().toISOString()
-          },
-          replace: true
-        });
-      }, 100);
-      
-      // Method 3: Programmatic navigation
-      setTimeout(() => {
-        console.log('Method 3: History API');
-        window.history.pushState(
-          { accessCode: cleanCode },
-          '',
-          `/read/suicide-note-2026`
-        );
-        window.dispatchEvent(new PopStateEvent('popstate'));
-      }, 200);
-      
-      toast.success('Access granted! Redirecting...');
-      
-    } else {
-      console.error('❌ Access denied:', result.error);
-      toast.error(result.error || 'Invalid access code');
-      setAccessCode('');
-    }
-  } catch (error) {
-    console.error('🔥 Validation error:', error);
-    toast.error('Failed to validate access code');
-  } finally {
-    setIsLoading(false);
-  }
-};
-
-// Also update the useEffect that checks for existing access to include navigation
-// In EbookLandingPage.js, update the useEffect that handles payment verification:
-// In your Reader component (wherever you render the ebook)
-useEffect(() => {
-  const checkAccess = () => {
-    // Get access code from localStorage or URL state
-    const storedCode = localStorage.getItem('ebook_access_suicide-note-2026');
-    const stateCode = location.state?.accessCode;
-    
-    console.log('🔒 [Reader] Access check:', {
-      storedCode,
-      stateCode,
-      hasState: !!location.state
-    });
-    
-    // If no valid access, redirect back to homepage
-    if (!storedCode && !stateCode) {
-      console.error('🚫 [Reader] No access code found - redirecting to homepage');
-      toast.error('Access denied. Please enter a valid access code.');
-      
-      // ✅ PATCH: Force redirect to production homepage
-      // Clear any localhost references
-      const currentHost = window.location.hostname;
-      
-      if (currentHost.includes('localhost') || currentHost.includes('5173')) {
-        // We're on localhost - redirect to production
-        window.location.href = 'https://suicidenote.onrender.com';
-      } else {
-        // Already on production - redirect to homepage
-        navigate('/');
-      }
+  const handleAccessCode = async () => {
+    if (!accessCode.trim()) {
+      toast.error('Please enter an access code');
       return;
     }
     
-    // If codes don't match, something is wrong
-    if (storedCode && stateCode && storedCode !== stateCode) {
-      console.error('🚫 [Reader] Access code mismatch - redirecting');
-      toast.error('Access verification failed. Please try again.');
-      
-      // ✅ PATCH: Force redirect to production homepage
-      const currentHost = window.location.hostname;
-      
-      if (currentHost.includes('localhost') || currentHost.includes('5173')) {
-        window.location.href = 'https://suicidenote.onrender.com';
-      } else {
-        navigate('/');
-      }
-      return;
-    }
+    console.log('🎬 handleAccessCode started with code:', accessCode);
     
-    // ✅ If we get here, access is valid
-    console.log('✅ [Reader] Access granted, loading content...');
+    setIsLoading(true);
+    
+    try {
+      const result = await PaymentService.validateAccessCode(accessCode, 'suicide-note-2026');
+      console.log('🔑 Validation result:', result);
+      
+      if (result.success) {
+        console.log('✅ Access granted!');
+        
+        const cleanCode = accessCode.trim().toUpperCase();
+        localStorage.setItem(`ebook_access_suicide-note-2026`, cleanCode);
+        
+        // ⚠️ CRITICAL: Try multiple navigation methods
+        console.log('🧭 Attempting navigation methods...');
+        
+        // Method 1: Direct URL (always works)
+        console.log('Method 1: Direct URL redirect');
+        window.location.href = `/read/suicide-note-2026?accessCode=${cleanCode}&validated=true`;
+        
+        // Method 2: navigate with state (fallback)
+        setTimeout(() => {
+          console.log('Method 2: Using navigate()');
+          navigate(`/read/suicide-note-2026`, {
+            state: {
+              accessCode: cleanCode,
+              validationData: result.data,
+              timestamp: new Date().toISOString()
+            },
+            replace: true
+          });
+        }, 100);
+        
+        // Method 3: Programmatic navigation
+        setTimeout(() => {
+          console.log('Method 3: History API');
+          window.history.pushState(
+            { accessCode: cleanCode },
+            '',
+            `/read/suicide-note-2026`
+          );
+          window.dispatchEvent(new PopStateEvent('popstate'));
+        }, 200);
+        
+        toast.success('Access granted! Redirecting...');
+        
+      } else {
+        console.error('❌ Access denied:', result.error);
+        toast.error(result.error || 'Invalid access code');
+        setAccessCode('');
+      }
+    } catch (error) {
+      console.error('🔥 Validation error:', error);
+      toast.error('Failed to validate access code');
+    } finally {
+      setIsLoading(false);
+    }
   };
-  
-  checkAccess();
-}, [navigate, location]);
 
-// Add a helper function for direct reader navigation
-const navigateToReader = (code) => {
-  if (!code) return;
-  
-  // Store the access code
-  localStorage.setItem(`ebook_access_suicide-note-2026`, code);
-  
-  // Set states
-  setHasAccess(true);
-  setAccessCode(code);
-  setShowReader(true);
-  
-  // Optional: Set a flag to prevent auto-redirect on next page load
-  localStorage.setItem('reader_visited', 'true');
-};
-
-  // Simple affiliate handler - just show modal
-  const handleAffiliate = () => {
+  // Affiliate handler - register and generate link
+  const handleAffiliate = async () => {
     if (!affiliateEmail) {
       toast.error('Please enter your email address');
       return;
     }
     
-    // Store email and generate simple link
-    const uniqueId = Math.random().toString(36).substring(7);
-    const link = `${window.location.origin}/?ref=${uniqueId}`;
-    setAffiliateLink(link);
+    if (!affiliateEmail.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
     
-    // Store affiliate info
-    const affiliateData = {
-      email: affiliateEmail,
-      link: link,
-      createdAt: new Date().toISOString(),
-      sales: 0,
-      earnings: 0
-    };
+    setIsAffiliateLoading(true);
     
-    const existingAffiliates = JSON.parse(localStorage.getItem('affiliates') || '[]');
-    existingAffiliates.push(affiliateData);
-    localStorage.setItem('affiliates', JSON.stringify(existingAffiliates));
-    
-    toast.success('Affiliate link generated! Share it to earn commissions.');
+    try {
+      console.log('🔗 Generating affiliate link for:', affiliateEmail);
+      
+      // First, check if user is already an affiliate
+      const status = await AffiliateService.checkAffiliateStatus();
+      
+      let result;
+      
+      if (!status.isAffiliate) {
+        // Register as affiliate
+        result = await AffiliateService.registerAffiliate();
+        
+        if (!result.success) {
+          toast.error(result.error || 'Failed to register as affiliate');
+          return;
+        }
+      }
+      
+      // Get dashboard data to get affiliate link
+      const dashboard = await AffiliateService.getDashboard();
+      
+      if (dashboard.success && dashboard.data) {
+        const affiliateData = dashboard.data.affiliate;
+        const link = affiliateData.link || AffiliateService.generateShareLink(affiliateData.code);
+        
+        setAffiliateLink(link);
+        setAffiliateGenerated(true);
+        
+        // Save affiliate info to localStorage
+        localStorage.setItem('affiliate_info', JSON.stringify({
+          affiliateCode: affiliateData.code,
+          email: affiliateEmail,
+          name: affiliateName,
+          link: link,
+          generatedAt: new Date().toISOString()
+        }));
+        
+        toast.success('🎉 Affiliate link generated successfully!');
+        
+        // Scroll to generated link section
+        setTimeout(() => {
+          const element = document.getElementById('affiliate-link-section');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      } else {
+        // Fallback to generating local link
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 8).toUpperCase();
+        const mockAffiliateId = `AFF${timestamp.toString(36).toUpperCase()}${randomId}`;
+        const link = AffiliateService.generateShareLink(mockAffiliateId);
+        
+        setAffiliateLink(link);
+        setAffiliateGenerated(true);
+        
+        localStorage.setItem('affiliate_info', JSON.stringify({
+          affiliateCode: mockAffiliateId,
+          email: affiliateEmail,
+          name: affiliateName,
+          link: link,
+          generatedAt: new Date().toISOString()
+        }));
+        
+        toast.success('Affiliate link generated!');
+      }
+      
+    } catch (error) {
+      console.error('Affiliate generation error:', error);
+      toast.error('Failed to generate affiliate link. Please try again.');
+    } finally {
+      setIsAffiliateLoading(false);
+    }
   };
 
   // Copy affiliate link to clipboard
   const copyAffiliateLink = () => {
     if (affiliateLink) {
       navigator.clipboard.writeText(affiliateLink);
+      setCopiedLink(true);
+      setTimeout(() => setCopiedLink(false), 2000);
       toast.success('Link copied to clipboard!');
     }
+  };
+
+  // Calculate earnings based on sales estimate
+  const calculateEarnings = (sales) => {
+    const earnings = sales * stats.affiliateCommission;
+    return `₦${earnings.toLocaleString()}`;
   };
 
   // Render ebook content
@@ -524,7 +525,7 @@ const navigateToReader = (code) => {
         isOpen={showGuestCheckout}
         onClose={() => setShowGuestCheckout(false)}
         onSuccess={handleGuestCheckoutSuccess}
-        ebookId="suicide-note-2026" // ← ADD THIS LINE
+        ebookId="suicide-note-2026"
         ebookPrice={stats.price}
         ebookTitle="Suicide Note"
         affiliateCode={new URLSearchParams(window.location.search).get('ref')}
@@ -543,6 +544,7 @@ const navigateToReader = (code) => {
               <a href="#preview" className={styles.navLink}>Preview</a>
               <a href="#reviews" className={styles.navLink}>Reviews</a>
               <a href="#faq" className={styles.navLink}>FAQ</a>
+              <a href="#affiliate" className={styles.navLink}>Affiliate</a>
               <button 
                 onClick={handlePurchase} 
                 className="btn btn-primary"
@@ -568,6 +570,7 @@ const navigateToReader = (code) => {
               <a href="#preview" className={styles.mobileNavLink}>Preview</a>
               <a href="#reviews" className={styles.mobileNavLink}>Reviews</a>
               <a href="#faq" className={styles.mobileNavLink}>FAQ</a>
+              <a href="#affiliate" className={styles.mobileNavLink}>Affiliate</a>
               <button 
                 onClick={handlePurchase} 
                 className="btn btn-primary w-full"
@@ -580,7 +583,6 @@ const navigateToReader = (code) => {
         )}
       </nav>
 
-      {/* Rest of your UI remains exactly the same */}
       {/* Hero Section */}
       <section className={styles.hero}>
         <div className="container">
@@ -764,7 +766,7 @@ const navigateToReader = (code) => {
       </section>
 
       {/* Affiliate Section */}
-      <section className={styles.affiliateSection}>
+      <section id="affiliate" className={styles.affiliateSection}>
         <div className="container">
           <div className="text-center">
             <span className="badge badge-green">💰 Earn ₦{stats.affiliateCommission.toLocaleString()} Per Sale</span>
@@ -828,41 +830,130 @@ const navigateToReader = (code) => {
                 </p>
               </div>
               
-              <div className={styles.affiliateForm}>
+              <div className={styles.affiliateForm} id="affiliate-link-section">
                 <h3 className={styles.formTitle}>Get Your Affiliate Link Now</h3>
-                <div className={styles.formGroup}>
-                  <input
-                    type="email"
-                    placeholder="Enter your email"
-                    value={affiliateEmail}
-                    onChange={(e) => setAffiliateEmail(e.target.value)}
-                    className="form-input"
-                    disabled={isLoading}
-                  />
-                  <button 
-                    onClick={handleAffiliate} 
-                    className="btn btn-green"
-                    disabled={isLoading}
-                  >
-                    {isLoading ? 'Processing...' : 'Get My Link →'}
-                  </button>
-                </div>
-                {affiliateLink && (
-                  <div className={styles.linkBox}>
-                    <p className={styles.linkLabel}>Your affiliate link:</p>
-                    <code className={styles.linkCode}>{affiliateLink}</code>
-                    <button
-                      onClick={copyAffiliateLink}
-                      className={styles.copyButtonSmall}
+                
+                {!affiliateGenerated ? (
+                  <>
+                    <div className={styles.formGroup}>
+                      <input
+                        type="text"
+                        placeholder="Your name (optional)"
+                        value={affiliateName}
+                        onChange={(e) => setAffiliateName(e.target.value)}
+                        className="form-input"
+                        disabled={isAffiliateLoading}
+                      />
+                    </div>
+                    <div className={styles.formGroup}>
+                      <input
+                        type="email"
+                        placeholder="Enter your email *"
+                        value={affiliateEmail}
+                        onChange={(e) => setAffiliateEmail(e.target.value)}
+                        className="form-input"
+                        disabled={isAffiliateLoading}
+                        required
+                      />
+                    </div>
+                    <button 
+                      onClick={handleAffiliate} 
+                      className="btn btn-green"
+                      disabled={isAffiliateLoading || !affiliateEmail || !affiliateEmail.includes('@')}
                     >
-                      <Icon name="Copy" /> Copy
+                      {isAffiliateLoading ? (
+                        <>
+                          <span className="spinner-sm mr-2"></span>
+                          Processing...
+                        </>
+                      ) : (
+                        'Get My Affiliate Link →'
+                      )}
                     </button>
-                    <p className={styles.linkNote}>Share this link and earn ₦{stats.affiliateCommission.toLocaleString()} per sale!</p>
+                    <p className={styles.formNote}>
+                      No approval process. Start earning immediately.
+                    </p>
+                  </>
+                ) : (
+                  <div className={styles.linkBox}>
+                    <p className={styles.linkLabel}>🎉 Your affiliate link is ready!</p>
+                    <code className={styles.linkCode}>{affiliateLink}</code>
+                    <div className={styles.linkActions}>
+                      <button
+                        onClick={copyAffiliateLink}
+                        className={styles.copyButtonLarge}
+                      >
+                        <Icon name="Copy" /> {copiedLink ? 'Copied!' : 'Copy Link'}
+                      </button>
+                    </div>
+                    
+                    {/* Social sharing buttons */}
+                    <div className={styles.socialShare}>
+                      <p className={styles.shareLabel}>Share on:</p>
+                      <div className={styles.socialButtons}>
+                        <a 
+                          href={`https://twitter.com/intent/tweet?text=${encodeURIComponent('I just earned from sharing this powerful book about mental health in Nigeria. Join me as an affiliate and earn 50% commission!')}&url=${encodeURIComponent(affiliateLink)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.twitterShare}
+                        >
+                          <Icon name="Twitter" /> Twitter
+                        </a>
+                        <a 
+                          href={`https://wa.me/?text=${encodeURIComponent(`Check out this powerful book about mental health in Nigeria. I'm earning as an affiliate and you can too! ${affiliateLink}`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.whatsappShare}
+                        >
+                          <Icon name="MessageCircle" /> WhatsApp
+                        </a>
+                        <a 
+                          href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(affiliateLink)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={styles.facebookShare}
+                        >
+                          <Icon name="Facebook" /> Facebook
+                        </a>
+                      </div>
+                    </div>
+                    
+                    {/* Earnings calculator */}
+                    <div className={styles.calculator}>
+                      <h4 className={styles.calculatorTitle}>💰 Estimate Your Earnings</h4>
+                      <div className={styles.sliderContainer}>
+                        <label className={styles.sliderLabel}>
+                          How many sales per month?
+                        </label>
+                        <input
+                          type="range"
+                          min="5"
+                          max="100"
+                          step="5"
+                          value={salesEstimate}
+                          onChange={(e) => setSalesEstimate(Number(e.target.value))}
+                          className={styles.slider}
+                        />
+                        <div className={styles.sliderLabels}>
+                          <span>5 sales</span>
+                          <span>100 sales</span>
+                        </div>
+                      </div>
+                      
+                      <div className={styles.earningsDisplay}>
+                        <div className={styles.earningsAmount}>{calculateEarnings(salesEstimate)}</div>
+                        <p className={styles.earningsText}>per month with {salesEstimate} sales</p>
+                      </div>
+                    </div>
+                    
+                    <p className={styles.linkNote}>
+                      Share this link and earn ₦{stats.affiliateCommission.toLocaleString()} per sale! We'll email you tracking updates and payout information.
+                    </p>
+                    <p className={styles.emailConfirmation}>
+                      <small>We've sent a confirmation to <strong>{affiliateEmail}</strong></small>
+                    </p>
                   </div>
                 )}
-                <p className={styles.formNote}>
-                  No approval process. Start earning immediately.
-                </p>
               </div>
             </div>
           </div>

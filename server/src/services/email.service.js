@@ -7,6 +7,7 @@ class EmailService {
   }
 
   async sendVerificationEmail(to, token, name = 'there') {
+    console.log(`📧 Sending verification email to: ${to}`);
     const verificationUrl = `${process.env.CLIENT_URL}/verify-email?token=${token}`;
     
     const htmlContent = `
@@ -51,6 +52,7 @@ class EmailService {
   }
 
   async sendWelcomeEmail(to, name = 'there') {
+    console.log(`📧 Sending welcome email to: ${to}`);
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -110,12 +112,12 @@ class EmailService {
   }
 
   /**
-   * Send Access Code Email via Brevo API - FIXED with proper name handling
+   * Send Access Code Email via Brevo API
    */
   async sendAccessCodeEmail(to, name, accessCode, ebook) {
+    console.log(`📧 Sending access code email to: ${to}`);
     const frontendUrl = process.env.FRONTEND_URL || process.env.CLIENT_URL || 'https://suicidenote.onrender.com';
     
-    // This link will validate the code and redirect to dashboard
     const accessUrl = `${frontendUrl}/access/${ebook.slug || ebook._id}?code=${accessCode}`;
     
     const htmlContent = `
@@ -183,6 +185,7 @@ class EmailService {
   }
 
   async sendFreeAccessEmail(to, name, accessCode, ebook, customMessage) {
+    console.log(`📧 Sending free access email to: ${to}`);
     const frontendUrl = process.env.FRONTEND_URL || 'https://suicidenote.onrender.com';
     const accessUrl = `${frontendUrl}/access/${ebook.slug || ebook._id}?code=${accessCode}`;
     
@@ -244,6 +247,7 @@ class EmailService {
   }
 
   async sendPurchaseConfirmationEmail(to, name, purchase, accessCode) {
+    console.log(`📧 Sending purchase confirmation email to: ${to}`);
     const formattedAmount = new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: purchase.currency || 'NGN',
@@ -315,6 +319,9 @@ class EmailService {
   }
 
   async sendAffiliateWelcomeEmail(to, name, affiliate) {
+    console.log(`📧 Sending affiliate welcome email to: ${to}`);
+    console.log(`📧 Affiliate details:`, { code: affiliate.affiliateCode, link: affiliate.referralLink });
+    
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -327,6 +334,10 @@ class EmailService {
           .link-box { background: white; padding: 15px; border: 2px solid #059669; border-radius: 5px; margin: 20px 0; font-family: monospace; word-break: break-all; }
           .button { display: inline-block; background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; }
           .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+          .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
+          .stat-card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+          .stat-value { font-size: 24px; font-weight: bold; color: #059669; }
+          .stat-label { font-size: 12px; color: #666; }
         </style>
       </head>
       <body>
@@ -336,39 +347,58 @@ class EmailService {
           </div>
           <div class="content">
             <h2>Hi ${name},</h2>
-            <p>Congratulations! You're now part of the Suicide Note affiliate program.</p>
+            <p>Congratulations! You're now part of the Suicide Note affiliate program. We're excited to have you on board!</p>
             
             <h3>Your Affiliate Details:</h3>
             <ul>
               <li><strong>Affiliate Code:</strong> ${affiliate.affiliateCode}</li>
               <li><strong>Commission Rate:</strong> ${(affiliate.commissionRate * 100)}%</li>
-              <li><strong>Commission per Sale:</strong> ₦1,250</li>
+              <li><strong>Commission per Sale:</strong> ₦1,250 (based on ₦2,500 ebook price)</li>
             </ul>
             
             <h3>Your Unique Affiliate Link:</h3>
             <div class="link-box">${affiliate.referralLink}</div>
             
+            <h3>Quick Stats Preview:</h3>
+            <div class="stats-grid">
+              <div class="stat-card">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Clicks</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">0</div>
+                <div class="stat-label">Referrals</div>
+              </div>
+              <div class="stat-card">
+                <div class="stat-value">₦0</div>
+                <div class="stat-label">Earnings</div>
+              </div>
+            </div>
+            
             <h3>How to Start Earning:</h3>
             <ol>
-              <li>Share your affiliate link on social media</li>
-              <li>Include it in your blog posts or emails</li>
-              <li>Share with friends and family</li>
-              <li>Track your earnings in your dashboard</li>
+              <li><strong>Share your link:</strong> Share your unique affiliate link on social media, blogs, or with friends</li>
+              <li><strong>Track performance:</strong> Monitor clicks, conversions, and earnings in your dashboard</li>
+              <li><strong>Get paid:</strong> Request payouts when you reach the ₦5,000 minimum threshold</li>
             </ol>
             
-            <p style="text-align: center;">
+            <p style="text-align: center; margin: 30px 0;">
               <a href="${process.env.CLIENT_URL}/affiliate/dashboard" class="button">Go to Your Dashboard</a>
             </p>
             
             <div style="background: #e7f3ff; padding: 15px; border-left: 4px solid #1890ff; margin: 20px 0;">
               <strong>💡 Pro Tip:</strong>
-              <p>Share your personal story about how the book helped you. Authentic recommendations convert better!</p>
+              <p>Share your personal story about how the book helped you. Authentic recommendations convert better than generic links!</p>
             </div>
             
-            <p>Minimum payout: ₦5,000</p>
-            <p>Payouts are processed within 7 days of request.</p>
+            <p><strong>Payout Information:</strong></p>
+            <ul>
+              <li>Minimum payout: ₦5,000</li>
+              <li>Payouts are processed within 7 days of request</li>
+              <li>Payments are made via bank transfer through Paystack</li>
+            </ul>
             
-            <p>If you have any questions, reply to this email.</p>
+            <p>If you have any questions, reply to this email or visit your dashboard for support.</p>
             
             <p>Happy earning!</p>
             <p><strong>The Suicide Note Team</strong></p>
@@ -382,10 +412,11 @@ class EmailService {
       </html>
     `;
 
-    return this.sendEmailViaBrevo(to, 'Welcome to the Suicide Note Affiliate Program!', htmlContent);
+    return this.sendEmailViaBrevo(to, '🎉 Welcome to the Suicide Note Affiliate Program!', htmlContent);
   }
 
   async sendAffiliateCommissionEmail(to, name, purchase, commissionAmount) {
+    console.log(`📧 Sending affiliate commission email to: ${to}`);
     const formattedCommission = new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
@@ -408,27 +439,28 @@ class EmailService {
       <body>
         <div class="container">
           <div class="header">
-            <h1>🎉 New Sale Through Your Link!</h1>
+            <h1>💰 New Commission Earned!</h1>
           </div>
           <div class="content">
             <h2>Hi ${name},</h2>
-            <p>Great news! Someone purchased "Suicide Note" through your affiliate link!</p>
+            <p>Great news! Someone just purchased <strong>"Suicide Note"</strong> through your affiliate link!</p>
             
             <div class="commission">${formattedCommission} Earned!</div>
             
             <h3>Sale Details:</h3>
             <ul>
-              <li><strong>Commission:</strong> ${formattedCommission}</li>
+              <li><strong>Commission Amount:</strong> ${formattedCommission}</li>
               <li><strong>Sale Reference:</strong> ${purchase.transactionReference}</li>
               <li><strong>Date:</strong> ${new Date().toLocaleDateString()}</li>
+              <li><strong>Time:</strong> ${new Date().toLocaleTimeString()}</li>
             </ul>
             
             <p style="text-align: center;">
-              <a href="${process.env.CLIENT_URL}/affiliate/dashboard" class="button">View Your Earnings</a>
+              <a href="${process.env.CLIENT_URL}/affiliate/dashboard" class="button">View Your Earnings Dashboard</a>
             </p>
             
             <div style="background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0;">
-              <strong>💰 Your Total Earnings:</strong>
+              <strong>💰 Your Updated Earnings:</strong>
               <p>Keep sharing your link to earn more! Remember, you need ₦5,000 minimum to request a payout.</p>
             </div>
             
@@ -448,6 +480,7 @@ class EmailService {
   }
 
   async sendPasswordResetEmail(to, token) {
+    console.log(`📧 Sending password reset email to: ${to}`);
     const resetUrl = `${process.env.CLIENT_URL}/reset-password?token=${token}`;
     
     const htmlContent = `
@@ -498,6 +531,7 @@ class EmailService {
   }
 
   async sendPasswordChangedEmail(to) {
+    console.log(`📧 Sending password changed email to: ${to}`);
     const htmlContent = `
       <!DOCTYPE html>
       <html>
@@ -553,6 +587,7 @@ class EmailService {
   }
 
   async sendRefundConfirmationEmail(to, name, purchase, reason) {
+    console.log(`📧 Sending refund confirmation email to: ${to}`);
     const formattedAmount = new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: purchase.currency || 'NGN',
@@ -616,6 +651,7 @@ class EmailService {
   }
 
   async sendPayoutConfirmationEmail(to, name, amount, reference) {
+    console.log(`📧 Sending payout confirmation email to: ${to}`);
     const formattedAmount = new Intl.NumberFormat('en-NG', {
       style: 'currency',
       currency: 'NGN',
@@ -650,6 +686,7 @@ class EmailService {
               <li><strong>Amount:</strong> ${formattedAmount}</li>
               <li><strong>Reference:</strong> ${reference}</li>
               <li><strong>Date:</strong> ${new Date().toLocaleDateString()}</li>
+              <li><strong>Time:</strong> ${new Date().toLocaleTimeString()}</li>
               <li><strong>Method:</strong> Bank Transfer via Paystack</li>
             </ul>
             
@@ -683,6 +720,7 @@ class EmailService {
   async sendEmailViaBrevo(to, subject, htmlContent) {
     try {
       console.log(`📧 Sending email via Brevo API to: ${to}`);
+      console.log(`📧 Subject: ${subject}`);
       
       const response = await fetch('https://api.brevo.com/v3/smtp/email', {
         method: 'POST',

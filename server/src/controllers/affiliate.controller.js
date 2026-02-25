@@ -232,7 +232,7 @@ const affiliateController = {
         clicks: c.clicks,
         conversions: c.conversions,
         earnings: c.earnings,
-        formattedEarnings: formatCurrency(c.earnings),
+        formattedEarnings: this.formatCurrency(c.earnings),
         conversionRate: c.clicks > 0 ? (c.conversions / c.clicks * 100).toFixed(1) : 0,
         createdAt: c.createdAt,
       }));
@@ -307,11 +307,18 @@ const affiliateController = {
   },
 
   /**
-   * Request payout
+   * Request payout - FIXED to use the service correctly
    */
   async requestPayout(req, res) {
     try {
       const { amount } = req.body;
+      
+      if (!amount || amount <= 0) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Valid amount is required' 
+        });
+      }
       
       const result = await AffiliateService.requestPayout(req.affiliate._id, amount);
       
@@ -431,6 +438,42 @@ const affiliateController = {
     }
   },
 
+  /**
+   * Test affiliate email (admin only)
+   */
+  async testAffiliateEmail(req, res) {
+    try {
+      const { email } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ success: false, error: 'Email is required' });
+      }
+      
+      // Create a mock affiliate object
+      const mockAffiliate = {
+        affiliateCode: 'TEST123',
+        referralLink: `${process.env.CLIENT_URL || 'https://suicidenote.onrender.com'}/?ref=TEST123`,
+        commissionRate: 0.5
+      };
+      
+      const emailService = require('../services/email.service');
+      const result = await emailService.sendAffiliateWelcomeEmail(
+        email,
+        'Test User',
+        mockAffiliate
+      );
+      
+      return res.status(200).json({
+        success: result,
+        message: result ? '✅ Test email sent successfully' : '❌ Failed to send test email',
+        email
+      });
+    } catch (error) {
+      console.error('Test affiliate email error:', error);
+      return res.status(500).json({ success: false, error: error.message });
+    }
+  },
+
   // Helper functions
   async getEarningsThisMonth(affiliateId) {
     const start = new Date();
@@ -452,7 +495,7 @@ const affiliateController = {
     
     return {
       amount: earnings,
-      formatted: formatCurrency(earnings),
+      formatted: this.formatCurrency(earnings),
     };
   },
 
@@ -476,18 +519,18 @@ const affiliateController = {
     
     return {
       amount: earnings,
-      formatted: formatCurrency(earnings),
+      formatted: this.formatCurrency(earnings),
     };
   },
-};
 
-// Helper function to format currency
-function formatCurrency(amount) {
-  const formatter = new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-  });
-  return formatter.format(amount / 100);
-}
+  // Helper function to format currency
+  formatCurrency(amount) {
+    const formatter = new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+    });
+    return formatter.format(amount / 100);
+  }
+};
 
 module.exports = affiliateController;

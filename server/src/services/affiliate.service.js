@@ -49,7 +49,9 @@ class AffiliateService {
       await user.save();
       
       // Send affiliate welcome email
-      await emailService.sendAffiliateWelcomeEmail(user.email, user.name, affiliate);
+      console.log(`📧 Attempting to send affiliate welcome email to: ${user.email}`);
+      const emailResult = await emailService.sendAffiliateWelcomeEmail(user.email, user.name, affiliate);
+      console.log(`📧 Email send result:`, emailResult ? '✅ Success' : '❌ Failed');
       
       winston.info(`Affiliate account created: ${user.email}, Code: ${affiliateCode}`);
       
@@ -57,6 +59,7 @@ class AffiliateService {
         success: true,
         message: 'Affiliate account created successfully',
         affiliate,
+        emailSent: emailResult
       };
     } catch (error) {
       winston.error('Create affiliate error:', error);
@@ -134,9 +137,9 @@ class AffiliateService {
           total: affiliate.totalEarnings,
           pending: affiliate.pendingEarnings,
           paid: affiliate.paidEarnings,
-          formattedTotal: formatCurrency(affiliate.totalEarnings),
-          formattedPending: formatCurrency(affiliate.pendingEarnings),
-          formattedPaid: formatCurrency(affiliate.paidEarnings),
+          formattedTotal: this.formatCurrency(affiliate.totalEarnings),
+          formattedPending: this.formatCurrency(affiliate.pendingEarnings),
+          formattedPaid: this.formatCurrency(affiliate.paidEarnings),
         },
         stats: {
           totalClicks: affiliate.clicks,
@@ -150,9 +153,9 @@ class AffiliateService {
         payout: {
           canRequest: canRequestPayout,
           nextAmount: nextPayoutAmount,
-          formattedNextAmount: formatCurrency(nextPayoutAmount),
+          formattedNextAmount: this.formatCurrency(nextPayoutAmount),
           threshold: affiliate.paymentThreshold,
-          formattedThreshold: formatCurrency(affiliate.paymentThreshold),
+          formattedThreshold: this.formatCurrency(affiliate.paymentThreshold),
           bankDetailsSet: !!(affiliate.bankDetails?.accountNumber && affiliate.bankDetails?.bankCode),
         },
         performance: affiliate.performance,
@@ -247,7 +250,7 @@ class AffiliateService {
       }
       
       // Generate campaign link
-      const campaignLink = generateCampaignLink(affiliate.affiliateCode, name, { medium, source });
+      const campaignLink = this.generateCampaignLink(affiliate.affiliateCode, name, { medium, source });
       
       // Add campaign
       affiliate.campaigns.push({
@@ -336,8 +339,8 @@ class AffiliateService {
           earnings: campaign.earnings,
           conversionRate,
           avgOrderValue,
-          formattedEarnings: formatCurrency(campaign.earnings),
-          formattedAvgOrderValue: formatCurrency(avgOrderValue),
+          formattedEarnings: this.formatCurrency(campaign.earnings),
+          formattedAvgOrderValue: this.formatCurrency(avgOrderValue),
         },
         recentPurchases: campaignPurchases.slice(0, 10),
         totalPurchases: campaignPurchases.length,
@@ -416,7 +419,7 @@ class AffiliateService {
     }
   }
 
-  // Request payout
+  // Request payout - FIXED VERSION with proper error handling and email
   async requestPayout(affiliateId, amount) {
     try {
       const affiliate = await Affiliate.findById(affiliateId)
@@ -433,7 +436,7 @@ class AffiliateService {
       if (amount < affiliate.paymentThreshold) {
         return {
           success: false,
-          error: `Minimum payout amount is ${formatCurrency(affiliate.paymentThreshold)}`,
+          error: `Minimum payout amount is ${this.formatCurrency(affiliate.paymentThreshold)}`,
         };
       }
       
@@ -471,14 +474,16 @@ class AffiliateService {
       await affiliate.save();
       
       // Send payout confirmation email
-      await emailService.sendPayoutConfirmationEmail(
+      console.log(`📧 Sending payout confirmation email to: ${affiliate.user.email}`);
+      const emailResult = await emailService.sendPayoutConfirmationEmail(
         affiliate.user.email,
         affiliate.user.name,
         amount,
         payoutResult.data.reference
       );
+      console.log(`📧 Payout email result:`, emailResult ? '✅ Success' : '❌ Failed');
       
-      winston.info(`Payout processed for affiliate ${affiliate.affiliateCode}: ${formatCurrency(amount)}`);
+      winston.info(`Payout processed for affiliate ${affiliate.affiliateCode}: ${this.formatCurrency(amount)}`);
       
       return {
         success: true,
@@ -488,6 +493,7 @@ class AffiliateService {
           reference: payoutResult.data.reference,
           newPending: affiliate.pendingEarnings,
           newPaid: affiliate.paidEarnings,
+          emailSent: emailResult
         },
       };
     } catch (error) {
@@ -593,11 +599,11 @@ class AffiliateService {
           totalCommission,
           conversionRate,
           earningsPerClick,
-          formattedRevenue: formatCurrency(totalRevenue),
-          formattedCommission: formatCurrency(totalCommission),
+          formattedRevenue: this.formatCurrency(totalRevenue),
+          formattedCommission: this.formatCurrency(totalCommission),
         },
         dailyBreakdown: dailyData,
-        topProducts: getTopProducts(purchases),
+        topProducts: this.getTopProducts(purchases),
         recentActivity: purchases.slice(0, 10),
         campaigns: affiliate.campaigns.map(campaign => ({
           name: campaign.name,
@@ -678,8 +684,8 @@ class AffiliateService {
               totalSales: affiliate.successfulReferrals,
               periodEarnings,
               periodSales,
-              formattedTotalEarnings: formatCurrency(affiliate.totalEarnings),
-              formattedPeriodEarnings: formatCurrency(periodEarnings),
+              formattedTotalEarnings: this.formatCurrency(affiliate.totalEarnings),
+              formattedPeriodEarnings: this.formatCurrency(periodEarnings),
             },
           };
         })
@@ -842,59 +848,59 @@ class AffiliateService {
       };
     }
   }
-}
 
-// Helper function to format currency
-function formatCurrency(amount) {
-  const formatter = new Intl.NumberFormat('en-NG', {
-    style: 'currency',
-    currency: 'NGN',
-  });
-  return formatter.format(amount / 100);
-}
+  // Helper function to format currency
+  formatCurrency(amount) {
+    const formatter = new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+    });
+    return formatter.format(amount / 100);
+  }
 
-// Helper function to generate campaign link
-function generateCampaignLink(affiliateCode, campaignName, params = {}) {
-  const baseUrl = process.env.CLIENT_URL || 'https://suicidenote.com';
-  const url = new URL(`${baseUrl}/?ref=${affiliateCode}`);
-  
-  url.searchParams.set('campaign', campaignName);
-  
-  Object.entries(params).forEach(([key, value]) => {
-    if (value) {
-      url.searchParams.set(key, value);
-    }
-  });
-  
-  return url.toString();
-}
-
-// Helper function to get top products
-function getTopProducts(purchases) {
-  const productMap = {};
-  
-  purchases.forEach(purchase => {
-    const ebookId = purchase.ebook?._id?.toString();
-    const ebookTitle = purchase.ebook?.title || 'Unknown';
+  // Helper function to generate campaign link
+  generateCampaignLink(affiliateCode, campaignName, params = {}) {
+    const baseUrl = process.env.CLIENT_URL || 'https://suicidenote.com';
+    const url = new URL(`${baseUrl}/?ref=${affiliateCode}`);
     
-    if (!productMap[ebookId]) {
-      productMap[ebookId] = {
-        id: ebookId,
-        title: ebookTitle,
-        sales: 0,
-        revenue: 0,
-        commission: 0,
-      };
-    }
+    url.searchParams.set('campaign', campaignName);
     
-    productMap[ebookId].sales += 1;
-    productMap[ebookId].revenue += purchase.amount;
-    productMap[ebookId].commission += purchase.affiliate?.commissionAmount || 0;
-  });
-  
-  return Object.values(productMap)
-    .sort((a, b) => b.sales - a.sales)
-    .slice(0, 5);
+    Object.entries(params).forEach(([key, value]) => {
+      if (value) {
+        url.searchParams.set(key, value);
+      }
+    });
+    
+    return url.toString();
+  }
+
+  // Helper function to get top products
+  getTopProducts(purchases) {
+    const productMap = {};
+    
+    purchases.forEach(purchase => {
+      const ebookId = purchase.ebook?._id?.toString();
+      const ebookTitle = purchase.ebook?.title || 'Unknown';
+      
+      if (!productMap[ebookId]) {
+        productMap[ebookId] = {
+          id: ebookId,
+          title: ebookTitle,
+          sales: 0,
+          revenue: 0,
+          commission: 0,
+        };
+      }
+      
+      productMap[ebookId].sales += 1;
+      productMap[ebookId].revenue += purchase.amount;
+      productMap[ebookId].commission += purchase.affiliate?.commissionAmount || 0;
+    });
+    
+    return Object.values(productMap)
+      .sort((a, b) => b.sales - a.sales)
+      .slice(0, 5);
+  }
 }
 
 module.exports = new AffiliateService();
