@@ -6,6 +6,23 @@ const emailService = require('./email.service');
 const winston = require('winston');
 const { generateUniqueAffiliateCode, generateAffiliateLink, calculateCommission } = require('../utils/generateAffiliateLink');
 
+// Helper function for currency formatting (defined once outside the class)
+const formatCurrency = (amount) => {
+  if (amount === undefined || amount === null || isNaN(amount)) return '₦0';
+  
+  try {
+    const formatter = new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+    return formatter.format(amount / 100).replace('NGN', '₦');
+  } catch (error) {
+    return '₦0';
+  }
+};
+
 class AffiliateService {
   // Create new affiliate account
   async createAffiliate(userId) {
@@ -71,101 +88,82 @@ class AffiliateService {
   }
 
   // Get affiliate dashboard data
-  // In services/affiliate.service.js - Update the getDashboardData function
-
-async getDashboardData(affiliateId) {
-  try {
-    const affiliate = await Affiliate.findById(affiliateId)
-      .populate('user', 'name email profilePicture');
-    
-    if (!affiliate) {
+  async getDashboardData(affiliateId) {
+    try {
+      const affiliate = await Affiliate.findById(affiliateId)
+        .populate('user', 'name email profilePicture');
+      
+      if (!affiliate) {
+        return {
+          success: false,
+          error: 'Affiliate not found',
+        };
+      }
+      
+      // Get recent referrals
+      const recentReferrals = await Purchase.find({
+        'affiliate.affiliateCode': affiliate.affiliateCode,
+        status: 'completed',
+      })
+        .populate('user', 'name email')
+        .populate('ebook', 'title coverImage')
+        .sort({ createdAt: -1 })
+        .limit(10);
+      
+      // Calculate conversion rate safely
+      const conversionRate = affiliate.clicks > 0 
+        ? ((affiliate.successfulReferrals || 0) / affiliate.clicks) * 100 
+        : 0;
+      
+      const dashboardData = {
+        affiliate: {
+          code: affiliate.affiliateCode || '',
+          link: affiliate.referralLink || '',
+          commissionRate: (affiliate.commissionRate || 0.5) * 100,
+          isVerified: affiliate.isVerified || false,
+          isActive: affiliate.isActive || false,
+          createdAt: affiliate.createdAt || new Date(),
+        },
+        earnings: {
+          total: affiliate.totalEarnings || 0,
+          pending: affiliate.pendingEarnings || 0,
+          paid: affiliate.paidEarnings || 0,
+          formattedTotal: formatCurrency(affiliate.totalEarnings || 0),
+          formattedPending: formatCurrency(affiliate.pendingEarnings || 0),
+          formattedPaid: formatCurrency(affiliate.paidEarnings || 0),
+        },
+        stats: {
+          totalClicks: affiliate.clicks || 0,
+          totalReferrals: affiliate.totalReferrals || 0,
+          successfulReferrals: affiliate.successfulReferrals || 0,
+          conversionRate: conversionRate,
+        },
+        recentReferrals: recentReferrals || [],
+        campaigns: affiliate.campaigns || [],
+        payout: {
+          canRequest: (affiliate.pendingEarnings || 0) >= (affiliate.paymentThreshold || 5000),
+          nextAmount: (affiliate.pendingEarnings || 0) >= (affiliate.paymentThreshold || 5000) ? affiliate.pendingEarnings : 0,
+          formattedNextAmount: formatCurrency(
+            (affiliate.pendingEarnings || 0) >= (affiliate.paymentThreshold || 5000) ? affiliate.pendingEarnings : 0
+          ),
+          threshold: affiliate.paymentThreshold || 5000,
+          formattedThreshold: formatCurrency(affiliate.paymentThreshold || 5000),
+          bankDetailsSet: !!(affiliate.bankDetails?.accountNumber && affiliate.bankDetails?.bankCode),
+        },
+      };
+      
+      return {
+        success: true,
+        data: dashboardData,
+      };
+    } catch (error) {
+      winston.error('Get dashboard data error:', error);
       return {
         success: false,
-        error: 'Affiliate not found',
+        error: error.message,
       };
     }
-    
-    // Get recent referrals
-    const recentReferrals = await Purchase.find({
-      'affiliate.affiliateCode': affiliate.affiliateCode,
-      status: 'completed',
-    })
-      .populate('user', 'name email')
-      .populate('ebook', 'title coverImage')
-      .sort({ createdAt: -1 })
-      .limit(10);
-    
-    // Calculate conversion rate safely
-    const conversionRate = affiliate.clicks > 0 
-      ? ((affiliate.successfulReferrals || 0) / affiliate.clicks) * 100 
-      : 0;
-    
-    const dashboardData = {
-      affiliate: {
-        code: affiliate.affiliateCode || '',
-        link: affiliate.referralLink || '',
-        commissionRate: (affiliate.commissionRate || 0.5) * 100,
-        isVerified: affiliate.isVerified || false,
-        isActive: affiliate.isActive || false,
-        createdAt: affiliate.createdAt || new Date(),
-      },
-      earnings: {
-        total: affiliate.totalEarnings || 0,
-        pending: affiliate.pendingEarnings || 0,
-        paid: affiliate.paidEarnings || 0,
-        formattedTotal: this.formatCurrency(affiliate.totalEarnings || 0),
-        formattedPending: this.formatCurrency(affiliate.pendingEarnings || 0),
-        formattedPaid: this.formatCurrency(affiliate.paidEarnings || 0),
-      },
-      stats: {
-        totalClicks: affiliate.clicks || 0,
-        totalReferrals: affiliate.totalReferrals || 0,
-        successfulReferrals: affiliate.successfulReferrals || 0,
-        conversionRate: conversionRate,
-      },
-      recentReferrals: recentReferrals || [],
-      campaigns: affiliate.campaigns || [],
-      payout: {
-        canRequest: (affiliate.pendingEarnings || 0) >= (affiliate.paymentThreshold || 5000),
-        nextAmount: (affiliate.pendingEarnings || 0) >= (affiliate.paymentThreshold || 5000) ? affiliate.pendingEarnings : 0,
-        formattedNextAmount: this.formatCurrency(
-          (affiliate.pendingEarnings || 0) >= (affiliate.paymentThreshold || 5000) ? affiliate.pendingEarnings : 0
-        ),
-        threshold: affiliate.paymentThreshold || 5000,
-        formattedThreshold: this.formatCurrency(affiliate.paymentThreshold || 5000),
-        bankDetailsSet: !!(affiliate.bankDetails?.accountNumber && affiliate.bankDetails?.bankCode),
-      },
-    };
-    
-    return {
-      success: true,
-      data: dashboardData,
-    };
-  } catch (error) {
-    winston.error('Get dashboard data error:', error);
-    return {
-      success: false,
-      error: error.message,
-    };
   }
-}
-
-// Add this helper method to the AffiliateService object
-formatCurrency(amount) {
-  if (amount === undefined || amount === null) return '₦0';
-  
-  try {
-    const formatter = new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    });
-    return formatter.format(amount / 100).replace('NGN', '₦');
-  } catch (error) {
-    return '₦0';
-  }
-}
 
   // Update affiliate settings
   async updateSettings(affiliateId, settings) {
@@ -332,8 +330,8 @@ formatCurrency(amount) {
           earnings: campaign.earnings,
           conversionRate,
           avgOrderValue,
-          formattedEarnings: this.formatCurrency(campaign.earnings),
-          formattedAvgOrderValue: this.formatCurrency(avgOrderValue),
+          formattedEarnings: formatCurrency(campaign.earnings),
+          formattedAvgOrderValue: formatCurrency(avgOrderValue),
         },
         recentPurchases: campaignPurchases.slice(0, 10),
         totalPurchases: campaignPurchases.length,
@@ -429,7 +427,7 @@ formatCurrency(amount) {
       if (amount < affiliate.paymentThreshold) {
         return {
           success: false,
-          error: `Minimum payout amount is ${this.formatCurrency(affiliate.paymentThreshold)}`,
+          error: `Minimum payout amount is ${formatCurrency(affiliate.paymentThreshold)}`,
         };
       }
       
@@ -476,7 +474,7 @@ formatCurrency(amount) {
       );
       console.log(`📧 Payout email result:`, emailResult ? '✅ Success' : '❌ Failed');
       
-      winston.info(`Payout processed for affiliate ${affiliate.affiliateCode}: ${this.formatCurrency(amount)}`);
+      winston.info(`Payout processed for affiliate ${affiliate.affiliateCode}: ${formatCurrency(amount)}`);
       
       return {
         success: true,
@@ -592,17 +590,17 @@ formatCurrency(amount) {
           totalCommission,
           conversionRate,
           earningsPerClick,
-          formattedRevenue: this.formatCurrency(totalRevenue),
-          formattedCommission: this.formatCurrency(totalCommission),
+          formattedRevenue: formatCurrency(totalRevenue),
+          formattedCommission: formatCurrency(totalCommission),
         },
         dailyBreakdown: dailyData,
         topProducts: this.getTopProducts(purchases),
         recentActivity: purchases.slice(0, 10),
-        campaigns: affiliate.campaigns.map(campaign => ({
+        campaigns: (affiliate.campaigns || []).map(campaign => ({
           name: campaign.name,
-          clicks: campaign.clicks,
-          conversions: campaign.conversions,
-          earnings: campaign.earnings,
+          clicks: campaign.clicks || 0,
+          conversions: campaign.conversions || 0,
+          earnings: campaign.earnings || 0,
           conversionRate: campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) * 100 : 0,
         })),
       };
@@ -672,13 +670,13 @@ formatCurrency(amount) {
               joinDate: affiliate.createdAt,
             },
             stats: {
-              totalEarnings: affiliate.totalEarnings,
-              pendingEarnings: affiliate.pendingEarnings,
-              totalSales: affiliate.successfulReferrals,
+              totalEarnings: affiliate.totalEarnings || 0,
+              pendingEarnings: affiliate.pendingEarnings || 0,
+              totalSales: affiliate.successfulReferrals || 0,
               periodEarnings,
               periodSales,
-              formattedTotalEarnings: this.formatCurrency(affiliate.totalEarnings),
-              formattedPeriodEarnings: this.formatCurrency(periodEarnings),
+              formattedTotalEarnings: formatCurrency(affiliate.totalEarnings || 0),
+              formattedPeriodEarnings: formatCurrency(periodEarnings),
             },
           };
         })
@@ -840,15 +838,6 @@ formatCurrency(amount) {
         error: error.message,
       };
     }
-  }
-
-  // Helper function to format currency
-  formatCurrency(amount) {
-    const formatter = new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-    });
-    return formatter.format(amount / 100);
   }
 
   // Helper function to generate campaign link
