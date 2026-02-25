@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const affiliateController = require('../controllers/affiliate.controller');
 const authMiddleware = require('../middleware/auth.middleware');
-const { validate } = require('../middleware/validation.middleware');
+const validate = require('../middleware/validation.middleware');
 const Joi = require('joi');
 
 // Validation schemas
