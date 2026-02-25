@@ -26,6 +26,7 @@ const COOKIE_OPTIONS = {
 const paymentController = {
   /**
    * INITIALIZE PAYMENT - Supports both NGN and USD via Paystack
+   * FIXED: Always use email from request body, not logged-in user
    */
   async initializePayment(req, res) {
     try {
@@ -36,26 +37,36 @@ const paymentController = {
       if (!email) return res.status(400).json({ success: false, error: 'Email is required' });
       if (!amount || Number(amount) <= 0) return res.status(400).json({ success: false, error: 'Amount is required and must be greater than 0' });
 
-      let user = req.user;
+      // --- CRITICAL FIX: ALWAYS use the email from the request body ---
+      // This ensures we're using the purchaser's email, not the logged-in user's email
+      const purchaserEmail = email.toLowerCase().trim();
+      
+      console.log('🎯 Processing payment for:', {
+        purchaserEmail,
+        loggedInUser: req.user ? req.user.email : 'No logged in user',
+        affiliateCode: affiliateCode || req.cookies?.affiliate_ref || null
+      });
+
+      // --- ALWAYS find or create user based on purchaser email, NOT req.user ---
+      let user = await User.findOne({ email: purchaserEmail });
       let isNewUser = false;
 
-      // --- Auto-create guest user ---
       if (!user) {
-        user = await User.findOne({ email: email.toLowerCase().trim() });
-        if (!user) {
-          user = new User({
-            email: email.toLowerCase().trim(),
-            name: name || email.split('@')[0],
-            password: crypto.randomBytes(24).toString('hex'),
-            isVerified: true,
-            role: 'user',
-          });
-          await user.save();
-          isNewUser = true;
-          logger.info(`Created new guest user: ${user.email}`);
-        }
+        user = new User({
+          email: purchaserEmail,
+          name: name || purchaserEmail.split('@')[0],
+          password: crypto.randomBytes(24).toString('hex'),
+          isVerified: true,
+          role: 'user',
+        });
+        await user.save();
+        isNewUser = true;
+        logger.info(`Created new user for purchaser: ${user.email}`);
+      } else {
+        logger.info(`Found existing user for purchaser: ${user.email}`);
       }
 
+      // Get affiliate code from multiple sources
       const affiliateCodeToUse = affiliateCode || req.cookies?.affiliate_ref || null;
       
       // Use cookie campaign if exists, otherwise use body campaign
@@ -66,21 +77,25 @@ const paymentController = {
         userAgent: req.headers['user-agent'] || 'unknown',
         deviceType: req.headers['sec-ch-ua-platform'] || 'unknown',
         campaignName: finalCampaignName,
-        guestEmail: email,
-        guestName: name || email.split('@')[0],
+        guestEmail: purchaserEmail, // Use purchaser email
+        guestName: name || purchaserEmail.split('@')[0],
         autoCreated: isNewUser,
+        // Store the original logged-in user for reference if needed
+        loggedInUser: req.user ? req.user.email : null,
       };
 
       logger.info('Initializing payment:', { 
         userId: user._id, 
+        userEmail: user.email,
         ebookId, 
         amount, 
-        currency 
+        currency,
+        hasAffiliate: !!affiliateCodeToUse
       });
 
       // Call payment service with currency
       const result = await paymentService.initializePayment(
-        user._id,
+        user._id, // Use the purchaser's user ID
         ebookId,
         affiliateCodeToUse,
         metadata,
@@ -93,6 +108,7 @@ const paymentController = {
         return res.status(400).json(result);
       }
 
+      // Only set token if this is a new user (not logged in)
       let token;
       if (!req.user) {
         token = typeof user.generateAuthToken === 'function'
