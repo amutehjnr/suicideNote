@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import EbookLandingPage from './components/EbookLandingPage';
 import ThankYouPage from './components/ThankYouPage';
-import ReaderPage from './components/ReaderPage'
+import ReaderPage from './components/ReaderPage';
+import AffiliateDashboard from './components/AffiliateDashboard';
 
 function App() {
   const [purchaseComplete, setPurchaseComplete] = useState(false);
@@ -37,6 +38,7 @@ function App() {
       />
       <Route path="*" element={<Navigate to="/" />} />
       <Route path="/read/:ebookId" element={<ReaderPage />} />
+      <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
     </Routes>
   );
 }

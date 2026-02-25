@@ -10,6 +10,7 @@ const winston = require('winston');
 const path = require('path');
 const mongoose = require('mongoose'); // 👈 ADD THIS LINE
 const adminRoutes = require('./routes/admin.routes');
+const affiliateMiddleware = require('./middleware/affiliate.middleware');
 
 console.log('🚀 Starting server...');
 
@@ -23,6 +24,7 @@ const ebookRoutes = require('./routes/ebook.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const accessRoutes = require('./routes/accessRoutes');
 const emailAccessRoutes = require('./routes/emailAccess.routes');
+const affiliateRoutes = require('./routes/affiliate.routes');
 
 // ================== MIDDLEWARE ==================
 const authMiddleware = require('./middleware/auth.middleware');
@@ -123,6 +125,8 @@ app.use('/api/v1/ebooks', ebookRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/access', accessRoutes);
 app.use('/access', emailAccessRoutes);
+app.use(affiliateMiddleware.trackAffiliate);
+app.use('/api/v1/affiliate', affiliateRoutes);
 
 // ================== HEALTH ==================
 app.get('/health', (req, res) => {

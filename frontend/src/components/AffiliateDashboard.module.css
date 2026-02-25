@@ -1,0 +1,970 @@
+/* src/components/AffiliateDashboard.module.css */
+.container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f5f0eb 0%, #fff 100%);
+}
+
+/* Loading */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  background: #f5f0eb;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #ddd8d0;
+  border-top-color: #8b1a1a;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Register Card */
+.registerCard {
+  max-width: 600px;
+  margin: 100px auto;
+  background: white;
+  border-radius: 24px;
+  padding: 48px;
+  text-align: center;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+}
+
+.registerIcon {
+  font-size: 64px;
+  margin-bottom: 24px;
+}
+
+.registerTitle {
+  font-size: 32px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.registerSubtitle {
+  font-size: 18px;
+  color: #666;
+  margin-bottom: 32px;
+}
+
+.benefitsGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.benefitItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: #f8f4f0;
+  border-radius: 12px;
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+.benefitIcon {
+  width: 20px;
+  height: 20px;
+  color: #059669;
+}
+
+.registerButton {
+  width: 100%;
+  background: #8b1a1a;
+  color: white;
+  border: none;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-bottom: 16px;
+}
+
+.registerButton:hover {
+  background: #6b1313;
+}
+
+.registerNote {
+  font-size: 14px;
+  color: #666;
+}
+
+/* Header */
+.header {
+  background: white;
+  border-bottom: 1px solid #e0dbd4;
+  padding: 24px 0;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.headerContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.title {
+  font-size: 28px;
+  font-weight: 800;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.headerStats {
+  display: flex;
+  gap: 32px;
+}
+
+.headerStat {
+  display: flex;
+  flex-direction: column;
+}
+
+.headerStatLabel {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.headerStatValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #8b1a1a;
+}
+
+/* Tabs */
+.tabs {
+  max-width: 1200px;
+  margin: 24px auto 0;
+  padding: 0 24px;
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid #e0dbd4;
+}
+
+.tab {
+  padding: 12px 24px;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.2s;
+}
+
+.tab:hover {
+  color: #8b1a1a;
+}
+
+.activeTab {
+  color: #8b1a1a;
+}
+
+.activeTab::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #8b1a1a;
+}
+
+/* Tab Content */
+.tabContent {
+  max-width: 1200px;
+  margin: 32px auto;
+  padding: 0 24px;
+}
+
+.tabTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 24px;
+}
+
+/* Overview */
+.overview {
+  display: grid;
+  gap: 32px;
+}
+
+.linkCard {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.linkCardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.linkDisplay {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.linkCode {
+  flex: 1;
+  background: #f8f4f0;
+  padding: 16px;
+  border-radius: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 14px;
+  color: #8b1a1a;
+  word-break: break-all;
+}
+
+.copyButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #8b1a1a;
+  color: white;
+  border: none;
+  padding: 0 24px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+  white-space: nowrap;
+}
+
+.copyButton:hover {
+  background: #6b1313;
+}
+
+.linkNote {
+  font-size: 14px;
+  color: #666;
+}
+
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+}
+
+.statCard {
+  background: white;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.statIcon {
+  font-size: 32px;
+}
+
+.statInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.statLabel {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.statValue {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* Recent Section */
+.recentSection {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.viewAllButton {
+  background: none;
+  border: none;
+  color: #8b1a1a;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 4px 8px;
+}
+
+.referralsList {
+  display: grid;
+  gap: 12px;
+}
+
+.referralItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background: #f8f4f0;
+  border-radius: 12px;
+}
+
+.referralInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.referralName {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.referralEbook {
+  font-size: 12px;
+  color: #666;
+}
+
+.referralMeta {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.referralAmount {
+  color: #666;
+}
+
+.referralCommission {
+  color: #059669;
+  font-weight: 600;
+}
+
+.referralDate {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Campaigns */
+.campaigns {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.campaignsHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.createButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #8b1a1a;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.createButton:hover {
+  background: #6b1313;
+}
+
+.campaignsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.campaignCard {
+  background: #f8f4f0;
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.campaignName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.campaignStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.campaignStat {
+  display: flex;
+  flex-direction: column;
+}
+
+.campaignStatLabel {
+  font-size: 12px;
+  color: #666;
+  margin-bottom: 4px;
+}
+
+.campaignStatValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.campaignLink {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  background: white;
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.campaignLinkCode {
+  flex: 1;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  color: #8b1a1a;
+  word-break: break-all;
+}
+
+.copySmallButton {
+  background: none;
+  border: none;
+  color: #666;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.campaignCreated {
+  font-size: 12px;
+  color: #999;
+}
+
+/* Referrals Table */
+.referrals {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.referralsTable {
+  display: grid;
+  gap: 12px;
+}
+
+.referralsHeader {
+  display: grid;
+  grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr;
+  padding: 12px;
+  background: #f8f4f0;
+  border-radius: 12px;
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 14px;
+}
+
+.referralRow {
+  display: grid;
+  grid-template-columns: 1.5fr 1.5fr 1fr 1fr 1fr;
+  padding: 12px;
+  background: white;
+  border: 1px solid #e0dbd4;
+  border-radius: 12px;
+  align-items: center;
+}
+
+.referralCell {
+  font-size: 14px;
+  color: #1a1a1a;
+}
+
+.referralCellLabel {
+  display: none;
+  font-weight: 600;
+  color: #666;
+  margin-right: 8px;
+}
+
+.commissionAmount {
+  color: #059669;
+  font-weight: 600;
+}
+
+/* Performance */
+.performance {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.performanceHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.periodSelector {
+  display: flex;
+  gap: 8px;
+  background: #f8f4f0;
+  padding: 4px;
+  border-radius: 12px;
+}
+
+.periodButton {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  border-radius: 8px;
+  font-weight: 500;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.periodButton:hover {
+  color: #8b1a1a;
+}
+
+.activePeriod {
+  background: white;
+  color: #8b1a1a;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.performanceSummary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 32px;
+}
+
+.performanceCard {
+  background: #f8f4f0;
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.performanceCardLabel {
+  font-size: 14px;
+  color: #666;
+  margin-bottom: 8px;
+}
+
+.performanceCardValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 48px;
+  color: #666;
+}
+
+.emptyStateSub {
+  margin-top: 8px;
+  color: #999;
+}
+
+.emptyStateButton {
+  margin-top: 16px;
+  background: #8b1a1a;
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+
+/* Payouts */
+.payouts {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.payoutsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+}
+
+.bankDetailsCard, .payoutCard {
+  background: #f8f4f0;
+  border-radius: 16px;
+  padding: 24px;
+}
+
+.cardTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 20px;
+}
+
+.formGroup {
+  margin-bottom: 16px;
+}
+
+.formGroup label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #1a1a1a;
+  margin-bottom: 6px;
+}
+
+.formGroup input,
+.formGroup textarea {
+  width: 100%;
+  padding: 12px;
+  border: 2px solid #e0dbd4;
+  border-radius: 10px;
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus {
+  outline: none;
+  border-color: #8b1a1a;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.bankDetails {
+  display: grid;
+  gap: 12px;
+}
+
+.bankDetail {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background: white;
+  border-radius: 10px;
+}
+
+.bankDetailLabel {
+  color: #666;
+}
+
+.bankDetailValue {
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.saveButton, .payoutButton {
+  width: 100%;
+  background: #8b1a1a;
+  color: white;
+  border: none;
+  padding: 14px;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+  margin-top: 16px;
+}
+
+.saveButton:hover, .payoutButton:hover {
+  background: #6b1313;
+}
+
+.editButton {
+  background: none;
+  border: 1px solid #8b1a1a;
+  color: #8b1a1a;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  margin-top: 12px;
+}
+
+.earningsSummary {
+  background: white;
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+}
+
+.earningRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 8px 0;
+  border-bottom: 1px solid #e0dbd4;
+}
+
+.earningRow:last-child {
+  border-bottom: none;
+}
+
+.earningAmount {
+  font-weight: 600;
+  color: #059669;
+}
+
+.payoutForm {
+  margin-top: 16px;
+}
+
+.payoutNote {
+  font-size: 12px;
+  color: #666;
+  text-align: center;
+  margin-top: 12px;
+}
+
+.bankRequired {
+  text-align: center;
+  padding: 24px;
+  color: #666;
+  background: #f0f0f0;
+  border-radius: 12px;
+}
+
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: white;
+  border-radius: 24px;
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.modalHeader {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e0dbd4;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #666;
+  padding: 4px;
+}
+
+.modalBody {
+  padding: 24px;
+}
+
+.modalFooter {
+  padding: 20px 24px;
+  border-top: 1px solid #e0dbd4;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.cancelButton {
+  background: none;
+  border: 1px solid #e0dbd4;
+  padding: 10px 20px;
+  border-radius: 10px;
+  cursor: pointer;
+  color: #666;
+}
+
+/* Campaigns Preview */
+.campaignsPreview {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.campaignPreview {
+  background: #f8f4f0;
+  border-radius: 12px;
+  padding: 16px;
+}
+
+.campaignPreviewName {
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 8px;
+}
+
+.campaignPreviewStats {
+  display: flex;
+  gap: 16px;
+  font-size: 13px;
+  color: #666;
+}
+
+/* Daily Breakdown */
+.dailyBreakdown, .topProducts {
+  margin-top: 32px;
+}
+
+.breakdownTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin-bottom: 16px;
+}
+
+.breakdownList, .productsList {
+  display: grid;
+  gap: 8px;
+}
+
+.breakdownItem, .productItem {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px;
+  background: #f8f4f0;
+  border-radius: 10px;
+  font-size: 14px;
+}
+
+.breakdownDate, .productName {
+  font-weight: 500;
+  color: #1a1a1a;
+}
+
+.breakdownSales, .productSales {
+  color: #666;
+}
+
+.breakdownCommission, .productCommission {
+  color: #059669;
+  font-weight: 600;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .tabs {
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+  
+  .tab {
+    white-space: nowrap;
+  }
+  
+  .referralsHeader {
+    display: none;
+  }
+  
+  .referralRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  
+  .referralCell {
+    display: flex;
+    justify-content: space-between;
+  }
+  
+  .referralCellLabel {
+    display: inline;
+  }
+  
+  .headerStats {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .formRow {
+    grid-template-columns: 1fr;
+  }
+  
+  .benefitsGrid {
+    grid-template-columns: 1fr;
+  }
+  
+  .linkDisplay {
+    flex-direction: column;
+  }
+  
+  .performanceHeader {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}

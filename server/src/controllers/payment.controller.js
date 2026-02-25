@@ -29,7 +29,7 @@ const paymentController = {
    */
   async initializePayment(req, res) {
     try {
-      const { ebookId, affiliateCode, campaignName, email, name, amount, currency = 'NGN' } = req.body;
+      const { ebookId, affiliateCode, campaignName: bodyCampaignName, email, name, amount, currency = 'NGN' } = req.body;
 
       // --- Validation ---
       if (!ebookId) return res.status(400).json({ success: false, error: 'Ebook ID is required' });
@@ -57,12 +57,15 @@ const paymentController = {
       }
 
       const affiliateCodeToUse = affiliateCode || req.cookies?.affiliate_ref || null;
-
+      
+      // Use cookie campaign if exists, otherwise use body campaign
+      const finalCampaignName = req.cookies?.affiliate_campaign || bodyCampaignName || 'direct-purchase';
+      
       const metadata = {
         ipAddress: req.ip,
         userAgent: req.headers['user-agent'] || 'unknown',
         deviceType: req.headers['sec-ch-ua-platform'] || 'unknown',
-        campaignName: campaignName || 'direct-purchase',
+        campaignName: finalCampaignName,
         guestEmail: email,
         guestName: name || email.split('@')[0],
         autoCreated: isNewUser,
@@ -337,6 +340,10 @@ const paymentController = {
 
       await affiliate.addClick(campaignName);
       res.cookie('affiliate_ref', affiliateCode, COOKIE_OPTIONS);
+      
+      if (campaignName) {
+        res.cookie('affiliate_campaign', campaignName, COOKIE_OPTIONS);
+      }
 
       return res.status(200).json({ success: true, message: 'Click tracked' });
     } catch (error) {

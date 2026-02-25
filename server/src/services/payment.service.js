@@ -310,75 +310,75 @@ const paymentService = {
   },
 
   /**
-   * Complete successful payment
-   */
-  async completeSuccessfulPayment(purchase, paymentDetails) {
-    try {
-      // Check if access code already exists
-      let accessCode = await AccessCode.findOne({ purchase: purchase._id });
-      
-      if (!accessCode) {
-        // Create new access code
-        accessCode = await AccessCode.create({
-          code: `SN-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
-          user: purchase.user._id,
-          ebook: purchase.ebook._id,
-          purchase: purchase._id,
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-          isActive: true,
-        });
-      }
+ * Complete successful payment
+ */
+async completeSuccessfulPayment(purchase, paymentDetails) {
+  try {
+    // Check if access code already exists
+    let accessCode = await AccessCode.findOne({ purchase: purchase._id });
+    
+    if (!accessCode) {
+      // Create new access code
+      accessCode = await AccessCode.create({
+        code: `SN-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
+        user: purchase.user._id,
+        ebook: purchase.ebook._id,
+        purchase: purchase._id,
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        isActive: true,
+      });
+    }
 
-      // Send email
-      const emailSent = await sendAccessCodeEmail(purchase, accessCode);
+    // Send email
+    const emailSent = await sendAccessCodeEmail(purchase, accessCode);
 
-      // Update purchase
-      purchase.status = 'completed';
-      purchase.paidAt = new Date();
-      purchase.accessCode = accessCode._id;
-      purchase.paymentDetails = paymentDetails;
-      purchase.completedAt = new Date();
-      await purchase.save();
+    // Update purchase
+    purchase.status = 'completed';
+    purchase.paidAt = new Date();
+    purchase.accessCode = accessCode._id;
+    purchase.paymentDetails = paymentDetails;
+    purchase.completedAt = new Date();
+    await purchase.save();
 
-      // Update user's purchased ebooks
-      if (purchase.user) {
-        const user = await User.findById(purchase.user._id);
-        if (user) {
-          if (!user.purchasedEbooks) user.purchasedEbooks = [];
-          if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
-            user.purchasedEbooks.push(purchase.ebook._id);
-            await user.save();
-          }
+    // Update user's purchased ebooks
+    if (purchase.user) {
+      const user = await User.findById(purchase.user._id);
+      if (user) {
+        if (!user.purchasedEbooks) user.purchasedEbooks = [];
+        if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
+          user.purchasedEbooks.push(purchase.ebook._id);
+          await user.save();
         }
       }
-
-      // Handle affiliate commission if applicable
-      if (purchase.affiliateCode) {
-        await this.handleAffiliateCommission(purchase);
-      }
-
-      return {
-        success: true,
-        data: {
-          purchase: {
-            _id: purchase._id,
-            amount: purchase.amount,
-            currency: purchase.currency,
-            status: purchase.status,
-            paidAt: purchase.paidAt,
-            ebook: purchase.ebook,
-            user: purchase.user
-          },
-          paymentStatus: purchase.status,
-          accessCode: accessCode.code,
-          emailSent,
-        },
-      };
-    } catch (error) {
-      winston.error('🔥 Complete payment error:', error);
-      return { success: false, error: 'Failed to complete payment' };
     }
-  },
+
+    // Handle affiliate commission if applicable
+    if (purchase.affiliateCode) {
+      await this.handleAffiliateCommission(purchase);
+    }
+
+    return {
+      success: true,
+      data: {
+        purchase: {
+          _id: purchase._id,
+          amount: purchase.amount,
+          currency: purchase.currency,
+          status: purchase.status,
+          paidAt: purchase.paidAt,
+          ebook: purchase.ebook,
+          user: purchase.user
+        },
+        paymentStatus: purchase.status,
+        accessCode: accessCode.code,
+        emailSent,
+      },
+    };
+  } catch (error) {
+    winston.error('🔥 Complete payment error:', error);
+    return { success: false, error: 'Failed to complete payment' };
+  }
+},
 
   /**
    * Handle affiliate commission
@@ -505,6 +505,73 @@ const paymentService = {
       }
     };
   },
+
+/**
+ * Handle affiliate commission when purchase is completed
+ */
+async handleAffiliateCommission(purchase) {
+  try {
+    if (!purchase.affiliateCode) {
+      return; // No affiliate for this purchase
+    }
+    
+    const affiliate = await Affiliate.findOne({ 
+      affiliateCode: purchase.affiliateCode,
+      isActive: true 
+    });
+    
+    if (!affiliate) {
+      winston.warn(`Affiliate not found for code: ${purchase.affiliateCode}`);
+      return;
+    }
+    
+    // Calculate commission (50% of purchase amount)
+    const commissionRate = affiliate.commissionRate || 0.5; // 50% default
+    const commissionAmount = purchase.amount * commissionRate;
+    
+    // Update purchase with commission info
+    purchase.affiliate = {
+      affiliateCode: purchase.affiliateCode,
+      commissionAmount: commissionAmount,
+      commissionRate: commissionRate,
+      isPaid: false,
+    };
+    
+    await purchase.save();
+    
+    // Add successful referral to affiliate
+    await affiliate.addSuccessfulReferral(
+      purchase.amount,
+      commissionAmount,
+      purchase.metadata?.campaignName
+    );
+    
+    winston.info('✅ Affiliate commission recorded:', {
+      affiliateCode: purchase.affiliateCode,
+      purchaseId: purchase._id,
+      commissionAmount,
+      remainingBalance: affiliate.pendingEarnings
+    });
+    
+    // Send commission notification email
+    try {
+      const user = await User.findById(affiliate.user);
+      if (user) {
+        await emailService.sendAffiliateCommissionEmail(
+          user.email,
+          user.name,
+          purchase,
+          commissionAmount
+        );
+      }
+    } catch (emailError) {
+      winston.error('Failed to send commission email:', emailError);
+    }
+    
+  } catch (error) {
+    winston.error('❌ Affiliate commission error:', error);
+  }
+},
 };
 
 module.exports = paymentService;
