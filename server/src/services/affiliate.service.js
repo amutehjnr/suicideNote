@@ -71,108 +71,101 @@ class AffiliateService {
   }
 
   // Get affiliate dashboard data
-  async getDashboardData(affiliateId) {
-    try {
-      const affiliate = await Affiliate.findById(affiliateId)
-        .populate('user', 'name email profilePicture');
-      
-      if (!affiliate) {
-        return {
-          success: false,
-          error: 'Affiliate not found',
-        };
-      }
-      
-      // Get recent referrals
-      const recentReferrals = await Purchase.find({
-        'affiliate.affiliateCode': affiliate.affiliateCode,
-        status: 'completed',
-      })
-        .populate('user', 'name email')
-        .populate('ebook', 'title coverImage')
-        .sort({ createdAt: -1 })
-        .limit(10);
-      
-      // Calculate stats for the last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const recentStats = {
-        clicks: 0,
-        referrals: 0,
-        earnings: 0,
-        conversions: 0,
-      };
-      
-      // Calculate from performance data
-      if (affiliate.performance) {
-        recentStats.clicks = affiliate.performance.last30Days.clicks || 0;
-        recentStats.referrals = affiliate.performance.last30Days.referrals || 0;
-        recentStats.earnings = affiliate.performance.last30Days.earnings || 0;
-        
-        if (recentStats.clicks > 0) {
-          recentStats.conversions = (recentStats.referrals / recentStats.clicks) * 100;
-        }
-      }
-      
-      // Get top performing campaigns
-      const topCampaigns = affiliate.campaigns
-        .sort((a, b) => b.earnings - a.earnings)
-        .slice(0, 5);
-      
-      // Calculate payout eligibility
-      const canRequestPayout = affiliate.pendingEarnings >= affiliate.paymentThreshold;
-      const nextPayoutAmount = canRequestPayout ? affiliate.pendingEarnings : 0;
-      
-      const dashboardData = {
-        affiliate: {
-          code: affiliate.affiliateCode,
-          link: affiliate.referralLink,
-          commissionRate: affiliate.commissionRate * 100,
-          isVerified: affiliate.isVerified,
-          isActive: affiliate.isActive,
-          createdAt: affiliate.createdAt,
-        },
-        earnings: {
-          total: affiliate.totalEarnings,
-          pending: affiliate.pendingEarnings,
-          paid: affiliate.paidEarnings,
-          formattedTotal: this.formatCurrency(affiliate.totalEarnings),
-          formattedPending: this.formatCurrency(affiliate.pendingEarnings),
-          formattedPaid: this.formatCurrency(affiliate.paidEarnings),
-        },
-        stats: {
-          totalClicks: affiliate.clicks,
-          totalReferrals: affiliate.totalReferrals,
-          successfulReferrals: affiliate.successfulReferrals,
-          conversionRate: affiliate.conversionRate,
-          recent: recentStats,
-        },
-        recentReferrals,
-        campaigns: topCampaigns,
-        payout: {
-          canRequest: canRequestPayout,
-          nextAmount: nextPayoutAmount,
-          formattedNextAmount: this.formatCurrency(nextPayoutAmount),
-          threshold: affiliate.paymentThreshold,
-          formattedThreshold: this.formatCurrency(affiliate.paymentThreshold),
-          bankDetailsSet: !!(affiliate.bankDetails?.accountNumber && affiliate.bankDetails?.bankCode),
-        },
-        performance: affiliate.performance,
-      };
-      
-      return {
-        success: true,
-        data: dashboardData,
-      };
-    } catch (error) {
-      winston.error('Get dashboard data error:', error);
+  // In services/affiliate.service.js - Update the getDashboardData function
+
+async getDashboardData(affiliateId) {
+  try {
+    const affiliate = await Affiliate.findById(affiliateId)
+      .populate('user', 'name email profilePicture');
+    
+    if (!affiliate) {
       return {
         success: false,
-        error: error.message,
+        error: 'Affiliate not found',
       };
     }
+    
+    // Get recent referrals
+    const recentReferrals = await Purchase.find({
+      'affiliate.affiliateCode': affiliate.affiliateCode,
+      status: 'completed',
+    })
+      .populate('user', 'name email')
+      .populate('ebook', 'title coverImage')
+      .sort({ createdAt: -1 })
+      .limit(10);
+    
+    // Calculate conversion rate safely
+    const conversionRate = affiliate.clicks > 0 
+      ? ((affiliate.successfulReferrals || 0) / affiliate.clicks) * 100 
+      : 0;
+    
+    const dashboardData = {
+      affiliate: {
+        code: affiliate.affiliateCode || '',
+        link: affiliate.referralLink || '',
+        commissionRate: (affiliate.commissionRate || 0.5) * 100,
+        isVerified: affiliate.isVerified || false,
+        isActive: affiliate.isActive || false,
+        createdAt: affiliate.createdAt || new Date(),
+      },
+      earnings: {
+        total: affiliate.totalEarnings || 0,
+        pending: affiliate.pendingEarnings || 0,
+        paid: affiliate.paidEarnings || 0,
+        formattedTotal: this.formatCurrency(affiliate.totalEarnings || 0),
+        formattedPending: this.formatCurrency(affiliate.pendingEarnings || 0),
+        formattedPaid: this.formatCurrency(affiliate.paidEarnings || 0),
+      },
+      stats: {
+        totalClicks: affiliate.clicks || 0,
+        totalReferrals: affiliate.totalReferrals || 0,
+        successfulReferrals: affiliate.successfulReferrals || 0,
+        conversionRate: conversionRate,
+      },
+      recentReferrals: recentReferrals || [],
+      campaigns: affiliate.campaigns || [],
+      payout: {
+        canRequest: (affiliate.pendingEarnings || 0) >= (affiliate.paymentThreshold || 5000),
+        nextAmount: (affiliate.pendingEarnings || 0) >= (affiliate.paymentThreshold || 5000) ? affiliate.pendingEarnings : 0,
+        formattedNextAmount: this.formatCurrency(
+          (affiliate.pendingEarnings || 0) >= (affiliate.paymentThreshold || 5000) ? affiliate.pendingEarnings : 0
+        ),
+        threshold: affiliate.paymentThreshold || 5000,
+        formattedThreshold: this.formatCurrency(affiliate.paymentThreshold || 5000),
+        bankDetailsSet: !!(affiliate.bankDetails?.accountNumber && affiliate.bankDetails?.bankCode),
+      },
+    };
+    
+    return {
+      success: true,
+      data: dashboardData,
+    };
+  } catch (error) {
+    winston.error('Get dashboard data error:', error);
+    return {
+      success: false,
+      error: error.message,
+    };
   }
+}
+
+// Add this helper method to the AffiliateService object
+formatCurrency(amount) {
+  if (amount === undefined || amount === null) return '₦0';
+  
+  try {
+    const formatter = new Intl.NumberFormat('en-NG', {
+      style: 'currency',
+      currency: 'NGN',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    });
+    return formatter.format(amount / 100).replace('NGN', '₦');
+  } catch (error) {
+    return '₦0';
+  }
+}
 
   // Update affiliate settings
   async updateSettings(affiliateId, settings) {

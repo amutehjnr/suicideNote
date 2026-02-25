@@ -88,42 +88,56 @@ const affiliateController = {
   },
 
   /**
-   * Get earnings summary
+   * Get earnings summary - FIXED with better error handling
    */
   async getEarnings(req, res) {
     try {
+      console.log('📊 Fetching earnings for affiliate:', req.affiliate?.affiliateCode);
+      
       const affiliate = req.affiliate;
       
+      if (!affiliate) {
+        return res.status(404).json({ success: false, error: 'Affiliate not found' });
+      }
+      
+      // Safely get values with defaults
       const earnings = {
         total: {
           amount: affiliate.totalEarnings || 0,
-          formatted: affiliate.formattedTotalEarnings || '₦0',
+          formatted: this.formatCurrency(affiliate.totalEarnings || 0),
         },
         pending: {
           amount: affiliate.pendingEarnings || 0,
-          formatted: affiliate.formattedPendingEarnings || '₦0',
+          formatted: this.formatCurrency(affiliate.pendingEarnings || 0),
         },
         paid: {
           amount: affiliate.paidEarnings || 0,
-          formatted: affiliate.formattedPaidEarnings || '₦0',
+          formatted: this.formatCurrency(affiliate.paidEarnings || 0),
         },
-        thisMonth: await this.getEarningsThisMonth(affiliate._id),
-        lastMonth: await this.getEarningsLastMonth(affiliate._id),
+        thisMonth: await this.getEarningsThisMonth(affiliate._id).catch(() => ({ amount: 0, formatted: '₦0' })),
+        lastMonth: await this.getEarningsLastMonth(affiliate._id).catch(() => ({ amount: 0, formatted: '₦0' })),
         byCampaign: (affiliate.campaigns || []).map(c => ({
-          name: c.name,
+          name: c.name || 'Unknown',
           earnings: c.earnings || 0,
           conversions: c.conversions || 0,
           clicks: c.clicks || 0,
         })),
       };
       
+      console.log('✅ Earnings fetched successfully:', earnings);
+      
       return res.status(200).json({
         success: true,
         data: earnings,
       });
     } catch (error) {
+      console.error('❌ Get earnings error:', error);
       winston.error('Get earnings error:', error);
-      return res.status(500).json({ success: false, error: 'Failed to fetch earnings' });
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to fetch earnings',
+        details: error.message 
+      });
     }
   },
 
@@ -156,7 +170,7 @@ const affiliateController = {
         customer: ref.user?.name || ref.metadata?.guestName || 'Anonymous',
         email: ref.user?.email || ref.metadata?.guestEmail,
         ebook: ref.ebook?.title || 'Suicide Note',
-        amount: this.formatCurrency(ref.amount),
+        amount: this.formatCurrency(ref.amount || 0),
         commission: this.formatCurrency(ref.affiliate?.commissionAmount || 0),
         date: ref.createdAt,
         status: ref.status,
@@ -170,7 +184,7 @@ const affiliateController = {
             page,
             limit,
             total,
-            pages: Math.ceil(total / limit),
+            pages: Math.ceil(total / limit) || 1,
           },
         },
       });
@@ -306,7 +320,7 @@ const affiliateController = {
   },
 
   /**
-   * Request payout - FIXED to use the service correctly
+   * Request payout
    */
   async requestPayout(req, res) {
     try {
@@ -475,64 +489,84 @@ const affiliateController = {
 
   // Helper functions
   async getEarningsThisMonth(affiliateId) {
-    const start = new Date();
-    start.setDate(1);
-    start.setHours(0, 0, 0, 0);
-    
-    const end = new Date();
-    end.setMonth(end.getMonth() + 1);
-    end.setDate(0);
-    end.setHours(23, 59, 59, 999);
-    
-    const affiliate = await Affiliate.findById(affiliateId);
-    const purchases = await Purchase.find({
-      'affiliate.affiliateCode': affiliate.affiliateCode,
-      status: 'completed',
-      createdAt: { $gte: start, $lte: end },
-    });
-    
-    const earnings = purchases.reduce((sum, p) => sum + (p.affiliate?.commissionAmount || 0), 0);
-    
-    return {
-      amount: earnings,
-      formatted: this.formatCurrency(earnings),
-    };
+    try {
+      const start = new Date();
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      
+      const end = new Date();
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
+      
+      const affiliate = await Affiliate.findById(affiliateId);
+      if (!affiliate) return { amount: 0, formatted: '₦0' };
+      
+      const purchases = await Purchase.find({
+        'affiliate.affiliateCode': affiliate.affiliateCode,
+        status: 'completed',
+        createdAt: { $gte: start, $lte: end },
+      });
+      
+      const earnings = purchases.reduce((sum, p) => sum + (p.affiliate?.commissionAmount || 0), 0);
+      
+      return {
+        amount: earnings,
+        formatted: this.formatCurrency(earnings),
+      };
+    } catch (error) {
+      console.error('Error getting this month earnings:', error);
+      return { amount: 0, formatted: '₦0' };
+    }
   },
 
   async getEarningsLastMonth(affiliateId) {
-    const start = new Date();
-    start.setMonth(start.getMonth() - 1);
-    start.setDate(1);
-    start.setHours(0, 0, 0, 0);
-    
-    const end = new Date();
-    end.setDate(0);
-    end.setHours(23, 59, 59, 999);
-    
-    const affiliate = await Affiliate.findById(affiliateId);
-    const purchases = await Purchase.find({
-      'affiliate.affiliateCode': affiliate.affiliateCode,
-      status: 'completed',
-      createdAt: { $gte: start, $lte: end },
-    });
-    
-    const earnings = purchases.reduce((sum, p) => sum + (p.affiliate?.commissionAmount || 0), 0);
-    
-    return {
-      amount: earnings,
-      formatted: this.formatCurrency(earnings),
-    };
+    try {
+      const start = new Date();
+      start.setMonth(start.getMonth() - 1);
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      
+      const end = new Date();
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
+      
+      const affiliate = await Affiliate.findById(affiliateId);
+      if (!affiliate) return { amount: 0, formatted: '₦0' };
+      
+      const purchases = await Purchase.find({
+        'affiliate.affiliateCode': affiliate.affiliateCode,
+        status: 'completed',
+        createdAt: { $gte: start, $lte: end },
+      });
+      
+      const earnings = purchases.reduce((sum, p) => sum + (p.affiliate?.commissionAmount || 0), 0);
+      
+      return {
+        amount: earnings,
+        formatted: this.formatCurrency(earnings),
+      };
+    } catch (error) {
+      console.error('Error getting last month earnings:', error);
+      return { amount: 0, formatted: '₦0' };
+    }
   },
 
   // Helper function to format currency
   formatCurrency(amount) {
-    const formatter = new Intl.NumberFormat('en-NG', {
-      style: 'currency',
-      currency: 'NGN',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0
-    });
-    return formatter.format(amount / 100).replace('NGN', '₦');
+    if (amount === undefined || amount === null) return '₦0';
+    
+    try {
+      const formatter = new Intl.NumberFormat('en-NG', {
+        style: 'currency',
+        currency: 'NGN',
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      });
+      return formatter.format(amount / 100).replace('NGN', '₦');
+    } catch (error) {
+      return '₦0';
+    }
   }
 };
 
