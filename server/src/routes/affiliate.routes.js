@@ -1,9 +1,8 @@
-// routes/affiliate.routes.js
 const express = require('express');
 const router = express.Router();
 const affiliateController = require('../controllers/affiliate.controller');
 const authMiddleware = require('../middleware/auth.middleware');
-const validate = require('../middleware/validation.middleware');
+const { validate } = require('../middleware/affiliate.middleware'); // ✅ Fixed import
 const Joi = require('joi');
 
 // Validation schemas
@@ -50,7 +49,8 @@ const isAffiliate = async (req, res, next) => {
       return res.status(403).json({ success: false, error: 'Affiliate account required' });
     }
     
-    const affiliate = await require('../models/Affiliate.model').findById(req.user.affiliateId);
+    const Affiliate = require('../models/Affiliate.model');
+    const affiliate = await Affiliate.findById(req.user.affiliateId);
     
     if (!affiliate || !affiliate.isActive) {
       return res.status(403).json({ success: false, error: 'Affiliate account not active' });
