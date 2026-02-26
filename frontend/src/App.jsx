@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import EbookLandingPage from './components/EbookLandingPage';
 import ThankYouPage from './components/ThankYouPage';
 import ReaderPage from './components/ReaderPage';
+import AffiliateTokenRedirect from './pages/AffiliateTokenRedirect';
 import AffiliateDashboard from './components/AffiliateDashboard';
 
 function App() {
