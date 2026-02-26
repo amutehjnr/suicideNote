@@ -38,6 +38,7 @@ function App() {
       />
       <Route path="*" element={<Navigate to="/" />} />
       <Route path="/read/:ebookId" element={<ReaderPage />} />
+      <Route path="/affiliate/token/:token" element={<AffiliateTokenRedirect />} />
       <Route path="/affiliate/dashboard" element={<AffiliateDashboard />} />
     </Routes>
   );

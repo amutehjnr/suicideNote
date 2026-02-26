@@ -318,102 +318,97 @@ class EmailService {
     return this.sendEmailViaBrevo(to, 'Purchase Confirmation - Suicide Note', htmlContent);
   }
 
-  async sendAffiliateWelcomeEmail(to, name, affiliate) {
-    console.log(`📧 Sending affiliate welcome email to: ${to}`);
-    console.log(`📧 Affiliate details:`, { code: affiliate.affiliateCode, link: affiliate.referralLink });
-    
-    const htmlContent = `
-      <!DOCTYPE html>
-      <html>
-      <head>
-        <style>
-          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
-          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
-          .header { background: linear-gradient(to right, #059669, #047857); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
-          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
-          .link-box { background: white; padding: 15px; border: 2px solid #059669; border-radius: 5px; margin: 20px 0; font-family: monospace; word-break: break-all; }
-          .button { display: inline-block; background: #059669; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; }
-          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
-          .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 20px 0; }
-          .stat-card { background: white; padding: 15px; border-radius: 8px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-          .stat-value { font-size: 24px; font-weight: bold; color: #059669; }
-          .stat-label { font-size: 12px; color: #666; }
-        </style>
-      </head>
-      <body>
-        <div class="container">
-          <div class="header">
-            <h1>🎉 Welcome to Our Affiliate Program!</h1>
-          </div>
-          <div class="content">
-            <h2>Hi ${name},</h2>
-            <p>Congratulations! You're now part of the Suicide Note affiliate program. We're excited to have you on board!</p>
-            
-            <h3>Your Affiliate Details:</h3>
-            <ul>
-              <li><strong>Affiliate Code:</strong> ${affiliate.affiliateCode}</li>
-              <li><strong>Commission Rate:</strong> ${(affiliate.commissionRate * 100)}%</li>
-              <li><strong>Commission per Sale:</strong> ₦1,250 (based on ₦2,500 ebook price)</li>
-            </ul>
-            
-            <h3>Your Unique Affiliate Link:</h3>
-            <div class="link-box">${affiliate.referralLink}</div>
-            
-            <h3>Quick Stats Preview:</h3>
-            <div class="stats-grid">
-              <div class="stat-card">
-                <div class="stat-value">0</div>
-                <div class="stat-label">Clicks</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">0</div>
-                <div class="stat-label">Referrals</div>
-              </div>
-              <div class="stat-card">
-                <div class="stat-value">₦0</div>
-                <div class="stat-label">Earnings</div>
-              </div>
-            </div>
-            
-            <h3>How to Start Earning:</h3>
-            <ol>
-              <li><strong>Share your link:</strong> Share your unique affiliate link on social media, blogs, or with friends</li>
-              <li><strong>Track performance:</strong> Monitor clicks, conversions, and earnings in your dashboard</li>
-              <li><strong>Get paid:</strong> Request payouts when you reach the ₦5,000 minimum threshold</li>
-            </ol>
-            
-            <p style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.CLIENT_URL}/affiliate/dashboard" class="button">Go to Your Dashboard</a>
-            </p>
-            
-            <div style="background: #e7f3ff; padding: 15px; border-left: 4px solid #1890ff; margin: 20px 0;">
-              <strong>💡 Pro Tip:</strong>
-              <p>Share your personal story about how the book helped you. Authentic recommendations convert better than generic links!</p>
-            </div>
-            
-            <p><strong>Payout Information:</strong></p>
-            <ul>
-              <li>Minimum payout: ₦5,000</li>
-              <li>Payouts are processed within 7 days of request</li>
-              <li>Payments are made via bank transfer through Paystack</li>
-            </ul>
-            
-            <p>If you have any questions, reply to this email or visit your dashboard for support.</p>
-            
-            <p>Happy earning!</p>
-            <p><strong>The Suicide Note Team</strong></p>
-          </div>
-          <div class="footer">
-            <p>© 2026 Suicide Note. All rights reserved.</p>
-            <p>Lagos, Nigeria</p>
-          </div>
+  // services/email.service.js - Add this method
+async sendAffiliateWelcomeEmail(to, name, affiliate, includeDashboardLink = false) {
+  console.log(`📧 Sending affiliate welcome email to: ${to}`);
+  
+  const dashboardUrl = `${process.env.CLIENT_URL || 'https://suicidenote.onrender.com'}/affiliate/token/${affiliate.dashboardToken}`;
+  
+  const htmlContent = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(to right, #059669, #047857); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+        .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+        .link-box { background: white; padding: 15px; border: 2px solid #059669; border-radius: 5px; margin: 20px 0; font-family: monospace; word-break: break-all; text-align: center; font-size: 18px; font-weight: bold; color: #059669; }
+        .dashboard-box { background: #e8f5e9; padding: 20px; border-radius: 8px; margin: 20px 0; text-align: center; border: 1px solid #a5d6a7; }
+        .button { display: inline-block; background: #059669; color: white; padding: 15px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px; margin: 10px 0; }
+        .button:hover { background: #047857; }
+        .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+        .warning { background: #fff3cd; padding: 15px; border-left: 4px solid #ffc107; margin: 20px 0; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+          <h1>🎉 Welcome to Our Affiliate Program!</h1>
         </div>
-      </body>
-      </html>
-    `;
+        <div class="content">
+          <h2>Hello ${name || 'Valued Partner'},</h2>
+          <p>Congratulations! You're now part of the Suicide Note affiliate program.</p>
+          
+          <h3>Your Affiliate Details:</h3>
+          <ul>
+            <li><strong>Affiliate Code:</strong> ${affiliate.affiliateCode}</li>
+            <li><strong>Commission Rate:</strong> ${(affiliate.commissionRate * 100)}%</li>
+            <li><strong>Commission per Sale:</strong> ₦1,250</li>
+          </ul>
+          
+          <h3>Your Unique Affiliate Link:</h3>
+          <div class="link-box">${affiliate.referralLink}</div>
+          
+          <div class="dashboard-box">
+            <h3 style="color: #059669; margin-top: 0;">🔐 One-Click Access to Your Dashboard</h3>
+            <p>Click the button below to access your affiliate dashboard instantly - no login required!</p>
+            <a href="${dashboardUrl}" class="button">Access Your Dashboard</a>
+            <p style="margin-top: 15px; font-size: 14px; color: #666;">
+              This link is unique to you. Bookmark it for easy access.
+            </p>
+          </div>
+          
+          <div class="warning">
+            <strong>⚠️ Important:</strong> This dashboard link is unique to you. 
+            Do not share it with others. Keep it safe to track your earnings.
+          </div>
+          
+          <h3>How to Start Earning:</h3>
+          <ol>
+            <li><strong>Share your link:</strong> Share your unique affiliate link on social media, blogs, or with friends</li>
+            <li><strong>Track performance:</strong> Visit your dashboard anytime to monitor clicks, conversions, and earnings</li>
+            <li><strong>Get paid:</strong> Request payouts when you reach the ₦5,000 minimum threshold</li>
+          </ol>
+          
+          <div style="background: #e7f3ff; padding: 15px; border-left: 4px solid #1890ff; margin: 20px 0;">
+            <strong>💡 Pro Tip:</strong>
+            <p>Share your personal story about how the book helped you. Authentic recommendations convert better than generic links!</p>
+          </div>
+          
+          <p><strong>Payout Information:</strong></p>
+          <ul>
+            <li>Minimum payout: ₦5,000</li>
+            <li>Payouts are processed within 7 days of request</li>
+            <li>Payments are made via bank transfer</li>
+          </ul>
+          
+          <p>If you have any questions, reply to this email.</p>
+          
+          <p>Happy earning!</p>
+          <p><strong>The Suicide Note Team</strong></p>
+        </div>
+        <div class="footer">
+          <p>© 2026 Suicide Note. All rights reserved.</p>
+          <p>Lagos, Nigeria</p>
+        </div>
+      </div>
+    </body>
+    </html>
+  `;
 
-    return this.sendEmailViaBrevo(to, '🎉 Welcome to the Suicide Note Affiliate Program!', htmlContent);
-  }
+  return this.sendEmailViaBrevo(to, '🎉 Welcome to the Suicide Note Affiliate Program!', htmlContent);
+}
 
   async sendAffiliateCommissionEmail(to, name, purchase, commissionAmount) {
     console.log(`📧 Sending affiliate commission email to: ${to}`);

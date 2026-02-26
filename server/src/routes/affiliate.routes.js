@@ -1,8 +1,9 @@
+// routes/affiliate.routes.js
 const express = require('express');
 const router = express.Router();
 const affiliateController = require('../controllers/affiliate.controller');
-const authMiddleware = require('../middleware/auth.middleware');
-const { validate } = require('../middleware/affiliate.middleware'); // ✅ Fixed import
+const { authenticateAffiliateToken } = require('../middleware/affiliateToken.middleware');
+const { validate } = require('../middleware/affiliate.middleware');
 const Joi = require('joi');
 
 // Validation schemas
@@ -24,119 +25,45 @@ const requestPayoutSchema = Joi.object({
   amount: Joi.number().positive().required(),
 });
 
-const updateSettingsSchema = Joi.object({
-  notifications: Joi.object({
-    onSale: Joi.boolean(),
-    onPayout: Joi.boolean(),
-    monthlyReport: Joi.boolean(),
-  }),
-  settings: Joi.object({
-    autoWithdraw: Joi.boolean(),
-    withdrawThreshold: Joi.number().positive(),
-    payoutMethod: Joi.string().valid('paystack', 'bank', 'wallet'),
-  }),
-  paymentThreshold: Joi.number().positive(),
-});
+// ==================== TOKEN-BASED AUTH ROUTES ====================
 
-// Middleware to check if user is affiliate
-const isAffiliate = async (req, res, next) => {
-  try {
-    if (!req.user) {
-      return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
-    
-    if (req.user.role !== 'affiliate' && !req.user.affiliateId) {
-      return res.status(403).json({ success: false, error: 'Affiliate account required' });
-    }
-    
-    const Affiliate = require('../models/Affiliate.model');
-    const affiliate = await Affiliate.findById(req.user.affiliateId);
-    
-    if (!affiliate || !affiliate.isActive) {
-      return res.status(403).json({ success: false, error: 'Affiliate account not active' });
-    }
-    
-    req.affiliate = affiliate;
-    next();
-  } catch (error) {
-    console.error('Affiliate middleware error:', error);
-    res.status(500).json({ success: false, error: 'Server error' });
-  }
-};
-
-// ==================== PUBLIC ROUTES ====================
-
-// Track affiliate click (public - no auth needed)
-router.get('/track/:code', affiliateController.trackClick);
-
-// ==================== PROTECTED ROUTES ====================
-
-// Create affiliate account
-router.post('/register', authMiddleware.protect, affiliateController.registerAffiliate);
+// All dashboard routes require a valid token
+router.use(authenticateAffiliateToken);
 
 // Get affiliate dashboard data
-router.get('/dashboard', authMiddleware.protect, isAffiliate, affiliateController.getDashboard);
+router.get('/dashboard', affiliateController.getDashboard);
 
 // Get earnings summary
-router.get('/earnings', authMiddleware.protect, isAffiliate, affiliateController.getEarnings);
+router.get('/earnings', affiliateController.getEarnings);
 
 // Get referrals list
-router.get('/referrals', authMiddleware.protect, isAffiliate, affiliateController.getReferrals);
+router.get('/referrals', affiliateController.getReferrals);
 
-// Get performance report
-router.get('/performance', authMiddleware.protect, isAffiliate, affiliateController.getPerformanceReport);
-router.get('/performance/:period', authMiddleware.protect, isAffiliate, affiliateController.getPerformanceReport);
+// Get campaigns
+router.get('/campaigns', affiliateController.getCampaigns);
 
-// Campaign management
+// Create campaign
 router.post('/campaigns', 
-  authMiddleware.protect, 
-  isAffiliate, 
   validate(createCampaignSchema), 
   affiliateController.createCampaign
 );
 
-router.get('/campaigns', authMiddleware.protect, isAffiliate, affiliateController.getCampaigns);
-router.get('/campaigns/:name', authMiddleware.protect, isAffiliate, affiliateController.getCampaignAnalytics);
-
-// Bank details
+// Update bank details
 router.post('/bank-details', 
-  authMiddleware.protect, 
-  isAffiliate, 
   validate(updateBankDetailsSchema), 
   affiliateController.updateBankDetails
 );
 
-router.get('/bank-details', authMiddleware.protect, isAffiliate, affiliateController.getBankDetails);
+// Get bank details
+router.get('/bank-details', affiliateController.getBankDetails);
 
-// Payouts
+// Request payout
 router.post('/request-payout', 
-  authMiddleware.protect, 
-  isAffiliate, 
   validate(requestPayoutSchema), 
   affiliateController.requestPayout
 );
 
-router.get('/payouts', authMiddleware.protect, isAffiliate, affiliateController.getPayoutHistory);
-
-// Settings
-router.put('/settings', 
-  authMiddleware.protect, 
-  isAffiliate, 
-  validate(updateSettingsSchema), 
-  affiliateController.updateSettings
-);
-
-// Generate campaign link
-router.post('/generate-link', 
-  authMiddleware.protect, 
-  isAffiliate, 
-  affiliateController.generateCampaignLink
-);
-
-// Leaderboard (public with affiliate check)
-router.get('/leaderboard', affiliateController.getLeaderboard);
-
-// Account management
-router.post('/deactivate', authMiddleware.protect, isAffiliate, affiliateController.deactivateAccount);
+// Get payout history
+router.get('/payouts', affiliateController.getPayoutHistory);
 
 module.exports = router;

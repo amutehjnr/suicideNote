@@ -1,12 +1,12 @@
+// services/affiliate.service.js
 const Affiliate = require('../models/Affiliate.model');
 const User = require('../models/User.model');
 const Purchase = require('../models/Purchase.model');
 const paystackService = require('../config/paystack');
 const emailService = require('./email.service');
 const winston = require('winston');
-const { generateUniqueAffiliateCode, generateAffiliateLink, calculateCommission } = require('../utils/generateAffiliateLink');
 
-// Helper function for currency formatting (defined once outside the class)
+// Helper function for currency formatting
 const formatCurrency = (amount) => {
   if (amount === undefined || amount === null || isNaN(amount)) return '₦0';
   
@@ -24,65 +24,139 @@ const formatCurrency = (amount) => {
 };
 
 class AffiliateService {
-  // Create new affiliate account
-  async createAffiliate(userId) {
+  // Create new affiliate account (prevents duplicates)
+  async createAffiliate(userId, email, name = '') {
     try {
-      const user = await User.findById(userId);
+      // First check if affiliate already exists for this email
+      const existingAffiliate = await Affiliate.findOne({ 
+        $or: [
+          { user: userId },
+          { 'user.email': email }
+        ]
+      }).populate('user');
       
-      if (!user) {
+      if (existingAffiliate) {
+        console.log('⚠️ Affiliate already exists:', existingAffiliate.affiliateCode);
+        
+        // Send email with existing dashboard link
+        await emailService.sendAffiliateWelcomeEmail(
+          email,
+          name || existingAffiliate.user?.name || email.split('@')[0],
+          existingAffiliate,
+          true
+        );
+        
         return {
-          success: false,
-          error: 'User not found',
+          success: true,
+          message: 'Affiliate link already exists. Check your email.',
+          affiliate: existingAffiliate,
+          isExisting: true
         };
       }
       
-      // Check if user is already an affiliate
-      if (user.role === 'affiliate' && user.affiliateId) {
-        const affiliate = await Affiliate.findById(user.affiliateId);
-        return {
-          success: true,
-          message: 'Already an affiliate',
-          affiliate,
-        };
+      // Find or create user
+      let user = await User.findById(userId);
+      
+      if (!user) {
+        user = await User.findOne({ email: email.toLowerCase() });
+      }
+      
+      if (!user) {
+        user = new User({
+          email: email.toLowerCase(),
+          name: name || email.split('@')[0],
+          password: Math.random().toString(36).slice(-12),
+          isVerified: true,
+          role: 'affiliate'
+        });
+        await user.save();
       }
       
       // Generate unique affiliate code
-      const affiliateCode = await generateUniqueAffiliateCode();
+      let affiliateCode;
+      let isUnique = false;
+      let attempts = 0;
+      
+      while (!isUnique && attempts < 10) {
+        affiliateCode = 'AFF' + Math.random().toString(36).substring(2, 8).toUpperCase();
+        const existing = await Affiliate.findOne({ affiliateCode });
+        if (!existing) isUnique = true;
+        attempts++;
+      }
+      
+      // Generate unique dashboard token
+      const dashboardToken = Affiliate.generateDashboardToken();
       
       // Generate referral link
-      const referralLink = generateAffiliateLink(affiliateCode);
+      const referralLink = `${process.env.CLIENT_URL || 'https://suicidenote.onrender.com'}/?ref=${affiliateCode}`;
       
       // Create affiliate record
       const affiliate = await Affiliate.create({
-        user: userId,
+        user: user._id,
         affiliateCode,
         referralLink,
-        commissionRate: parseFloat(process.env.AFFILIATE_COMMISSION_RATE) || 0.5,
+        dashboardToken,
+        commissionRate: 0.5,
+        isActive: true
       });
       
-      // Update user role and affiliate ID
+      // Update user role
       user.role = 'affiliate';
       user.affiliateId = affiliate._id;
       await user.save();
       
-      // Send affiliate welcome email
-      console.log(`📧 Attempting to send affiliate welcome email to: ${user.email}`);
-      const emailResult = await emailService.sendAffiliateWelcomeEmail(user.email, user.name, affiliate);
-      console.log(`📧 Email send result:`, emailResult ? '✅ Success' : '❌ Failed');
+      // Send welcome email with dashboard link
+      const emailResult = await emailService.sendAffiliateWelcomeEmail(
+        user.email,
+        user.name,
+        affiliate,
+        true
+      );
       
-      winston.info(`Affiliate account created: ${user.email}, Code: ${affiliateCode}`);
+      winston.info(`✅ Affiliate account created: ${user.email}, Code: ${affiliateCode}`);
       
       return {
         success: true,
         message: 'Affiliate account created successfully',
         affiliate,
-        emailSent: emailResult
+        emailSent: emailResult,
+        isExisting: false
       };
+      
     } catch (error) {
-      winston.error('Create affiliate error:', error);
+      winston.error('❌ Create affiliate error:', error);
       return {
         success: false,
         error: error.message,
+      };
+    }
+  }
+
+  // Get affiliate by dashboard token (no login required)
+  async getAffiliateByToken(token) {
+    try {
+      const affiliate = await Affiliate.findOne({ 
+        dashboardToken: token,
+        isActive: true 
+      }).populate('user', 'name email');
+      
+      if (!affiliate) {
+        return {
+          success: false,
+          error: 'Invalid or expired dashboard link'
+        };
+      }
+      
+      return {
+        success: true,
+        data: affiliate
+      };
+      
+    } catch (error) {
+      winston.error('❌ Get affiliate by token error:', error);
+      return {
+        success: false,
+        error: error.message
       };
     }
   }
@@ -119,6 +193,7 @@ class AffiliateService {
         affiliate: {
           code: affiliate.affiliateCode || '',
           link: affiliate.referralLink || '',
+          dashboardToken: affiliate.dashboardToken,
           commissionRate: (affiliate.commissionRate || 0.5) * 100,
           isVerified: affiliate.isVerified || false,
           isActive: affiliate.isActive || false,
@@ -165,58 +240,152 @@ class AffiliateService {
     }
   }
 
-  // Update affiliate settings
-  async updateSettings(affiliateId, settings) {
+  // Get earnings summary
+  async getEarnings(affiliateId) {
     try {
       const affiliate = await Affiliate.findById(affiliateId);
       
       if (!affiliate) {
         return {
           success: false,
-          error: 'Affiliate not found',
+          error: 'Affiliate not found'
         };
       }
       
-      // Update settings
-      if (settings.notifications) {
-        affiliate.notifications = {
-          ...affiliate.notifications,
-          ...settings.notifications,
-        };
-      }
-      
-      if (settings.settings) {
-        affiliate.settings = {
-          ...affiliate.settings,
-          ...settings.settings,
-        };
-      }
-      
-      if (settings.paymentThreshold) {
-        affiliate.paymentThreshold = settings.paymentThreshold;
-      }
-      
-      await affiliate.save();
+      const earnings = {
+        total: {
+          amount: affiliate.totalEarnings || 0,
+          formatted: formatCurrency(affiliate.totalEarnings || 0),
+        },
+        pending: {
+          amount: affiliate.pendingEarnings || 0,
+          formatted: formatCurrency(affiliate.pendingEarnings || 0),
+        },
+        paid: {
+          amount: affiliate.paidEarnings || 0,
+          formatted: formatCurrency(affiliate.paidEarnings || 0),
+        },
+        thisMonth: await this.getEarningsThisMonth(affiliate._id),
+        lastMonth: await this.getEarningsLastMonth(affiliate._id),
+        byCampaign: (affiliate.campaigns || []).map(c => ({
+          name: c.name || 'Unknown',
+          earnings: c.earnings || 0,
+          conversions: c.conversions || 0,
+          clicks: c.clicks || 0,
+        })),
+      };
       
       return {
         success: true,
-        message: 'Settings updated successfully',
-        data: {
-          notifications: affiliate.notifications,
-          settings: affiliate.settings,
-          paymentThreshold: affiliate.paymentThreshold,
-        },
+        data: earnings,
       };
     } catch (error) {
-      winston.error('Update settings error:', error);
+      winston.error('Get earnings error:', error);
       return {
         success: false,
-        error: error.message,
+        error: error.message
       };
     }
   }
 
-  // Create new campaign
+  // Get referrals
+  async getReferrals(affiliateId, page = 1, limit = 20) {
+    try {
+      const affiliate = await Affiliate.findById(affiliateId);
+      
+      if (!affiliate) {
+        return {
+          success: false,
+          error: 'Affiliate not found'
+        };
+      }
+      
+      const skip = (page - 1) * limit;
+      
+      const referrals = await Purchase.find({
+        'affiliate.affiliateCode': affiliate.affiliateCode,
+        status: 'completed',
+      })
+        .populate('user', 'name email')
+        .populate('ebook', 'title')
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit);
+      
+      const total = await Purchase.countDocuments({
+        'affiliate.affiliateCode': affiliate.affiliateCode,
+        status: 'completed',
+      });
+      
+      const formattedReferrals = referrals.map(ref => ({
+        id: ref._id,
+        customer: ref.user?.name || ref.metadata?.guestName || 'Anonymous',
+        email: ref.user?.email || ref.metadata?.guestEmail,
+        ebook: ref.ebook?.title || 'Suicide Note',
+        amount: formatCurrency(ref.amount || 0),
+        commission: formatCurrency(ref.affiliate?.commissionAmount || 0),
+        date: ref.createdAt,
+        status: ref.status,
+      }));
+      
+      return {
+        success: true,
+        data: {
+          referrals: formattedReferrals,
+          pagination: {
+            page,
+            limit,
+            total,
+            pages: Math.ceil(total / limit) || 1,
+          },
+        },
+      };
+    } catch (error) {
+      winston.error('Get referrals error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Get campaigns
+  async getCampaigns(affiliateId) {
+    try {
+      const affiliate = await Affiliate.findById(affiliateId);
+      
+      if (!affiliate) {
+        return {
+          success: false,
+          error: 'Affiliate not found'
+        };
+      }
+      
+      const campaigns = (affiliate.campaigns || []).map(c => ({
+        name: c.name,
+        link: c.link,
+        clicks: c.clicks || 0,
+        conversions: c.conversions || 0,
+        earnings: c.earnings || 0,
+        formattedEarnings: formatCurrency(c.earnings || 0),
+        conversionRate: c.clicks > 0 ? ((c.conversions || 0) / c.clicks * 100).toFixed(1) : 0,
+        createdAt: c.createdAt,
+      }));
+      
+      return {
+        success: true,
+        data: campaigns,
+      };
+    } catch (error) {
+      winston.error('Get campaigns error:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  // Create campaign
   async createCampaign(affiliateId, campaignData) {
     try {
       const affiliate = await Affiliate.findById(affiliateId);
@@ -241,7 +410,7 @@ class AffiliateService {
       }
       
       // Generate campaign link
-      const campaignLink = this.generateCampaignLink(affiliate.affiliateCode, name, { medium, source });
+      const campaignLink = affiliate.generateCampaignLink(name, medium, source);
       
       // Add campaign
       affiliate.campaigns.push({
@@ -255,8 +424,6 @@ class AffiliateService {
       });
       
       await affiliate.save();
-      
-      winston.info(`Campaign created: ${name} for affiliate ${affiliate.affiliateCode}`);
       
       return {
         success: true,
@@ -276,80 +443,6 @@ class AffiliateService {
     }
   }
 
-  // Get campaign analytics
-  async getCampaignAnalytics(affiliateId, campaignName) {
-    try {
-      const affiliate = await Affiliate.findById(affiliateId);
-      
-      if (!affiliate) {
-        return {
-          success: false,
-          error: 'Affiliate not found',
-        };
-      }
-      
-      const campaign = affiliate.campaigns.find(c => c.name === campaignName);
-      
-      if (!campaign) {
-        return {
-          success: false,
-          error: 'Campaign not found',
-        };
-      }
-      
-      // Get purchases from this campaign
-      const campaignPurchases = await Purchase.find({
-        'affiliate.affiliateCode': affiliate.affiliateCode,
-        'metadata.campaignName': campaignName,
-        status: 'completed',
-      })
-        .populate('user', 'name email')
-        .populate('ebook', 'title')
-        .sort({ createdAt: -1 });
-      
-      // Calculate conversion rate
-      const conversionRate = campaign.clicks > 0
-        ? (campaign.conversions / campaign.clicks) * 100
-        : 0;
-      
-      // Calculate average order value
-      const avgOrderValue = campaign.conversions > 0
-        ? campaign.earnings / campaign.conversions
-        : 0;
-      
-      const analytics = {
-        campaign: {
-          name: campaign.name,
-          description: campaign.description,
-          link: campaign.link,
-          createdAt: campaign.createdAt,
-        },
-        stats: {
-          clicks: campaign.clicks,
-          conversions: campaign.conversions,
-          earnings: campaign.earnings,
-          conversionRate,
-          avgOrderValue,
-          formattedEarnings: formatCurrency(campaign.earnings),
-          formattedAvgOrderValue: formatCurrency(avgOrderValue),
-        },
-        recentPurchases: campaignPurchases.slice(0, 10),
-        totalPurchases: campaignPurchases.length,
-      };
-      
-      return {
-        success: true,
-        data: analytics,
-      };
-    } catch (error) {
-      winston.error('Get campaign analytics error:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
   // Update bank details
   async updateBankDetails(affiliateId, bankDetails) {
     try {
@@ -362,36 +455,9 @@ class AffiliateService {
         };
       }
       
-      const { accountNumber, accountName, bankCode, bankName } = bankDetails;
-      
-      // Create Paystack transfer recipient
-      const recipientResult = await paystackService.createTransferRecipient(
-        accountName,
-        accountNumber,
-        bankCode
-      );
-      
-      if (!recipientResult.success) {
-        return {
-          success: false,
-          error: recipientResult.error,
-        };
-      }
-      
-      // Update affiliate bank details
-      affiliate.bankDetails = {
-        accountNumber,
-        accountName,
-        bankCode,
-        bankName,
-      };
-      
-      affiliate.paystackRecipientCode = recipientResult.data.recipient_code;
-      affiliate.isVerified = true; // Mark as verified after adding bank details
-      
+      affiliate.bankDetails = bankDetails;
+      affiliate.isVerified = true;
       await affiliate.save();
-      
-      winston.info(`Bank details updated for affiliate ${affiliate.affiliateCode}`);
       
       return {
         success: true,
@@ -410,7 +476,7 @@ class AffiliateService {
     }
   }
 
-  // Request payout - FIXED VERSION with proper error handling and email
+  // Request payout
   async requestPayout(affiliateId, amount) {
     try {
       const affiliate = await Affiliate.findById(affiliateId)
@@ -438,24 +504,10 @@ class AffiliateService {
         };
       }
       
-      if (!affiliate.bankDetails?.accountNumber || !affiliate.paystackRecipientCode) {
+      if (!affiliate.bankDetails?.accountNumber) {
         return {
           success: false,
           error: 'Bank details not set up',
-        };
-      }
-      
-      // Process payout via Paystack
-      const payoutResult = await paystackService.initiateTransfer(
-        affiliate.paystackRecipientCode,
-        amount,
-        `Affiliate commission payout for ${affiliate.affiliateCode}`
-      );
-      
-      if (!payoutResult.success) {
-        return {
-          success: false,
-          error: payoutResult.error,
         };
       }
       
@@ -465,26 +517,20 @@ class AffiliateService {
       await affiliate.save();
       
       // Send payout confirmation email
-      console.log(`📧 Sending payout confirmation email to: ${affiliate.user.email}`);
-      const emailResult = await emailService.sendPayoutConfirmationEmail(
+      await emailService.sendPayoutConfirmationEmail(
         affiliate.user.email,
         affiliate.user.name,
         amount,
-        payoutResult.data.reference
+        'PAYOUT-' + Date.now()
       );
-      console.log(`📧 Payout email result:`, emailResult ? '✅ Success' : '❌ Failed');
-      
-      winston.info(`Payout processed for affiliate ${affiliate.affiliateCode}: ${formatCurrency(amount)}`);
       
       return {
         success: true,
-        message: 'Payout processed successfully',
+        message: 'Payout requested successfully',
         data: {
           amount,
-          reference: payoutResult.data.reference,
           newPending: affiliate.pendingEarnings,
           newPaid: affiliate.paidEarnings,
-          emailSent: emailResult
         },
       };
     } catch (error) {
@@ -496,392 +542,67 @@ class AffiliateService {
     }
   }
 
-  // Get affiliate performance report
-  async getPerformanceReport(affiliateId, period = 'month') {
+  // Helper methods
+  async getEarningsThisMonth(affiliateId) {
     try {
+      const start = new Date();
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      
+      const end = new Date();
+      end.setMonth(end.getMonth() + 1);
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
+      
       const affiliate = await Affiliate.findById(affiliateId);
+      if (!affiliate) return { amount: 0, formatted: '₦0' };
       
-      if (!affiliate) {
-        return {
-          success: false,
-          error: 'Affiliate not found',
-        };
-      }
-      
-      let startDate;
-      const endDate = new Date();
-      
-      switch (period) {
-        case 'week':
-          startDate = new Date();
-          startDate.setDate(startDate.getDate() - 7);
-          break;
-        case 'month':
-          startDate = new Date();
-          startDate.setMonth(startDate.getMonth() - 1);
-          break;
-        case 'quarter':
-          startDate = new Date();
-          startDate.setMonth(startDate.getMonth() - 3);
-          break;
-        case 'year':
-          startDate = new Date();
-          startDate.setFullYear(startDate.getFullYear() - 1);
-          break;
-        default:
-          startDate = new Date(affiliate.createdAt);
-      }
-      
-      // Get purchases within period
       const purchases = await Purchase.find({
         'affiliate.affiliateCode': affiliate.affiliateCode,
         status: 'completed',
-        createdAt: { $gte: startDate, $lte: endDate },
-      })
-        .populate('ebook', 'title')
-        .sort({ createdAt: -1 });
-      
-      // Calculate metrics
-      const totalSales = purchases.length;
-      const totalRevenue = purchases.reduce((sum, purchase) => sum + purchase.amount, 0);
-      const totalCommission = purchases.reduce((sum, purchase) => 
-        sum + (purchase.affiliate?.commissionAmount || 0), 0
-      );
-      
-      // Get daily breakdown
-      const dailyBreakdown = {};
-      purchases.forEach(purchase => {
-        const date = purchase.createdAt.toISOString().split('T')[0];
-        if (!dailyBreakdown[date]) {
-          dailyBreakdown[date] = {
-            date,
-            sales: 0,
-            revenue: 0,
-            commission: 0,
-          };
-        }
-        
-        dailyBreakdown[date].sales += 1;
-        dailyBreakdown[date].revenue += purchase.amount;
-        dailyBreakdown[date].commission += purchase.affiliate?.commissionAmount || 0;
+        createdAt: { $gte: start, $lte: end },
       });
       
-      const dailyData = Object.values(dailyBreakdown).sort((a, b) => 
-        new Date(a.date) - new Date(b.date)
-      );
-      
-      // Calculate conversion metrics
-      const clicks = affiliate.clicks;
-      const conversions = totalSales;
-      const conversionRate = clicks > 0 ? (conversions / clicks) * 100 : 0;
-      const earningsPerClick = clicks > 0 ? totalCommission / clicks : 0;
-      
-      const report = {
-        period: {
-          start: startDate,
-          end: endDate,
-          label: period,
-        },
-        summary: {
-          totalClicks: clicks,
-          totalConversions: conversions,
-          totalSales,
-          totalRevenue,
-          totalCommission,
-          conversionRate,
-          earningsPerClick,
-          formattedRevenue: formatCurrency(totalRevenue),
-          formattedCommission: formatCurrency(totalCommission),
-        },
-        dailyBreakdown: dailyData,
-        topProducts: this.getTopProducts(purchases),
-        recentActivity: purchases.slice(0, 10),
-        campaigns: (affiliate.campaigns || []).map(campaign => ({
-          name: campaign.name,
-          clicks: campaign.clicks || 0,
-          conversions: campaign.conversions || 0,
-          earnings: campaign.earnings || 0,
-          conversionRate: campaign.clicks > 0 ? (campaign.conversions / campaign.clicks) * 100 : 0,
-        })),
-      };
+      const earnings = purchases.reduce((sum, p) => sum + (p.affiliate?.commissionAmount || 0), 0);
       
       return {
-        success: true,
-        data: report,
+        amount: earnings,
+        formatted: formatCurrency(earnings),
       };
     } catch (error) {
-      winston.error('Get performance report error:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+      return { amount: 0, formatted: '₦0' };
     }
   }
 
-  // Get leaderboard (top affiliates)
-  async getLeaderboard(limit = 10, period = 'month') {
+  async getEarningsLastMonth(affiliateId) {
     try {
-      let startDate;
-      const endDate = new Date();
+      const start = new Date();
+      start.setMonth(start.getMonth() - 1);
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
       
-      switch (period) {
-        case 'week':
-          startDate = new Date();
-          startDate.setDate(startDate.getDate() - 7);
-          break;
-        case 'month':
-          startDate = new Date();
-          startDate.setMonth(startDate.getMonth() - 1);
-          break;
-        case 'all':
-          startDate = new Date(0); // Beginning of time
-          break;
-        default:
-          startDate = new Date();
-          startDate.setMonth(startDate.getMonth() - 1);
-      }
+      const end = new Date();
+      end.setDate(0);
+      end.setHours(23, 59, 59, 999);
       
-      // Get all affiliates with their recent performance
-      const affiliates = await Affiliate.find({ isActive: true })
-        .populate('user', 'name profilePicture')
-        .sort({ totalEarnings: -1 })
-        .limit(limit);
-      
-      // For each affiliate, get their performance in the selected period
-      const leaderboard = await Promise.all(
-        affiliates.map(async (affiliate) => {
-          const periodPurchases = await Purchase.find({
-            'affiliate.affiliateCode': affiliate.affiliateCode,
-            status: 'completed',
-            createdAt: { $gte: startDate, $lte: endDate },
-          });
-          
-          const periodEarnings = periodPurchases.reduce((sum, purchase) => 
-            sum + (purchase.affiliate?.commissionAmount || 0), 0
-          );
-          
-          const periodSales = periodPurchases.length;
-          
-          return {
-            rank: 0, // Will be set after sorting
-            affiliate: {
-              code: affiliate.affiliateCode,
-              user: affiliate.user,
-              joinDate: affiliate.createdAt,
-            },
-            stats: {
-              totalEarnings: affiliate.totalEarnings || 0,
-              pendingEarnings: affiliate.pendingEarnings || 0,
-              totalSales: affiliate.successfulReferrals || 0,
-              periodEarnings,
-              periodSales,
-              formattedTotalEarnings: formatCurrency(affiliate.totalEarnings || 0),
-              formattedPeriodEarnings: formatCurrency(periodEarnings),
-            },
-          };
-        })
-      );
-      
-      // Sort by period earnings and assign ranks
-      leaderboard.sort((a, b) => b.stats.periodEarnings - a.stats.periodEarnings);
-      leaderboard.forEach((item, index) => {
-        item.rank = index + 1;
-      });
-      
-      return {
-        success: true,
-        data: {
-          period: {
-            start: startDate,
-            end: endDate,
-            label: period,
-          },
-          leaderboard,
-        },
-      };
-    } catch (error) {
-      winston.error('Get leaderboard error:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  // Deactivate affiliate account
-  async deactivateAccount(affiliateId) {
-    try {
       const affiliate = await Affiliate.findById(affiliateId);
+      if (!affiliate) return { amount: 0, formatted: '₦0' };
       
-      if (!affiliate) {
-        return {
-          success: false,
-          error: 'Affiliate not found',
-        };
-      }
-      
-      // Deactivate affiliate
-      affiliate.isActive = false;
-      await affiliate.save();
-      
-      // Update user role
-      await User.findByIdAndUpdate(affiliate.user, {
-        role: 'user',
+      const purchases = await Purchase.find({
+        'affiliate.affiliateCode': affiliate.affiliateCode,
+        status: 'completed',
+        createdAt: { $gte: start, $lte: end },
       });
       
-      winston.info(`Affiliate account deactivated: ${affiliate.affiliateCode}`);
+      const earnings = purchases.reduce((sum, p) => sum + (p.affiliate?.commissionAmount || 0), 0);
       
       return {
-        success: true,
-        message: 'Affiliate account deactivated successfully',
+        amount: earnings,
+        formatted: formatCurrency(earnings),
       };
     } catch (error) {
-      winston.error('Deactivate account error:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
+      return { amount: 0, formatted: '₦0' };
     }
-  }
-
-  // Reactivate affiliate account
-  async reactivateAccount(affiliateId) {
-    try {
-      const affiliate = await Affiliate.findById(affiliateId);
-      
-      if (!affiliate) {
-        return {
-          success: false,
-          error: 'Affiliate not found',
-        };
-      }
-      
-      // Reactivate affiliate
-      affiliate.isActive = true;
-      await affiliate.save();
-      
-      // Update user role
-      await User.findByIdAndUpdate(affiliate.user, {
-        role: 'affiliate',
-      });
-      
-      winston.info(`Affiliate account reactivated: ${affiliate.affiliateCode}`);
-      
-      return {
-        success: true,
-        message: 'Affiliate account reactivated successfully',
-      };
-    } catch (error) {
-      winston.error('Reactivate account error:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  // Get all affiliates (admin)
-  async getAllAffiliates(filters = {}) {
-    try {
-      const query = {};
-      
-      if (filters.isActive !== undefined) {
-        query.isActive = filters.isActive;
-      }
-      
-      if (filters.isVerified !== undefined) {
-        query.isVerified = filters.isVerified;
-      }
-      
-      const page = parseInt(filters.page) || 1;
-      const limit = parseInt(filters.limit) || 20;
-      const skip = (page - 1) * limit;
-      
-      const affiliates = await Affiliate.find(query)
-        .populate('user', 'name email')
-        .sort({ totalEarnings: -1 })
-        .skip(skip)
-        .limit(limit);
-      
-      const total = await Affiliate.countDocuments(query);
-      
-      // Calculate statistics
-      const stats = {
-        total: await Affiliate.countDocuments(),
-        active: await Affiliate.countDocuments({ isActive: true }),
-        verified: await Affiliate.countDocuments({ isVerified: true }),
-        totalEarnings: await Affiliate.aggregate([
-          { $group: { _id: null, total: { $sum: '$totalEarnings' } } },
-        ]).then(result => result[0]?.total || 0),
-        pendingPayouts: await Affiliate.aggregate([
-          { $group: { _id: null, total: { $sum: '$pendingEarnings' } } },
-        ]).then(result => result[0]?.total || 0),
-      };
-      
-      return {
-        success: true,
-        data: {
-          affiliates,
-          stats,
-          pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit),
-          },
-        },
-      };
-    } catch (error) {
-      winston.error('Get all affiliates error:', error);
-      return {
-        success: false,
-        error: error.message,
-      };
-    }
-  }
-
-  // Helper function to generate campaign link
-  generateCampaignLink(affiliateCode, campaignName, params = {}) {
-    const baseUrl = process.env.CLIENT_URL || 'https://suicidenote.com';
-    const url = new URL(`${baseUrl}/?ref=${affiliateCode}`);
-    
-    url.searchParams.set('campaign', campaignName);
-    
-    Object.entries(params).forEach(([key, value]) => {
-      if (value) {
-        url.searchParams.set(key, value);
-      }
-    });
-    
-    return url.toString();
-  }
-
-  // Helper function to get top products
-  getTopProducts(purchases) {
-    const productMap = {};
-    
-    purchases.forEach(purchase => {
-      const ebookId = purchase.ebook?._id?.toString();
-      const ebookTitle = purchase.ebook?.title || 'Unknown';
-      
-      if (!productMap[ebookId]) {
-        productMap[ebookId] = {
-          id: ebookId,
-          title: ebookTitle,
-          sales: 0,
-          revenue: 0,
-          commission: 0,
-        };
-      }
-      
-      productMap[ebookId].sales += 1;
-      productMap[ebookId].revenue += purchase.amount;
-      productMap[ebookId].commission += purchase.affiliate?.commissionAmount || 0;
-    });
-    
-    return Object.values(productMap)
-      .sort((a, b) => b.sales - a.sales)
-      .slice(0, 5);
   }
 }
 

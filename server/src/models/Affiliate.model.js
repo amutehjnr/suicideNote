@@ -1,3 +1,4 @@
+// models/Affiliate.model.js
 const mongoose = require('mongoose');
 
 const affiliateSchema = new mongoose.Schema({
@@ -17,9 +18,14 @@ const affiliateSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  dashboardToken: {
+    type: String,
+    unique: true,
+    required: true
+  },
   commissionRate: {
     type: Number,
-    default: 0.5, // 50%
+    default: 0.5,
     min: 0,
     max: 1
   },
@@ -111,7 +117,7 @@ const affiliateSchema = new mongoose.Schema({
   // Settings
   paymentThreshold: {
     type: Number,
-    default: 5000 // ₦5,000 minimum payout
+    default: 5000
   },
   notifications: {
     onSale: { type: Boolean, default: true },
@@ -210,7 +216,6 @@ affiliateSchema.methods.addClick = async function(campaignName) {
 };
 
 affiliateSchema.methods.addSuccessfulReferral = async function(amount, commission, campaignName) {
-  // Initialize if undefined
   if (typeof this.successfulReferrals !== 'number') this.successfulReferrals = 0;
   if (typeof this.totalReferrals !== 'number') this.totalReferrals = 0;
   if (typeof this.totalEarnings !== 'number') this.totalEarnings = 0;
@@ -252,6 +257,11 @@ affiliateSchema.methods.generateCampaignLink = function(campaignName, medium, so
   }
   
   return link;
+};
+
+// Generate unique dashboard token
+affiliateSchema.statics.generateDashboardToken = function() {
+  return 'aff_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
 };
 
 // Pre-save middleware

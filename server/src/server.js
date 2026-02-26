@@ -28,6 +28,7 @@ const affiliateRoutes = require('./routes/affiliate.routes');
 
 // ================== MIDDLEWARE ==================
 const authMiddleware = require('./middleware/auth.middleware');
+const affiliateTokenRoutes = require('./routes/affiliateToken.routes');
 
 // ================== LOGGER ==================
 const logger = winston.createLogger({
@@ -127,6 +128,13 @@ app.use('/api/access', accessRoutes);
 app.use('/access', emailAccessRoutes);
 app.use(affiliateMiddleware.trackAffiliate);
 app.use('/api/v1/affiliate', affiliateRoutes);
+app.use('/api/v1/affiliate/token', affiliateTokenRoutes);
+app.use('/api/v1/affiliate', require('./routes/affiliate.routes'));
+
+// Also add a direct route for token-based dashboard access
+app.get('/affiliate/token/:token', (req, res) => {
+  res.sendFile(path.join(__dirname, '../dist/index.html'));
+});
 
 // ================== HEALTH ==================
 app.get('/health', (req, res) => {
