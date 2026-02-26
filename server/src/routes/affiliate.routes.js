@@ -31,7 +31,7 @@ const requestPayoutSchema = Joi.object({
 
 // ==================== PUBLIC ROUTES (NO TOKEN REQUIRED) ====================
 
-// Register as affiliate - PUBLIC ROUTE
+// Register as affiliate - PUBLIC ROUTE (MUST BE BEFORE THE TOKEN MIDDLEWARE)
 router.post('/register', 
   validate(registerAffiliateSchema),
   affiliateController.registerAffiliate

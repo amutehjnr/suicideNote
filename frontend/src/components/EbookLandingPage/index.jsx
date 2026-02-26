@@ -334,7 +334,6 @@ const EbookLandingPage = () => {
   };
 
   // Affiliate handler - register and generate link
-  // In EbookLandingPage.jsx - Updated handleAffiliate function
 
 const handleAffiliate = async () => {
   if (!affiliateEmail) {
@@ -352,53 +351,26 @@ const handleAffiliate = async () => {
   try {
     console.log('🔗 Generating affiliate link for:', affiliateEmail);
     
-    // First, check if user is already an affiliate
-    const status = await AffiliateService.checkAffiliateStatus();
-    console.log('📊 Affiliate status:', status);
+    // Register as affiliate with email and name
+    const result = await AffiliateService.registerAffiliate(affiliateEmail, affiliateName);
+    console.log('📝 Registration result:', result);
     
-    let result;
-    let affiliateData;
-    
-    if (!status.isAffiliate) {
-      // Register as affiliate
-      console.log('📝 Registering new affiliate...');
-      result = await AffiliateService.registerAffiliate();
-      console.log('📝 Registration result:', result);
-      
-      if (!result.success) {
-        toast.error(result.error || 'Failed to register as affiliate');
-        setIsAffiliateLoading(false);
-        return;
-      }
-      
-      // After registration, get dashboard data
-      const dashboard = await AffiliateService.getDashboard();
-      console.log('📊 Dashboard after registration:', dashboard);
-      
-      if (dashboard.success && dashboard.data) {
-        affiliateData = dashboard.data.affiliate;
-      }
-    } else {
-      // Already an affiliate, get dashboard data
-      console.log('✅ User is already an affiliate');
-      const dashboard = await AffiliateService.getDashboard();
-      console.log('📊 Existing affiliate dashboard:', dashboard);
-      
-      if (dashboard.success && dashboard.data) {
-        affiliateData = dashboard.data.affiliate;
-      }
+    if (!result.success) {
+      toast.error(result.error || 'Failed to register as affiliate');
+      setIsAffiliateLoading(false);
+      return;
     }
     
-    // Generate the affiliate link
-    if (affiliateData && affiliateData.code) {
-      const link = affiliateData.link || AffiliateService.generateShareLink(affiliateData.code);
+    // After successful registration, get the affiliate link from the response
+    if (result.affiliate) {
+      const link = result.affiliate.link || AffiliateService.generateShareLink(result.affiliate.code);
       
       setAffiliateLink(link);
       setAffiliateGenerated(true);
       
       // Save affiliate info to localStorage
       localStorage.setItem('affiliate_info', JSON.stringify({
-        affiliateCode: affiliateData.code,
+        affiliateCode: result.affiliate.code,
         email: affiliateEmail,
         name: affiliateName,
         link: link,
@@ -415,25 +387,44 @@ const handleAffiliate = async () => {
         }
       }, 300);
     } else {
-      // Fallback to generating local link if API fails
-      console.log('⚠️ Using fallback link generation');
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substr(2, 8).toUpperCase();
-      const mockAffiliateId = `AFF${timestamp.toString(36).toUpperCase()}${randomId}`;
-      const link = AffiliateService.generateShareLink(mockAffiliateId);
-      
-      setAffiliateLink(link);
-      setAffiliateGenerated(true);
-      
-      localStorage.setItem('affiliate_info', JSON.stringify({
-        affiliateCode: mockAffiliateId,
-        email: affiliateEmail,
-        name: affiliateName,
-        link: link,
-        generatedAt: new Date().toISOString()
-      }));
-      
-      toast.success('Affiliate link generated!');
+      // If no affiliate data in response, try to get dashboard
+      const dashboard = await AffiliateService.getDashboard();
+      if (dashboard.success && dashboard.data) {
+        const affiliateData = dashboard.data.affiliate;
+        const link = affiliateData.link;
+        
+        setAffiliateLink(link);
+        setAffiliateGenerated(true);
+        
+        localStorage.setItem('affiliate_info', JSON.stringify({
+          affiliateCode: affiliateData.code,
+          email: affiliateEmail,
+          name: affiliateName,
+          link: link,
+          generatedAt: new Date().toISOString()
+        }));
+        
+        toast.success('🎉 Affiliate link generated successfully!');
+      } else {
+        // Ultimate fallback
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 8).toUpperCase();
+        const mockAffiliateId = `AFF${timestamp.toString(36).toUpperCase()}${randomId}`;
+        const link = AffiliateService.generateShareLink(mockAffiliateId);
+        
+        setAffiliateLink(link);
+        setAffiliateGenerated(true);
+        
+        localStorage.setItem('affiliate_info', JSON.stringify({
+          affiliateCode: mockAffiliateId,
+          email: affiliateEmail,
+          name: affiliateName,
+          link: link,
+          generatedAt: new Date().toISOString()
+        }));
+        
+        toast.success('Affiliate link generated!');
+      }
     }
     
   } catch (error) {

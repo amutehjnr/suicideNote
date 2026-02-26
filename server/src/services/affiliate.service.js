@@ -41,13 +41,6 @@ class AffiliateService {
         if (user) {
           existingAffiliate = await Affiliate.findOne({ user: user._id }).populate('user');
         }
-        
-        // Also check if any affiliate has this email in their user record
-        if (!existingAffiliate) {
-          existingAffiliate = await Affiliate.findOne({ 
-            'user.email': email.toLowerCase() 
-          }).populate('user');
-        }
       }
       
       if (existingAffiliate) {
