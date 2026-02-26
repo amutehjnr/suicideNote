@@ -1,4 +1,3 @@
-// services/affiliate.service.js
 const Affiliate = require('../models/Affiliate.model');
 const User = require('../models/User.model');
 const Purchase = require('../models/Purchase.model');
@@ -27,21 +26,37 @@ class AffiliateService {
   // Create new affiliate account (prevents duplicates)
   async createAffiliate(userId, email, name = '') {
     try {
+      console.log('📝 Creating affiliate for:', { userId, email, name });
+      
       // First check if affiliate already exists for this email
-      const existingAffiliate = await Affiliate.findOne({ 
-        $or: [
-          { user: userId },
-          { 'user.email': email }
-        ]
-      }).populate('user');
+      let existingAffiliate = null;
+      
+      if (userId) {
+        existingAffiliate = await Affiliate.findOne({ user: userId }).populate('user');
+      }
+      
+      if (!existingAffiliate && email) {
+        // Find user by email first
+        const user = await User.findOne({ email: email.toLowerCase() });
+        if (user) {
+          existingAffiliate = await Affiliate.findOne({ user: user._id }).populate('user');
+        }
+        
+        // Also check if any affiliate has this email in their user record
+        if (!existingAffiliate) {
+          existingAffiliate = await Affiliate.findOne({ 
+            'user.email': email.toLowerCase() 
+          }).populate('user');
+        }
+      }
       
       if (existingAffiliate) {
         console.log('⚠️ Affiliate already exists:', existingAffiliate.affiliateCode);
         
         // Send email with existing dashboard link
         await emailService.sendAffiliateWelcomeEmail(
-          email,
-          name || existingAffiliate.user?.name || email.split('@')[0],
+          email || existingAffiliate.user?.email,
+          name || existingAffiliate.user?.name || email?.split('@')[0] || 'Affiliate',
           existingAffiliate,
           true
         );
@@ -55,13 +70,18 @@ class AffiliateService {
       }
       
       // Find or create user
-      let user = await User.findById(userId);
+      let user = null;
       
-      if (!user) {
+      if (userId) {
+        user = await User.findById(userId);
+      }
+      
+      if (!user && email) {
         user = await User.findOne({ email: email.toLowerCase() });
       }
       
-      if (!user) {
+      if (!user && email) {
+        // Create a new user
         user = new User({
           email: email.toLowerCase(),
           name: name || email.split('@')[0],
@@ -70,6 +90,14 @@ class AffiliateService {
           role: 'affiliate'
         });
         await user.save();
+        console.log('✅ Created new user:', user.email);
+      }
+      
+      if (!user) {
+        return {
+          success: false,
+          error: 'User not found and email not provided',
+        };
       }
       
       // Generate unique affiliate code
@@ -85,7 +113,7 @@ class AffiliateService {
       }
       
       // Generate unique dashboard token
-      const dashboardToken = Affiliate.generateDashboardToken();
+      const dashboardToken = 'aff_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
       
       // Generate referral link
       const referralLink = `${process.env.CLIENT_URL || 'https://suicidenote.onrender.com'}/?ref=${affiliateCode}`;
@@ -104,6 +132,8 @@ class AffiliateService {
       user.role = 'affiliate';
       user.affiliateId = affiliate._id;
       await user.save();
+      
+      console.log('✅ Affiliate created with token:', dashboardToken);
       
       // Send welcome email with dashboard link
       const emailResult = await emailService.sendAffiliateWelcomeEmail(

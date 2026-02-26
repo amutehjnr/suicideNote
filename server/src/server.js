@@ -24,11 +24,11 @@ const ebookRoutes = require('./routes/ebook.routes');
 const paymentRoutes = require('./routes/payment.routes');
 const accessRoutes = require('./routes/accessRoutes');
 const emailAccessRoutes = require('./routes/emailAccess.routes');
-const affiliateRoutes = require('./routes/affiliate.routes');
 
 // ================== MIDDLEWARE ==================
 const authMiddleware = require('./middleware/auth.middleware');
 const affiliateTokenRoutes = require('./routes/affiliateToken.routes');
+const affiliateRoutes = require('./routes/affiliate.routes');
 
 // ================== LOGGER ==================
 const logger = winston.createLogger({

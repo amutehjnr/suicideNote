@@ -1,4 +1,3 @@
-// routes/affiliate.routes.js
 const express = require('express');
 const router = express.Router();
 const affiliateController = require('../controllers/affiliate.controller');
@@ -7,6 +6,11 @@ const { validate } = require('../middleware/affiliate.middleware');
 const Joi = require('joi');
 
 // Validation schemas
+const registerAffiliateSchema = Joi.object({
+  email: Joi.string().email().required(),
+  name: Joi.string().optional().allow('')
+});
+
 const createCampaignSchema = Joi.object({
   name: Joi.string().required().min(3).max(50),
   description: Joi.string().optional().max(200),
@@ -25,9 +29,17 @@ const requestPayoutSchema = Joi.object({
   amount: Joi.number().positive().required(),
 });
 
+// ==================== PUBLIC ROUTES (NO TOKEN REQUIRED) ====================
+
+// Register as affiliate - PUBLIC ROUTE
+router.post('/register', 
+  validate(registerAffiliateSchema),
+  affiliateController.registerAffiliate
+);
+
 // ==================== TOKEN-BASED AUTH ROUTES ====================
 
-// All dashboard routes require a valid token
+// All routes below require a valid token
 router.use(authenticateAffiliateToken);
 
 // Get affiliate dashboard data

@@ -1,5 +1,5 @@
 // middleware/affiliateToken.middleware.js
-const AffiliateService = require('../services/affiliate.service');
+const Affiliate = require('../models/Affiliate.model');
 
 const authenticateAffiliateToken = async (req, res, next) => {
   try {
@@ -13,17 +13,20 @@ const authenticateAffiliateToken = async (req, res, next) => {
       });
     }
     
-    const result = await AffiliateService.getAffiliateByToken(token);
+    const affiliate = await Affiliate.findOne({ 
+      dashboardToken: token,
+      isActive: true 
+    });
     
-    if (!result.success) {
+    if (!affiliate) {
       return res.status(401).json({ 
         success: false, 
-        error: result.error 
+        error: 'Invalid or expired token' 
       });
     }
     
-    req.affiliate = result.data;
-    req.affiliateId = result.data._id;
+    req.affiliate = affiliate;
+    req.affiliateId = affiliate._id;
     next();
     
   } catch (error) {

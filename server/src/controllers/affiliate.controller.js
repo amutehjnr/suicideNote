@@ -1,8 +1,50 @@
-// controllers/affiliate.controller.js
 const AffiliateService = require('../services/affiliate.service');
 const winston = require('winston');
 
 const affiliateController = {
+  /**
+   * Register as an affiliate - PUBLIC ROUTE
+   */
+  async registerAffiliate(req, res) {
+    try {
+      const { email, name } = req.body;
+      
+      if (!email) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Email is required' 
+        });
+      }
+      
+      console.log('📝 Registering affiliate with email:', email);
+      
+      // Pass userId as null since this is a public registration
+      const result = await AffiliateService.createAffiliate(null, email, name);
+      
+      if (!result.success) {
+        return res.status(400).json(result);
+      }
+      
+      return res.status(201).json({
+        success: true,
+        message: result.message || 'Affiliate account created successfully',
+        affiliate: {
+          code: result.affiliate.affiliateCode,
+          link: result.affiliate.referralLink,
+          dashboardToken: result.affiliate.dashboardToken
+        },
+        isExisting: result.isExisting || false
+      });
+    } catch (error) {
+      winston.error('Register affiliate error:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: 'Failed to register affiliate',
+        details: error.message 
+      });
+    }
+  },
+
   // Get dashboard data (token already authenticated)
   async getDashboard(req, res) {
     try {
