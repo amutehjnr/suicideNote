@@ -15,4 +15,38 @@ router.get('/test', (req, res) => {
   });
 });
 
+// Add this temporary debug route
+router.get('/check/:email', async (req, res) => {
+  try {
+    const { email } = req.params;
+    const User = require('../models/User.model');
+    const Affiliate = require('../models/Affiliate.model');
+    
+    const user = await User.findOne({ email: email.toLowerCase() });
+    if (!user) {
+      return res.json({ success: false, error: 'User not found' });
+    }
+    
+    const affiliate = await Affiliate.findOne({ user: user._id });
+    if (!affiliate) {
+      return res.json({ success: false, error: 'Affiliate not found' });
+    }
+    
+    return res.json({
+      success: true,
+      data: {
+        email: user.email,
+        affiliateCode: affiliate.affiliateCode,
+        dashboardToken: affiliate.dashboardToken,
+        hasToken: !!affiliate.dashboardToken,
+        dashboardUrl: affiliate.dashboardToken ? 
+          `https://suicidenote.onrender.com/affiliate/token/${affiliate.dashboardToken}` : 
+          'No token - run migration'
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 module.exports = router;
