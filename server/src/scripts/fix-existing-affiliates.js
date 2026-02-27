@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '../../.env') });
 
-async function fixExistingAffiliates() {
+async function fixAffiliateTokens() {
   try {
     if (!process.env.MONGODB_URI) {
       throw new Error('MONGODB_URI is not defined');
@@ -54,4 +54,4 @@ async function fixExistingAffiliates() {
   }
 }
 
-fixExistingAffiliates();
+fixAffiliateTokens();

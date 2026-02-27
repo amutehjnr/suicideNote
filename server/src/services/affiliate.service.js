@@ -44,23 +44,33 @@ class AffiliateService {
       }
       
       if (existingAffiliate) {
-        console.log('⚠️ Affiliate already exists:', existingAffiliate.affiliateCode);
-        
-        // Send email with existing dashboard link
-        await emailService.sendAffiliateWelcomeEmail(
-          email || existingAffiliate.user?.email,
-          name || existingAffiliate.user?.name || email?.split('@')[0] || 'Affiliate',
-          existingAffiliate,
-          true
-        );
-        
-        return {
-          success: true,
-          message: 'Affiliate link already exists. Check your email.',
-          affiliate: existingAffiliate,
-          isExisting: true
-        };
-      }
+  console.log('⚠️ Affiliate already exists:', existingAffiliate.affiliateCode);
+  
+  // CRITICAL FIX: Check if existing affiliate has a dashboard token
+  if (!existingAffiliate.dashboardToken) {
+    console.log('⚠️ Existing affiliate missing dashboard token, generating one...');
+    existingAffiliate.dashboardToken = 'aff_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+    await existingAffiliate.save();
+    console.log('✅ Generated new dashboard token:', existingAffiliate.dashboardToken);
+  } else {
+    console.log('✅ Existing affiliate already has token:', existingAffiliate.dashboardToken);
+  }
+  
+  // Send email with existing dashboard link
+  await emailService.sendAffiliateWelcomeEmail(
+    email || existingAffiliate.user?.email,
+    name || existingAffiliate.user?.name || email?.split('@')[0] || 'Affiliate',
+    existingAffiliate,
+    true
+  );
+  
+  return {
+    success: true,
+    message: 'Affiliate link already exists. Check your email.',
+    affiliate: existingAffiliate,
+    isExisting: true
+  };
+}
       
       // Find or create user
       let user = null;
