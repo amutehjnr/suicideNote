@@ -10,10 +10,25 @@ const AffiliateTokenRedirect = () => {
 
   useEffect(() => {
     const validateAndRedirect = async () => {
+      // Check if token exists
+      if (!token) {
+        console.error('❌ No token provided in URL');
+        toast.error('Invalid dashboard link: No token provided');
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+        return;
+      }
+
       try {
+        console.log('🔍 Validating token:', token);
+        
         const response = await axios.get(`/api/v1/affiliate/token/validate/${token}`);
+        console.log('✅ Validation response:', response.data);
         
         if (response.data.success) {
+          // Store token in localStorage for the dashboard to use
+          localStorage.setItem('affiliate_token', token);
           // Token is valid, redirect to dashboard with token
           navigate(`/affiliate/dashboard?token=${token}`);
         } else {
@@ -23,18 +38,16 @@ const AffiliateTokenRedirect = () => {
           }, 2000);
         }
       } catch (error) {
-        toast.error('Invalid or expired dashboard link');
+        console.error('❌ Token validation error:', error);
+        console.error('Error response:', error.response?.data);
+        toast.error(error.response?.data?.error || 'Invalid or expired dashboard link');
         setTimeout(() => {
           navigate('/');
         }, 2000);
       }
     };
 
-    if (token) {
-      validateAndRedirect();
-    } else {
-      navigate('/');
-    }
+    validateAndRedirect();
   }, [token, navigate]);
 
   return (
@@ -43,18 +56,21 @@ const AffiliateTokenRedirect = () => {
       justifyContent: 'center', 
       alignItems: 'center', 
       height: '100vh',
-      flexDirection: 'column'
+      flexDirection: 'column',
+      backgroundColor: '#f9f9f9'
     }}>
-      <div className="spinner" style={{
-        width: '40px',
-        height: '40px',
-        border: '4px solid #f3f3f3',
+      <div style={{
+        width: '50px',
+        height: '50px',
+        border: '4px solid #e0e0e0',
         borderTop: '4px solid #059669',
         borderRadius: '50%',
         animation: 'spin 1s linear infinite',
         marginBottom: '20px'
       }}></div>
-      <p>Validating your dashboard access...</p>
+      <p style={{ color: '#333', fontSize: '16px' }}>
+        {token ? 'Validating your dashboard access...' : 'Redirecting to home...'}
+      </p>
       <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
