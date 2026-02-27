@@ -248,8 +248,9 @@ const handleGenerateLink = async () => {
   
   try {
     console.log('🔗 Generating affiliate link for:', affiliateEmail);
+    console.log('📧 With name:', affiliateName);
     
-    // Register as affiliate with email and name
+    // This will now work because registerAffiliate accepts parameters
     const result = await AffiliateService.registerAffiliate(affiliateEmail, affiliateName);
     console.log('📝 Registration result:', result);
     
@@ -291,14 +292,6 @@ const handleGenerateLink = async () => {
       
       setAffiliateLink(link);
       setAffiliateGenerated(true);
-      
-      localStorage.setItem('affiliate_info', JSON.stringify({
-        affiliateCode: mockAffiliateId,
-        email: affiliateEmail,
-        name: affiliateName,
-        link: link,
-        generatedAt: new Date().toISOString()
-      }));
       
       toast.success('Affiliate link generated!');
     }

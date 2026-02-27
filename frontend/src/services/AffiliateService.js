@@ -68,15 +68,15 @@ class AffiliateServiceClass {
   }
 
   /**
-   * Register as an affiliate
+   * Register as an affiliate - FIXED: Now accepts email and name parameters
    */
-  async registerAffiliate() {
+  async registerAffiliate(email, name = '') {
     try {
-      console.log('📝 Registering affiliate...');
+      console.log('📝 Registering affiliate with email:', email, 'and name:', name);
       
       const response = await axios.post(
         `${API_BASE_URL}/affiliate/register`,
-        {},
+        { email, name }, // Send email and name in the request body
         { 
           withCredentials: true,
           headers: {
@@ -89,9 +89,11 @@ class AffiliateServiceClass {
       return response.data;
     } catch (error) {
       console.error('❌ Register affiliate failed:', error);
+      console.error('Error details:', error.response?.data);
       return {
         success: false,
-        error: error.response?.data?.error || 'Failed to register as affiliate'
+        error: error.response?.data?.error || 'Failed to register as affiliate',
+        details: error.response?.data
       };
     }
   }
@@ -238,7 +240,7 @@ class AffiliateServiceClass {
   }
 
   /**
-   * Check if user is affiliate - FIXED VERSION
+   * Check if user is affiliate
    */
   async checkAffiliateStatus() {
     try {
@@ -247,7 +249,6 @@ class AffiliateServiceClass {
       const token = this.getAuthToken();
       
       if (token) {
-        // If we have a token, try to get dashboard
         const dashboardRes = await this.getDashboard();
         if (dashboardRes.success) {
           return {
@@ -257,7 +258,6 @@ class AffiliateServiceClass {
         }
       }
       
-      // Check if user object exists in localStorage
       const userStr = localStorage.getItem('user');
       if (userStr) {
         const user = JSON.parse(userStr);
