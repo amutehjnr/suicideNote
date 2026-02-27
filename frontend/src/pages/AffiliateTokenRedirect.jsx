@@ -10,13 +10,17 @@ const AffiliateTokenRedirect = () => {
 
   useEffect(() => {
     const validateAndRedirect = async () => {
-      // Check if token exists
-      if (!token) {
-        console.error('❌ No token provided in URL');
+      // Log the token to see what's coming from the URL
+      console.log('🔍 Token from URL params:', token);
+      console.log('🔍 Full URL:', window.location.href);
+      
+      // Check if token exists and is not undefined
+      if (!token || token === 'undefined' || token.trim() === '') {
+        console.error('❌ No valid token provided in URL');
         toast.error('Invalid dashboard link: No token provided');
         setTimeout(() => {
           navigate('/');
-        }, 2000);
+        }, 3000);
         return;
       }
 
@@ -69,7 +73,7 @@ const AffiliateTokenRedirect = () => {
         marginBottom: '20px'
       }}></div>
       <p style={{ color: '#333', fontSize: '16px' }}>
-        {token ? 'Validating your dashboard access...' : 'Redirecting to home...'}
+        {token && token !== 'undefined' ? 'Validating your dashboard access...' : 'Invalid dashboard link...'}
       </p>
       <style>{`
         @keyframes spin {

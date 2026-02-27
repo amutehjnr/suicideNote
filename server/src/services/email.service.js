@@ -321,6 +321,8 @@ class EmailService {
   // services/email.service.js - Add this method
 async sendAffiliateWelcomeEmail(to, name, affiliate, includeDashboardLink = false) {
   console.log(`📧 Sending affiliate welcome email to: ${to}`);
+  console.log('📧 Sending affiliate welcome email with dashboard token:', affiliate.dashboardToken);
+  console.log('📧 Dashboard URL:', `${process.env.CLIENT_URL || 'https://suicidenote.onrender.com'}/affiliate/token/${affiliate.dashboardToken}`);
   
   const dashboardUrl = `${process.env.CLIENT_URL || 'https://suicidenote.onrender.com'}/affiliate/token/${affiliate.dashboardToken}`;
   
