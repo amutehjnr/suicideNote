@@ -8,7 +8,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const cookieParser = require('cookie-parser');
 const winston = require('winston');
 const path = require('path');
-const mongoose = require('mongoose'); // 👈 ADD THIS LINE
+const mongoose = require('mongoose');
 const adminRoutes = require('./routes/admin.routes');
 const affiliateMiddleware = require('./middleware/affiliate.middleware');
 
@@ -57,64 +57,6 @@ console.log('🔧 Registering core middleware...');
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(cookieParser());
-
-// TEMPORARY DEBUG ENDPOINT - Add this after app.use(cookieParser())
-app.get('/api/debug/affiliate/:email', async (req, res) => {
-  try {
-    const { email } = req.params;
-    console.log('🔍 Debug endpoint called for email:', email);
-    
-    const User = require('./models/User.model');
-    const Affiliate = require('./models/Affiliate.model');
-    
-    const user = await User.findOne({ email: email.toLowerCase() });
-    if (!user) {
-      return res.json({ 
-        success: false, 
-        error: 'User not found',
-        email 
-      });
-    }
-    
-    const affiliate = await Affiliate.findOne({ user: user._id });
-    if (!affiliate) {
-      return res.json({ 
-        success: false, 
-        error: 'Affiliate not found',
-        userId: user._id 
-      });
-    }
-    
-    return res.json({
-      success: true,
-      data: {
-        user: {
-          email: user.email,
-          name: user.name,
-          id: user._id
-        },
-        affiliate: {
-          code: affiliate.affiliateCode,
-          link: affiliate.referralLink,
-          dashboardToken: affiliate.dashboardToken,
-          hasToken: !!affiliate.dashboardToken,
-          tokenValue: affiliate.dashboardToken, // Show the actual token
-          isActive: affiliate.isActive,
-          createdAt: affiliate.createdAt
-        },
-        dashboardUrl: affiliate.dashboardToken ? 
-          `https://suicidenote.onrender.com/affiliate/token/${affiliate.dashboardToken}` : 
-          'No token'
-      }
-    });
-  } catch (error) {
-    console.error('Debug endpoint error:', error);
-    return res.status(500).json({ 
-      success: false, 
-      error: error.message 
-    });
-  }
-});
 
 // ================== DEBUG BODY LOGGER ==================
 app.use((req, res, next) => {
@@ -179,15 +121,22 @@ app.use('/api/v1/admin', adminRoutes); // For admin API
 
 // ================== ✅ MAIN API ROUTES ==================
 console.log('🔧 Registering API routes...');
+
+// Public routes (no auth required)
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/ebooks', ebookRoutes);
 app.use('/api/v1/payments', paymentRoutes);
 app.use('/api/access', accessRoutes);
 app.use('/access', emailAccessRoutes);
+
+// Affiliate click tracking middleware
 app.use(affiliateMiddleware.trackAffiliate);
-app.use('/api/v1/affiliate', affiliateRoutes);
+
+// ✅ FIXED: Register affiliate token routes FIRST (public)
 app.use('/api/v1/affiliate/token', affiliateTokenRoutes);
-app.use('/api/v1/affiliate', require('./routes/affiliate.routes'));
+
+// Then register protected affiliate routes
+app.use('/api/v1/affiliate', affiliateRoutes);
 
 // Also add a direct route for token-based dashboard access
 app.get('/affiliate/token/:token', (req, res) => {
@@ -303,7 +252,7 @@ const server = app.listen(PORT, () => {
     } catch (error) {
       console.error('❌ Failed to run index fix:', error);
     }
-  }, 2000); // Wait 2 seconds for connection to establish
+  }, 2000);
 });
 
 server.on('error', (error) => {
