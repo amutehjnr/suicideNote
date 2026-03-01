@@ -2,10 +2,19 @@
 const AffiliateService = require('../services/affiliate.service');
 
 const affiliateTokenController = {
-  // Validate token and redirect to dashboard
+  // Validate token and return JSON (NOT redirect)
   async validateToken(req, res) {
     try {
       const { token } = req.params;
+      
+      console.log('🔍 Validating token:', token);
+      
+      if (!token) {
+        return res.status(400).json({ 
+          success: false, 
+          error: 'Token is required' 
+        });
+      }
       
       const result = await AffiliateService.getAffiliateByToken(token);
       
@@ -25,8 +34,19 @@ const affiliateTokenController = {
         maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
       });
       
-      // Redirect to dashboard
-      return res.redirect(`/affiliate/dashboard?token=${token}`);
+      // Return JSON instead of redirecting
+      return res.status(200).json({
+        success: true,
+        message: 'Token validated successfully',
+        data: {
+          id: result.data._id,
+          name: result.data.user?.name,
+          email: result.data.user?.email,
+          affiliateCode: result.data.affiliateCode,
+          referralLink: result.data.referralLink,
+          token: token
+        }
+      });
       
     } catch (error) {
       console.error('Validate token error:', error);
