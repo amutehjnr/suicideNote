@@ -45,17 +45,18 @@ const AffiliateDashboard = () => {
     }
     
     setToken(urlToken);
-    loadDashboardData(urlToken);
+    
+    // IMPORTANT: Set the token in the service BEFORE loading data
+    AffiliateService.setAuthToken(urlToken);
+    
+    loadDashboardData();
   }, [searchParams]);
 
-  const loadDashboardData = async (authToken) => {
+  const loadDashboardData = async () => {
     setIsLoading(true);
     
     try {
-      // Set the token in the service for all requests
-      AffiliateService.setAuthToken(authToken);
-      
-      // Load all data
+      // Load all data in parallel with the token already set
       const [dashboardRes, earningsRes, referralsRes, campaignsRes, bankRes] = await Promise.all([
         AffiliateService.getDashboard(),
         AffiliateService.getEarnings(),
@@ -63,6 +64,10 @@ const AffiliateDashboard = () => {
         AffiliateService.getCampaigns(),
         AffiliateService.getBankDetails()
       ]);
+
+      console.log('Dashboard response:', dashboardRes);
+      console.log('Earnings response:', earningsRes);
+      console.log('Referrals response:', referralsRes);
 
       if (dashboardRes.success) setDashboardData(dashboardRes.data);
       if (earningsRes.success) setEarnings(earningsRes.data);
@@ -185,6 +190,7 @@ const AffiliateDashboard = () => {
     );
   }
 
+  // Rest of your JSX remains exactly the same...
   return (
     <div className={styles.container}>
       {/* Header */}
