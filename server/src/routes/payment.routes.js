@@ -64,6 +64,9 @@ router.post(
   paymentController.validateAccessCode
 );
 
+// Debug route - remove in production
+router.get('/debug/purchase/:purchaseId', paymentController.debugPurchase);
+
 // Authenticated routes
 router.get(
   '/purchases',

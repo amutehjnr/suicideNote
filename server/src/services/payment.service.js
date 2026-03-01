@@ -72,16 +72,29 @@ async function sendAccessCodeEmail(purchase, accessCode) {
   }
 }
 
+
 /**
- * Handle affiliate commission when purchase is completed
+ * Handle affiliate commission when purchase is completed - WITH DEBUGGING
  */
 async function handleAffiliateCommission(purchase) {
   try {
+    console.log('💰 ===== PROCESSING AFFILIATE COMMISSION =====');
+    console.log('💰 Purchase ID:', purchase._id);
+    console.log('💰 Purchase amount:', purchase.amount);
+    console.log('💰 Raw purchase object:', JSON.stringify({
+      id: purchase._id,
+      affiliateCode: purchase.affiliateCode,
+      metadata: purchase.metadata,
+      affiliate: purchase.affiliate
+    }, null, 2));
+    
     // Get affiliate code from multiple possible sources
     let affiliateCode = purchase.affiliateCode || 
                         purchase.metadata?.affiliateCode || 
                         purchase.metadata?.affiliate ||
                         (purchase.affiliate && purchase.affiliate.affiliateCode);
+    
+    console.log('💰 Extracted affiliateCode:', affiliateCode);
     
     if (!affiliateCode) {
       winston.info('ℹ️ No affiliate code found for purchase:', purchase._id);
@@ -98,18 +111,23 @@ async function handleAffiliateCommission(purchase) {
       isActive: true 
     }).populate('user');
     
-    if (!affiliate) {
-      winston.warn(`❌ Affiliate not found for code: ${affiliateCode}`);
+    console.log('💰 Found affiliate:', affiliate ? 'Yes' : 'No');
+    if (affiliate) {
+      console.log('💰 Affiliate details:', {
+        code: affiliate.affiliateCode,
+        currentEarnings: affiliate.totalEarnings,
+        email: affiliate.user?.email
+      });
+    } else {
+      console.log('💰 No affiliate found for code:', affiliateCode);
       return;
     }
-    
-    console.log('📧 AFFILIATE INFO - Will send commission email to:', affiliate.user?.email);
     
     // Calculate commission (50% of purchase amount)
     const commissionRate = 0.5;
     const commissionAmount = purchase.amount * commissionRate;
     
-    winston.info(`💰 Commission calculation:`, {
+    console.log('💰 Commission calculation:', {
       purchaseAmount: purchase.amount,
       commissionRate,
       commissionAmount
@@ -120,6 +138,12 @@ async function handleAffiliateCommission(purchase) {
     if (typeof affiliate.pendingEarnings !== 'number') affiliate.pendingEarnings = 0;
     if (typeof affiliate.totalReferrals !== 'number') affiliate.totalReferrals = 0;
     if (typeof affiliate.successfulReferrals !== 'number') affiliate.successfulReferrals = 0;
+    
+    console.log('💰 Before update:', {
+      totalEarnings: affiliate.totalEarnings,
+      pendingEarnings: affiliate.pendingEarnings,
+      totalReferrals: affiliate.totalReferrals
+    });
     
     // Update affiliate stats
     affiliate.totalEarnings += commissionAmount;
@@ -156,6 +180,11 @@ async function handleAffiliateCommission(purchase) {
     
     // Save affiliate
     await affiliate.save();
+    console.log('💰 After update:', {
+      totalEarnings: affiliate.totalEarnings,
+      pendingEarnings: affiliate.pendingEarnings,
+      totalReferrals: affiliate.totalReferrals
+    });
     
     // Update purchase with affiliate info
     purchase.affiliate = {
@@ -175,12 +204,12 @@ async function handleAffiliateCommission(purchase) {
       totalReferrals: affiliate.totalReferrals
     });
     
-    // Send commission notification email to AFFILIATE (separate from access code)
+    // Send commission notification email to AFFILIATE
     try {
       if (affiliate.user && affiliate.user.email) {
         console.log('📧 Sending COMMISSION email to AFFILIATE:', affiliate.user.email);
         await emailService.sendAffiliateCommissionEmail(
-          affiliate.user.email, // This is the AFFILIATE's email
+          affiliate.user.email,
           affiliate.user.name || 'Affiliate',
           purchase,
           commissionAmount
@@ -191,8 +220,11 @@ async function handleAffiliateCommission(purchase) {
       winston.error('❌ Failed to send commission email:', emailError);
     }
     
+    console.log('💰 ===== COMMISSION PROCESSING COMPLETE =====');
+    
   } catch (error) {
     winston.error('❌ Affiliate commission error:', error);
+    console.error('💰 ERROR:', error);
   }
 }
 

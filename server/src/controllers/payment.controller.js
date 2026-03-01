@@ -367,6 +367,59 @@ const paymentController = {
       return res.status(500).json({ success: false, error: 'Failed to track click', details: error.message });
     }
   },
+
+  /**
+   * DEBUG - Check purchase affiliate data
+   */
+  async debugPurchase(req, res) {
+    try {
+      const { purchaseId } = req.params;
+      
+      const Purchase = require('../models/Purchase.model');
+      const Affiliate = require('../models/Affiliate.model');
+      
+      const purchase = await Purchase.findById(purchaseId)
+        .populate('user', 'email name')
+        .populate('ebook', 'title')
+        .lean();
+      
+      if (!purchase) {
+        return res.status(404).json({ success: false, error: 'Purchase not found' });
+      }
+      
+      // Find the affiliate if any
+      let affiliate = null;
+      if (purchase.affiliateCode) {
+        affiliate = await Affiliate.findOne({ 
+          affiliateCode: purchase.affiliateCode 
+        }).populate('user', 'email name').lean();
+      }
+      
+      return res.json({
+        success: true,
+        data: {
+          purchase: {
+            id: purchase._id,
+            amount: purchase.amount,
+            status: purchase.status,
+            affiliateCode: purchase.affiliateCode,
+            metadata: purchase.metadata,
+            createdAt: purchase.createdAt
+          },
+          affiliate: affiliate ? {
+            code: affiliate.affiliateCode,
+            email: affiliate.user?.email,
+            name: affiliate.user?.name,
+            totalEarnings: affiliate.totalEarnings,
+            pendingEarnings: affiliate.pendingEarnings
+          } : null
+        }
+      });
+    } catch (error) {
+      console.error('Debug error:', error);
+      res.status(500).json({ success: false, error: error.message });
+    }
+  }
 };
 
 module.exports = paymentController;
