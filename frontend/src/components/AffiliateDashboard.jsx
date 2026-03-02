@@ -53,46 +53,52 @@ const AffiliateDashboard = () => {
   }, [searchParams]);
 
   const loadDashboardData = async () => {
-    setIsLoading(true);
+  setIsLoading(true);
+  
+  try {
+    // Load all data in parallel with the token already set
+    const [dashboardRes, earningsRes, referralsRes, campaignsRes, bankRes] = await Promise.all([
+      AffiliateService.getDashboard(),
+      AffiliateService.getEarnings(),
+      AffiliateService.getReferrals(1, 20),
+      AffiliateService.getCampaigns(),
+      AffiliateService.getBankDetails()
+    ]);
+
+    console.log('Dashboard response:', dashboardRes);
+    console.log('Earnings response:', earningsRes);
+    console.log('Referrals response:', referralsRes);
     
-    try {
-      // Load all data in parallel with the token already set
-      const [dashboardRes, earningsRes, referralsRes, campaignsRes, bankRes] = await Promise.all([
-        AffiliateService.getDashboard(),
-        AffiliateService.getEarnings(),
-        AffiliateService.getReferrals(1, 20),
-        AffiliateService.getCampaigns(),
-        AffiliateService.getBankDetails()
-      ]);
-
-      console.log('Dashboard response:', dashboardRes);
-      console.log('Earnings response:', earningsRes);
-      console.log('Referrals response:', referralsRes);
-
-      if (dashboardRes.success) setDashboardData(dashboardRes.data);
-      if (earningsRes.success) setEarnings(earningsRes.data);
-      if (referralsRes.success) setReferrals(referralsRes.data.referrals || []);
-      if (campaignsRes.success) setCampaigns(campaignsRes.data);
-      if (bankRes.success) {
-        setBankDetails(bankRes.data.bankDetails || {});
-        setHasBankDetails(bankRes.data.hasBankDetails || false);
-      }
-      
-    } catch (error) {
-      console.error('Error loading dashboard:', error);
-      toast.error('Failed to load dashboard data');
-      
-      // If token is invalid, redirect to home
-      if (error.response?.status === 401) {
-        toast.error('Invalid or expired access link');
-        setTimeout(() => {
-          window.location.href = '/';
-        }, 2000);
-      }
-    } finally {
-      setIsLoading(false);
+    // ADD THIS DEBUG LOGGING
+    if (referralsRes.success && referralsRes.data?.referrals) {
+      console.log('🔍 First referral details:', referralsRes.data.referrals[0]);
+      console.log('🔍 All referrals:', referralsRes.data.referrals);
     }
-  };
+
+    if (dashboardRes.success) setDashboardData(dashboardRes.data);
+    if (earningsRes.success) setEarnings(earningsRes.data);
+    if (referralsRes.success) setReferrals(referralsRes.data.referrals || []);
+    if (campaignsRes.success) setCampaigns(campaignsRes.data);
+    if (bankRes.success) {
+      setBankDetails(bankRes.data.bankDetails || {});
+      setHasBankDetails(bankRes.data.hasBankDetails || false);
+    }
+    
+  } catch (error) {
+    console.error('Error loading dashboard:', error);
+    toast.error('Failed to load dashboard data');
+    
+    // If token is invalid, redirect to home
+    if (error.response?.status === 401) {
+      toast.error('Invalid or expired access link');
+      setTimeout(() => {
+        window.location.href = '/';
+      }, 2000);
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const handleCreateCampaign = async () => {
     if (!newCampaign.name) {

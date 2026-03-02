@@ -322,65 +322,106 @@ class AffiliateService {
   }
 
   // Get referrals
-  async getReferrals(affiliateId, page = 1, limit = 20) {
-    try {
-      const affiliate = await Affiliate.findById(affiliateId);
+async getReferrals(affiliateId, page = 1, limit = 20) {
+  try {
+    const affiliate = await Affiliate.findById(affiliateId);
+    
+    if (!affiliate) {
+      return {
+        success: false,
+        error: 'Affiliate not found'
+      };
+    }
+    
+    const skip = (page - 1) * limit;
+    
+    const referrals = await Purchase.find({
+      'affiliate.affiliateCode': affiliate.affiliateCode,
+      status: 'completed',
+    })
+      .populate('user', 'name email')
+      .populate('ebook', 'title')
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+    
+    const total = await Purchase.countDocuments({
+      'affiliate.affiliateCode': affiliate.affiliateCode,
+      status: 'completed',
+    });
+    
+    // Add debug logging
+    console.log('🔍 Raw referrals from DB:', JSON.stringify(referrals.map(r => ({
+      id: r._id,
+      user: r.user ? { id: r.user._id, name: r.user.name, email: r.user.email } : null,
+      metadata: r.metadata,
+      guestName: r.metadata?.guestName,
+      name: r.metadata?.name,
+      paymentDetails: r.paymentDetails
+    })), null, 2));
+    
+    const formattedReferrals = referrals.map(ref => {
+      // Get customer name from all possible sources
+      let customerName = 'Anonymous';
+      let customerEmail = 'N/A';
       
-      if (!affiliate) {
-        return {
-          success: false,
-          error: 'Affiliate not found'
-        };
+      // Check if user exists and has a name (for registered users)
+      if (ref.user && ref.user.name) {
+        customerName = ref.user.name;
+        customerEmail = ref.user.email || 'N/A';
+      }
+      // Check metadata for guestName (from guest checkout)
+      else if (ref.metadata && ref.metadata.guestName) {
+        customerName = ref.metadata.guestName;
+        customerEmail = ref.metadata.guestEmail || 'N/A';
+      }
+      // Check metadata for name field
+      else if (ref.metadata && ref.metadata.name) {
+        customerName = ref.metadata.name;
+        customerEmail = ref.metadata.guestEmail || 'N/A';
+      }
+      // Fallback to email username if available
+      else if (ref.metadata && ref.metadata.guestEmail) {
+        customerName = ref.metadata.guestEmail.split('@')[0];
+        customerEmail = ref.metadata.guestEmail;
+      }
+      else if (ref.user && ref.user.email) {
+        customerName = ref.user.email.split('@')[0];
+        customerEmail = ref.user.email;
       }
       
-      const skip = (page - 1) * limit;
-      
-      const referrals = await Purchase.find({
-        'affiliate.affiliateCode': affiliate.affiliateCode,
-        status: 'completed',
-      })
-        .populate('user', 'name email')
-        .populate('ebook', 'title')
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit);
-      
-      const total = await Purchase.countDocuments({
-        'affiliate.affiliateCode': affiliate.affiliateCode,
-        status: 'completed',
-      });
-      
-      const formattedReferrals = referrals.map(ref => ({
+      return {
         id: ref._id,
-        customer: ref.user?.name || ref.metadata?.guestName || 'Anonymous',
-        email: ref.user?.email || ref.metadata?.guestEmail,
+        customer: customerName,
+        email: customerEmail,
         ebook: ref.ebook?.title || 'Suicide Note',
         amount: formatCurrency(ref.amount || 0),
         commission: formatCurrency(ref.affiliate?.commissionAmount || 0),
         date: ref.createdAt,
         status: ref.status,
-      }));
-      
-      return {
-        success: true,
-        data: {
-          referrals: formattedReferrals,
-          pagination: {
-            page,
-            limit,
-            total,
-            pages: Math.ceil(total / limit) || 1,
-          },
+      };
+    });
+    
+    return {
+      success: true,
+      data: {
+        referrals: formattedReferrals,
+        pagination: {
+          page,
+          limit,
+          total,
+          pages: Math.ceil(total / limit) || 1,
         },
-      };
-    } catch (error) {
-      winston.error('Get referrals error:', error);
-      return {
-        success: false,
-        error: error.message
-      };
-    }
+      },
+    };
+  } catch (error) {
+    winston.error('Get referrals error:', error);
+    return {
+      success: false,
+      error: error.message
+    };
   }
+}
 
   // Get campaigns
   async getCampaigns(affiliateId) {
