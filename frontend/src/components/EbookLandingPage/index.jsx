@@ -9,55 +9,156 @@ import { ebookAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const PREVIEW_CONTENT = `SUICIDE NOTE
-by Loba Yusuf
+const PREVIEW_CONTENT = `CHAPTER ONE
 
-Copyright © 2026 Loba Yusuf
-All rights reserved.
-
-Important Mental Health Notice
-This book contains themes of depression, suicidal thoughts, emotional distress, and mental health struggles. It may be emotionally difficult for some readers.
-
-This work is not intended to encourage or promote suicide, self-harm, or hopelessness. Its purpose is to reflect lived emotional experiences and highlight the importance of connection, understanding, and support.
-
-Fiction Disclaimer
-Suicide Note is a work of fiction. All characters, events, and situations are fictional.
-
-Crisis Support Resources (Nigeria)
-Nigeria Emergency Number: 112
-Lagos Emergency Lines: 767 or 112
-
----
-
-CHAPTER ONE: THE NOTE BEGINS
+**The Note Begins**
 
 I'm writing this because I need someone to understand.
 
-Not my mother, who will cry and ask what she did wrong. Not my father, who will wonder where he failed as a man. Not Tola, too busy with her husband and children to notice I've been disappearing for years. Not Deji, who has exams next week and a future that shouldn't be shadowed by this.
+Not my mother, who will cry and ask what she did wrong. Not my father,
+who will wonder where he failed as a man. Not Tola, too busy with her
+husband and children to notice I've been disappearing for years. Not
+Deji, who has exams next week and a future that shouldn't be shadowed by
+this.
 
 Someone. Anyone. Maybe no one.
 
-I'm using loose sheets torn from an old exercise book that I used in my final year at LASU, pages still blank after the semester ended. I told myself I'd use them for something eventually. Grocery lists, maybe. Or tracking my Clash of Clans progress. But they've sat in that wardrobe for two years, and tonight, I finally know what they're for.
+I'm using loose sheets torn from an old exercise book that I used in my
+final year at LASU, pages still blank after the semester ended. I told
+myself I'd use them for something eventually. Grocery lists, maybe. Or
+tracking my Clash of Clans progress. But they've sat in that wardrobe
+for two years, and tonight, I finally know what they're for.
 
-It's Friday, November 15, 2024. 11:47 PM. NEPA took light around nine—unusual, because they normally let us have power until at least ten on weekends. I'm sitting at the small table in my self-contain, writing by the light of my phone's flashlight propped against the wall. The battery is at 23%. When it dies, I'll have to stop, but by then this should be finished.
+It's Friday, November 15, 2024. 11:47 PM. NEPA took light around
+nine---unusual, because they normally let us have power until at least
+ten on weekends. I'm sitting at the small table in my self-contain,
+writing by the light of my phone's flashlight propped against the wall.
+The battery is at 23%. When it dies, I'll have to stop, but by then this
+should be finished.
 
-My name is Eliora Oluwafemi Adetayo. Eliora means my God is light, Oluwafemi—God loves me, and Adetayo—the crown meets joy. My parents named me like I was supposed to be something. Like these names would protect me or guide me or make me into a relevant person.
+My name is Eliora Oluwafemi Adetayo. Eliora means my God is light,
+Oluwafemi---God loves me, and Adetayo---the crown meets joy. My parents
+named me like I was supposed to be something. Like these names would
+protect me or guide me or make me into a relevant person.
 
-I am twenty-six years old. I have a degree in Business Administration from Lagos State University, Second Class Lower. I work as a warehouse associate for a Chinese import company in Apapa, scanning inventory and recording stock numbers. I make ₦65,000 a month. After transport, food, and rent—which my parents helped pay this year because I couldn't manage it alone—I have maybe ₦8,000 left for everything else. I live in Ojuelegba in a room so small I can touch opposite walls if I spread my arms wide enough.
+I am twenty-six years old. I have a degree in Business Administration
+from Lagos State University, Second Class Lower. I work as a warehouse
+associate for a Chinese import company in Apapa, scanning inventory and
+recording stock numbers. I make ₦65,000 a month. After transport, food,
+and rent---which my parents helped pay this year because I couldn't
+manage it alone---I have maybe ₦8,000 left for everything else. I live
+in Ojuelegba in a room so small I can touch opposite walls if I spread
+my arms wide enough.
 
-This is my life. This has been my life for two and a half years, and I can't see how it will ever be different.
+This is my life. This has been my life for two and a half years, and I
+can't see how it will ever be different.
 
----
+I should start at the beginning, give context, explain the journey, make
+it make sense, right? But I don't know where the beginning is. When I
+graduated and couldn't find work? When I took this warehouse job
+"temporarily" and got stuck? When my university friends scattered across
+Lagos, Abuja, abroad, and our group chat went silent? When I realized I
+could go weeks without anyone saying my name out loud?
 
-[PAGE 8 - BLUR BEGINS HERE]
+Maybe there is no beginning. Maybe this has always been here, waiting.
 
-The thing about Lagos is, you can be surrounded by twenty million people and still drown in loneliness. I learned that slowly, the way you learn anything that kills you—one day at a time, so gradually you don't notice until you're already gone.
+The thing about Lagos is, you can be surrounded by twenty million people
+and still drown in loneliness. I learned that slowly, the way you learn
+anything that kills you---one day at a time, so gradually you don't
+notice until you're already gone.
 
-I wake up at 5 AM every day because my commute takes two hours. Danfo from Ojuelegba to CMS, then another from CMS to Apapa...
+I wake up at 5 AM every day because my commute takes two hours. Danfo
+from Ojuelegba to CMS, then another from CMS to Apapa. The conductors
+shout the same routes in the same rhythm---"CMS! CMS! One chance! Enter,
+we dey go!"---and I squeeze into seats meant for three people but
+holding four, my body pressed against strangers who smell like sweat and
+heat and the same exhaustion I feel.
 
-I masturbate. Not because I'm thinking about anyone or because I want to — but because when the urge comes, I don't have the energy to resist...
+No one looks at anyone. That's the rule of Lagos transport. You stare at
+your phone or out the window or at nothing, because eye contact is an
+invitation, and we're all too tired for invitations.
 
-I lie there in the dark...
+I clock in at 7 AM. Mr. Chen, my manager, barely looks up from his
+clipboard. I don't think he knows my full name. He calls me "You" or
+"Hey" or sometimes just points. The warehouse is concrete floors and
+fluorescent lights that make these annoying buzz sounds. Metal shelves
+stretch up to the ceiling, rows and rows of boxes with codes I've
+memorized without meaning to: 3847B, rechargeable fans. 4729C, phone
+chargers. 6012A, plastic basins.
+
+I scan items. I record numbers in the computer. I stack boxes. I move to
+the next section. The beep of the scanner becomes the only rhythm in my
+day.
+
+Ibrahim tries to talk to me sometimes. He's from Kano, been here four
+years, always inviting me to lunch: "Bros, come chop na." I tell him I'm
+not hungry or I brought food or maybe later. After six months, he
+stopped asking. He still greets me every morning---"Bros, how
+far?"---and I nod or say "I dey" and that's it. He's not unkind. I'm
+just not much of a talker.
+
+Ngozi at the front desk says "Good morning!" every day with this bright
+smile like she means it. She waves. She tries. I mumble something back.
+She deserves better than my mumbling, but I don't have better to give.
+
+At 4 PM, I clock out. Two hours back to Ojuelegba. By the time I get
+home, it's past six and I'm so tired I can feel it in my bones. Not
+tired from physical work---the warehouse isn't hard labor, just mindless
+repetition. Tired from existing. Tired from pretending I'm fine when Mr.
+Chen yells about working faster. Tired from sitting in traffic watching
+the sun set behind buildings I'll never afford to live in. Tired from
+being invisible.
+
+I eat---usually bread and eggs or indomie if I'm too drained to
+cook---and then I open my laptop.
+
+This is the only part of the day that feels like anything.
+
+I play Clash of Clans. My username is SilentKing047. Town Hall Level 11,
+working toward 12. My clan is called Naija Warriors, mostly Nigerians
+living abroad---London, Texas, Toronto---people who left and made
+something of themselves. They don't know I'm a warehouse worker living
+in a self-contain in Ojuelegba. They think I'm a student, I think, or
+maybe they don't think about me at all except when I attack in clan
+wars.
+
+I'm good at it. I know troop combinations, attack strategies, when to
+use spells and when to save them. I can three-star bases that should be
+too strong for my level. In the clan chat, people say "Nice hit, Silent"
+or "Clutch attack, bro." For those few seconds, I feel like I did
+something that mattered.
+
+I upgrade my barracks. I collect resources. I watch the timer count
+down---six hours until my barbarian king is done upgrading, twelve hours
+until I can use my army again. I check the app obsessively, even at
+work, because there's always something to do, some progress to track. I
+can measure my life in these small victories: archer tower to level 13,
+clan castle to level 6, war stars earned.
+
+But when I close the app, nothing has changed. My room is still small.
+My bank account is still nearly empty. I'm still twenty-six with a
+business degree and a job that doesn't require one. The progress isn't
+real. It's pixels on a screen. And I know this, but I keep playing
+because at least it's something.
+
+Sometimes I watch films. Korean dramas, mostly---the ones where people
+are sad but beautiful, where suffering is aesthetic and meaningful. Or
+Hollywood movies where the underdog wins, where the quiet guy turns out
+to be secretly brilliant, where hard work pays off and people notice. I
+download them using Airtel night plan. My internet is too slow for
+streaming, and I can't afford more data.
+
+I fall asleep with my laptop still playing, voices in a language I don't
+always understand filling the silence so I don't have to hear how alone
+I am.
+
+At night, after the films end or I've finally closed Clash of Clans,
+there's the other thing. The thing I don't want to write about but
+should, because this is supposed to be honest.
+
+I masturbate. Not because I'm thinking about anyone or because I want to
+--- but because when the urge comes, I don't have the energy to resist.
+It's routine now---like brushing my teeth, only sadder.
 
 [CONTENT CONTINUES BUT BLURS COMPLETELY]`;
 
