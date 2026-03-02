@@ -122,10 +122,17 @@ const EbookLandingPage = () => {
     readers: 127,
     rating: 4.9,
     chapters: 10,
-    price: 2500,
-    affiliateCommission: 1250,
+    price: 3000, // Updated to ₦3,000
+    affiliateCommission: 1500, // 50% of 3000
     affiliateRate: 0.5
   });
+
+  // Check cookies on page load
+  useEffect(() => {
+    console.log('🍪 All cookies on page load:', document.cookie);
+    const affiliateRef = document.cookie.replace(/(?:(?:^|.*;\s*)affiliate_ref\s*\=\s*([^;]*).*$)|^.*$/, "$1");
+    console.log('🍪 affiliate_ref from cookies:', affiliateRef);
+  }, []);
 
   // Initialize and check for payment callback
   useEffect(() => {
@@ -188,12 +195,12 @@ const EbookLandingPage = () => {
         setHasAccess(true);
       }
       
-      // Track affiliate click if present in URL
-      const affiliateCode = urlParams.get('ref');
-      if (affiliateCode) {
-        const campaign = urlParams.get('campaign');
-        PaymentService.trackAffiliateClick(affiliateCode, campaign);
-      }
+      // ❌ REMOVED: Track affiliate click API call - now handled by middleware
+      // const affiliateCode = urlParams.get('ref');
+      // if (affiliateCode) {
+      //   const campaign = urlParams.get('campaign');
+      //   PaymentService.trackAffiliateClick(affiliateCode, campaign);
+      // }
       
       // Fetch real data in background
       fetchRealData();
@@ -217,9 +224,9 @@ const EbookLandingPage = () => {
         
         // Update stats with real data
         if (ebook.price || ebook.salesCount || ebook.ratings) {
-          // DON'T use API price if it's 25 - keep your default 2500
+          // Use API price or default to 3000
           const apiPrice = ebook.price || ebook.currentPrice;
-          const finalPrice = apiPrice === 25 ? 2500 : (apiPrice || stats.price);
+          const finalPrice = apiPrice === 25 ? 3000 : (apiPrice || stats.price);
           
           setStats(prev => ({
             ...prev,
@@ -334,97 +341,75 @@ const EbookLandingPage = () => {
   };
 
   // Affiliate handler - register and generate link
-
-const handleAffiliate = async () => {
-  if (!affiliateEmail) {
-    toast.error('Please enter your email address');
-    return;
-  }
-  
-  if (!affiliateEmail.includes('@')) {
-    toast.error('Please enter a valid email address');
-    return;
-  }
-  
-  setIsAffiliateLoading(true);
-  
-  try {
-    console.log('🔗 Generating affiliate link for:', affiliateEmail);
-    console.log('📧 With name:', affiliateName);
-    
-    // This will now work because registerAffiliate accepts parameters
-    const result = await AffiliateService.registerAffiliate(affiliateEmail, affiliateName);
-    console.log('📝 Registration result:', result);
-    
-    if (!result.success) {
-      toast.error(result.error || 'Failed to register as affiliate');
-      setIsAffiliateLoading(false);
+  const handleAffiliate = async () => {
+    if (!affiliateEmail) {
+      toast.error('Please enter your email address');
       return;
     }
     
-    if (result.affiliate) {
-      const link = result.affiliate.link || AffiliateService.generateShareLink(result.affiliate.code);
-      
-      setAffiliateLink(link);
-      setAffiliateGenerated(true);
-      
-      localStorage.setItem('affiliate_info', JSON.stringify({
-        affiliateCode: result.affiliate.code,
-        email: affiliateEmail,
-        name: affiliateName,
-        link: link,
-        generatedAt: new Date().toISOString()
-      }));
-      
-      toast.success('🎉 Affiliate link generated successfully! Check your email for dashboard access.');
-      
-      setTimeout(() => {
-        const element = document.getElementById('affiliate-link-section');
-        if (element) {
-          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-      }, 300);
-    } else {
-      // Fallback if no affiliate data
-      const timestamp = Date.now();
-      const randomId = Math.random().toString(36).substr(2, 8).toUpperCase();
-      const mockAffiliateId = `AFF${timestamp.toString(36).toUpperCase()}${randomId}`;
-      const link = AffiliateService.generateShareLink(mockAffiliateId);
-      
-      setAffiliateLink(link);
-      setAffiliateGenerated(true);
-      
-      toast.success('Affiliate link generated!');
+    if (!affiliateEmail.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
     }
     
-  } catch (error) {
-    console.error('❌ Affiliate generation error:', error);
-    toast.error('Failed to generate affiliate link. Please try again.');
-  } finally {
-    setIsAffiliateLoading(false);
-  }
-};
+    setIsAffiliateLoading(true);
+    
+    try {
+      console.log('🔗 Generating affiliate link for:', affiliateEmail);
+      console.log('📧 With name:', affiliateName);
+      
+      const result = await AffiliateService.registerAffiliate(affiliateEmail, affiliateName);
+      console.log('📝 Registration result:', result);
+      
+      if (!result.success) {
+        toast.error(result.error || 'Failed to register as affiliate');
+        setIsAffiliateLoading(false);
+        return;
+      }
+      
+      if (result.affiliate) {
+        const link = result.affiliate.link || AffiliateService.generateShareLink(result.affiliate.code);
+        
+        setAffiliateLink(link);
+        setAffiliateGenerated(true);
+        
+        localStorage.setItem('affiliate_info', JSON.stringify({
+          affiliateCode: result.affiliate.code,
+          email: affiliateEmail,
+          name: affiliateName,
+          link: link,
+          generatedAt: new Date().toISOString()
+        }));
+        
+        toast.success('🎉 Affiliate link generated! Check your email for dashboard access.');
+        
+        setTimeout(() => {
+          const element = document.getElementById('affiliate-link-section');
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          }
+        }, 300);
+      } else {
+        // Fallback
+        const timestamp = Date.now();
+        const randomId = Math.random().toString(36).substr(2, 8).toUpperCase();
+        const mockAffiliateId = `AFF${timestamp.toString(36).toUpperCase()}${randomId}`;
+        const link = AffiliateService.generateShareLink(mockAffiliateId);
+        
+        setAffiliateLink(link);
+        setAffiliateGenerated(true);
+        
+        toast.success('Affiliate link generated!');
+      }
+      
+    } catch (error) {
+      console.error('❌ Affiliate generation error:', error);
+      toast.error('Failed to generate affiliate link. Please try again.');
+    } finally {
+      setIsAffiliateLoading(false);
+    }
+  };
 
-
-// Add this at the top of your component, right after useState declarations
-useEffect(() => {
-  // Check cookies immediately
-  console.log('🍪 All cookies on page load:', document.cookie);
-  
-  // Parse cookies to find affiliate_ref
-  const cookies = document.cookie.split(';').reduce((acc, cookie) => {
-    const [key, value] = cookie.trim().split('=');
-    acc[key] = value;
-    return acc;
-  }, {});
-  
-  console.log('🍪 Parsed cookies:', cookies);
-  console.log('🍪 affiliate_ref from cookies:', cookies.affiliate_ref);
-  
-  // Also check what PaymentService returns
-  const serviceCookie = PaymentService.getAffiliateCodeFromCookie?.();
-  console.log('🎯 PaymentService.getAffiliateCodeFromCookie():', serviceCookie);
-}, []);
   // Copy affiliate link to clipboard
   const copyAffiliateLink = () => {
     if (affiliateLink) {

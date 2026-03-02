@@ -1,4 +1,3 @@
-// middleware/affiliate.middleware.js
 const Affiliate = require('../models/Affiliate.model');
 
 /**
@@ -10,6 +9,8 @@ const trackAffiliate = async (req, res, next) => {
     
     if (ref) {
       console.log('🔗 Affiliate link clicked:', ref);
+      console.log('🔗 Full URL:', req.originalUrl);
+      console.log('🔗 Setting cookie now...');
       
       // Find the affiliate
       const affiliate = await Affiliate.findOne({ affiliateCode: ref.toUpperCase() });
@@ -34,10 +35,12 @@ const trackAffiliate = async (req, res, next) => {
         
         // Store affiliate code
         res.cookie('affiliate_ref', ref.toUpperCase(), cookieOptions);
+        console.log('✅ Cookie set: affiliate_ref=', ref.toUpperCase());
         
         // Store campaign info if available
         if (campaignName) {
           res.cookie('affiliate_campaign', campaignName, cookieOptions);
+          console.log('✅ Campaign cookie set:', campaignName);
         }
         
         console.log(`✅ Affiliate click tracked: ${ref}, campaign: ${campaignName || 'none'}, stored for 48h`);
