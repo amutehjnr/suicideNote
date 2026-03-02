@@ -122,8 +122,8 @@ const EbookLandingPage = () => {
     readers: 127,
     rating: 4.9,
     chapters: 10,
-    price: 3000, // Updated to ₦3,000
-    affiliateCommission: 1500, // 50% of 3000
+    price: 3000,
+    affiliateCommission: 1500,
     affiliateRate: 0.5
   });
 
@@ -194,13 +194,6 @@ const EbookLandingPage = () => {
       if (savedCode) {
         setHasAccess(true);
       }
-      
-      // ❌ REMOVED: Track affiliate click API call - now handled by middleware
-      // const affiliateCode = urlParams.get('ref');
-      // if (affiliateCode) {
-      //   const campaign = urlParams.get('campaign');
-      //   PaymentService.trackAffiliateClick(affiliateCode, campaign);
-      // }
       
       // Fetch real data in background
       fetchRealData();
@@ -571,7 +564,7 @@ const EbookLandingPage = () => {
         )}
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section with Book Cover */}
       <section className={styles.hero}>
         <div className="container">
           <div className={styles.heroGrid}>
@@ -610,28 +603,20 @@ const EbookLandingPage = () => {
               </p>
             </div>
             
+            {/* Book Cover - Replacing the old heroCard */}
             <div className={styles.heroCard}>
-              <div className={styles.bookCard}>
-                <div className={styles.bookCardContent}>
-                  <h3 className={styles.bookCardTitle}>What's Inside:</h3>
-                  <ul className={styles.featureList}>
-                    <li className={styles.featureItem}>
-                      <span className={styles.checkIcon}>✓</span>
-                      <span>Raw, honest portrayal of depression in Nigeria</span>
-                    </li>
-                    <li className={styles.featureItem}>
-                      <span className={styles.checkIcon}>✓</span>
-                      <span>Journey from despair to community and hope</span>
-                    </li>
-                    <li className={styles.featureItem}>
-                      <span className={styles.checkIcon}>✓</span>
-                      <span>Mental health resources for Nigerian readers</span>
-                    </li>
-                    <li className={styles.featureItem}>
-                      <span className={styles.checkIcon}>✓</span>
-                      <span>{stats.chapters} powerful chapters of transformation</span>
-                    </li>
-                  </ul>
+              <div className={styles.bookCoverContainer}>
+                <img 
+                  src="/images/suicide-note-cover.jpeg" 
+                  alt="Suicide Note Book Cover" 
+                  className={styles.bookCover}
+                  onError={(e) => {
+                    e.target.onerror = null;
+                    e.target.src = 'https://via.placeholder.com/400x600?text=Suicide+Note+Cover';
+                  }}
+                />
+                <div className={styles.bookCoverBadge}>
+                  <span className={styles.bestsellerBadge}>#1 Bestseller</span>
                 </div>
               </div>
             </div>

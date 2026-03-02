@@ -1190,3 +1190,72 @@
     padding: 16px;
   }
 }
+
+/* Add these styles to your existing CSS file */
+
+/* Book Cover Styles */
+.bookCoverContainer {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.bookCoverContainer:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 30px 60px rgba(0, 0, 0, 0.4);
+}
+
+.bookCover {
+  width: 100%;
+  height: auto;
+  display: block;
+  border-radius: 12px;
+}
+
+.bookCoverBadge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 10;
+}
+
+.bestsellerBadge {
+  background: linear-gradient(135deg, #ffd700, #ffa500);
+  color: #000;
+  font-weight: bold;
+  padding: 8px 16px;
+  border-radius: 30px;
+  font-size: 14px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  display: inline-block;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+/* Responsive adjustments for book cover */
+@media (max-width: 768px) {
+  .bookCoverContainer {
+    max-width: 300px;
+    margin-top: 30px;
+  }
+  
+  .heroGrid {
+    flex-direction: column-reverse;
+  }
+}
