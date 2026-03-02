@@ -1,646 +1,216 @@
-const axios = require('axios');
-const mongoose = require('mongoose');
-const User = require('../models/User.model');
-const Purchase = require('../models/Purchase.model');
-const Ebook = require('../models/Ebook.model');
-const Affiliate = require('../models/Affiliate.model');
-const winston = require('winston');
-const crypto = require('crypto');
-const AccessCode = require('../models/AccessCode.model');
-const emailService = require('./email.service');
+import axios from 'axios';
 
-const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
-const PAYSTACK_BASE_URL = 'https://api.paystack.co';
+const API_BASE_URL = '/api/v1';
 
-// Constants
-const EBOOK_PRICE_NGN = 3000; // ₦3,000 (in kobo)
-const EBOOK_PRICE_USD = 500; // $5.00 (in cents)
+console.log('🔗 PaymentService initialized with API_URL:', API_BASE_URL);
 
-// Helper function to send access code email
-async function sendAccessCodeEmail(purchase, accessCode) {
-  try {
-    console.log('📧 ===== SENDING ACCESS CODE EMAIL =====');
-    console.log('📧 Purchase ID:', purchase._id);
-    console.log('📧 Purchase user email:', purchase.user?.email);
-    console.log('📧 Purchase metadata:', purchase.metadata);
-    
-    if (!purchase.user || !purchase.user.email) {
-      console.log('❌ CRITICAL: No user email found for purchase:', purchase._id);
-      return false;
-    }
-    
-    const userName = purchase.user?.name || 
-                     purchase.metadata?.guestName || 
-                     purchase.metadata?.name ||
-                     purchase.user?.email?.split('@')[0] || 
-                     'Valued Reader';
-    
-    console.log('📧 Sending to email:', purchase.user.email);
-    console.log('📧 User name:', userName);
-    
-    const result = await emailService.sendAccessCodeEmail(
-      purchase.user.email,
-      userName,
-      accessCode.code,
-      purchase.ebook
-    );
-    
-    console.log('📧 Email send result:', result ? '✅ Success' : '❌ Failed');
-    return result;
-  } catch (error) {
-    console.error('🔥 Email helper error:', error.message);
-    return false;
-  }
-}
+// Helper function to get cookie
+const getCookie = (name) => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop().split(';').shift();
+  return null;
+};
 
-/**
- * Handle affiliate commission when purchase is completed - FIXED VERSION
- */
-async function handleAffiliateCommission(purchase) {
-  try {
-    console.log('💰 ===== PROCESSING AFFILIATE COMMISSION =====');
-    console.log('💰 Purchase ID:', purchase._id);
-    console.log('💰 Purchase amount:', purchase.amount);
-    console.log('💰 Full purchase metadata:', purchase.metadata);
-    
-    // FIX: Check both possible locations for affiliate code
-    let affiliateCode = purchase.metadata?.affiliateCode || 
-                        purchase.metadata?.metadata?.affiliateCode;
-    
-    console.log('💰 Extracted affiliateCode:', affiliateCode);
-    
-    if (!affiliateCode) {
-      winston.info('ℹ️ No affiliate code found for purchase:', purchase._id);
-      return;
-    }
-    
-    winston.info(`🎯 Processing affiliate commission for code: ${affiliateCode}`, {
-      purchaseId: purchase._id,
-      amount: purchase.amount
-    });
-    
-    const affiliate = await Affiliate.findOne({ 
-      affiliateCode: affiliateCode.toString().toUpperCase(),
-      isActive: true 
-    }).populate('user');
-    
-    console.log('💰 Found affiliate:', affiliate ? 'Yes' : 'No');
-    if (!affiliate) {
-      console.log('💰 No affiliate found for code:', affiliateCode);
-      return;
-    }
-    
-    console.log('💰 Affiliate details:', {
-      code: affiliate.affiliateCode,
-      currentEarnings: affiliate.totalEarnings,
-      email: affiliate.user?.email
-    });
-    
-    // Calculate commission (50% of purchase amount)
-    const commissionRate = 0.5;
-    const commissionAmount = purchase.amount * commissionRate;
-    
-    console.log('💰 Commission calculation:', {
-      purchaseAmount: purchase.amount,
-      commissionRate,
-      commissionAmount
-    });
-    
-    // Initialize fields if they don't exist
-    if (typeof affiliate.totalEarnings !== 'number') affiliate.totalEarnings = 0;
-    if (typeof affiliate.pendingEarnings !== 'number') affiliate.pendingEarnings = 0;
-    if (typeof affiliate.totalReferrals !== 'number') affiliate.totalReferrals = 0;
-    if (typeof affiliate.successfulReferrals !== 'number') affiliate.successfulReferrals = 0;
-    
-    console.log('💰 Before update:', {
-      totalEarnings: affiliate.totalEarnings,
-      pendingEarnings: affiliate.pendingEarnings,
-      totalReferrals: affiliate.totalReferrals
-    });
-    
-    // Update affiliate stats
-    affiliate.totalEarnings += commissionAmount;
-    affiliate.pendingEarnings += commissionAmount;
-    affiliate.totalReferrals += 1;
-    affiliate.successfulReferrals += 1;
-    
-    // Initialize arrays if they don't exist
-    if (!affiliate.referrals) affiliate.referrals = [];
-    if (!affiliate.sales) affiliate.sales = [];
-    
-    // Add to referrals list
-    affiliate.referrals.push({
-      purchaseId: purchase._id,
-      amount: purchase.amount,
-      commission: commissionAmount,
-      status: 'completed',
-      date: new Date()
-    });
-    
-    // Add to sales list
-    affiliate.sales.push({
-      purchaseId: purchase._id,
-      amount: purchase.amount,
-      commission: commissionAmount,
-      date: new Date(),
-      status: 'pending'
-    });
-    
-    // Update conversion rate
-    if (affiliate.clicks > 0) {
-      affiliate.conversionRate = ((affiliate.successfulReferrals || 0) / affiliate.clicks) * 100;
-    }
-    
-    // Save affiliate
-    await affiliate.save();
-    console.log('💰 After update:', {
-      totalEarnings: affiliate.totalEarnings,
-      pendingEarnings: affiliate.pendingEarnings,
-      totalReferrals: affiliate.totalReferrals
-    });
-    
-    // Update purchase with affiliate info
-    if (!purchase.affiliate) {
-      purchase.affiliate = {};
-    }
-    purchase.affiliate.affiliateCode = affiliate.affiliateCode;
-    purchase.affiliate.commissionAmount = commissionAmount;
-    purchase.affiliate.commissionRate = commissionRate;
-    purchase.affiliate.isPaid = false;
-    
-    await purchase.save();
-    
-    winston.info('✅ Affiliate commission recorded successfully:', {
-      affiliateCode: affiliate.affiliateCode,
-      purchaseId: purchase._id,
-      commissionAmount,
-      totalEarnings: affiliate.totalEarnings,
-      pendingEarnings: affiliate.pendingEarnings,
-      totalReferrals: affiliate.totalReferrals
-    });
-    
-    // Send commission notification email to AFFILIATE
-    try {
-      if (affiliate.user && affiliate.user.email) {
-        console.log('📧 Sending COMMISSION email to AFFILIATE:', affiliate.user.email);
-        await emailService.sendAffiliateCommissionEmail(
-          affiliate.user.email,
-          affiliate.user.name || 'Affiliate',
-          purchase,
-          commissionAmount
-        );
-        winston.info('✅ Commission email sent to affiliate:', affiliate.user.email);
-      }
-    } catch (emailError) {
-      winston.error('❌ Failed to send commission email:', emailError);
-    }
-    
-    console.log('💰 ===== COMMISSION PROCESSING COMPLETE =====');
-    
-  } catch (error) {
-    winston.error('❌ Affiliate commission error:', error);
-    console.error('💰 ERROR:', error);
-  }
-}
-
-const paymentService = {
+const PaymentService = {
   /**
-   * Initialize Payment (Paystack - supports both NGN and USD)
+   * Get currency options
    */
-  async initializePayment(userId, ebookIdentifier, affiliateCode, metadata, amount, currency = 'NGN') {
+  async getCurrencyOptions() {
     try {
-      winston.info('🚀 initializePayment called:', { 
-        userId, 
-        ebookIdentifier, 
-        amount,
-        currency,
-        hasAffiliateCode: !!affiliateCode 
-      });
-      
-      // Find ebook
-      let ebook;
-      
-      if (mongoose.Types.ObjectId.isValid(ebookIdentifier)) {
-        ebook = await Ebook.findById(ebookIdentifier);
-      }
-      
-      if (!ebook) {
-        ebook = await Ebook.findOne({
-          $or: [
-            { slug: ebookIdentifier },
-            { customId: ebookIdentifier },
-            { ebookId: ebookIdentifier }
-          ]
-        });
-      }
-      
-      if (!ebook) {
-        winston.error('❌ Ebook not found for identifier:', ebookIdentifier);
-        return { success: false, error: 'Ebook not found' };
-      }
-      
-      winston.info('✅ Found ebook:', { 
-        id: ebook._id, 
-        title: ebook.title, 
-        price: ebook.price,
-        currency 
-      });
-      
-      // Get user
-      const user = await User.findById(userId);
-      if (!user) {
-        return { success: false, error: 'User not found' };
-      }
-      
-      // Create purchase record with a temporary reference
-      const tempRef = `temp_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-      
-      // Store affiliate code directly in metadata (not nested)
-      const enrichedMetadata = {
-        ...metadata,
-        originalEbookIdentifier: ebookIdentifier,
-        affiliateCode: affiliateCode, // Store at top level
-      };
-      
-      const purchase = new Purchase({
-        user: userId,
-        ebook: ebook._id,
-        amount: amount,
-        currency: currency,
-        paymentMethod: 'paystack',
-        status: 'pending',
-        transactionReference: tempRef,
-        metadata: enrichedMetadata, // affiliateCode is at metadata.affiliateCode
-      });
-      
-      await purchase.save();
-      winston.info('✅ Purchase created:', { 
-        purchaseId: purchase._id, 
-        currency, 
-        tempRef,
-        hasAffiliate: !!affiliateCode,
-        savedAffiliateCode: purchase.metadata?.affiliateCode
-      });
-      
-      // Initialize Paystack payment
-      return await this.initializePaystackPayment(user, ebook, purchase, amount, currency, enrichedMetadata);
-      
+      const response = await axios.get(`${API_BASE_URL}/payments/currency-options`);
+      return response.data;
     } catch (error) {
-      winston.error('🔥 Initialize payment error:', error);
-      return { 
-        success: false, 
-        error: 'Failed to initialize payment', 
-        details: error.message 
-      };
-    }
-  },
-
-  /**
-   * Initialize Paystack Payment (supports both NGN and USD)
-   */
-  async initializePaystackPayment(user, ebook, purchase, amount, currency, metadata) {
-    try {
-      const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
-      const callbackUrl = `${frontendUrl}/thank-you`;
-      
-      const payload = {
-        email: metadata.guestEmail || user.email,
-        amount: amount,
-        currency: currency,
-        metadata: {
-          purchaseId: purchase._id.toString(),
-          ebookId: ebook._id.toString(),
-          ebookTitle: ebook.title,
-          affiliateCode: metadata.affiliateCode || '',
-          userId: user._id.toString(),
-          paymentMethod: 'paystack',
-          currency: currency,
-          guestEmail: metadata.guestEmail,
-          guestName: metadata.guestName,
-          // Don't spread metadata here to avoid double nesting
-        },
-        callback_url: callbackUrl,
-      };
-
-      winston.info('📤 Sending to Paystack:', {
-        amount,
-        currency,
-        userEmail: payload.email,
-        ebookTitle: ebook.title,
-        hasAffiliate: !!metadata.affiliateCode
-      });
-
-      const response = await axios.post(
-        `${PAYSTACK_BASE_URL}/transaction/initialize`, 
-        payload, 
-        {
-          headers: { 
-            Authorization: `Bearer ${PAYSTACK_SECRET_KEY}`,
-            'Content-Type': 'application/json'
-          },
-        }
-      );
-
-      if (response.data.status !== true) {
-        purchase.status = 'failed';
-        await purchase.save();
-        return { success: false, error: response.data.message };
-      }
-
-      // Update purchase with Paystack reference
-      purchase.paystackReference = response.data.data.reference;
-      purchase.transactionReference = response.data.data.reference;
-      await purchase.save();
-
-      winston.info('✅ Paystack payment initialized:', {
-        purchaseId: purchase._id,
-        reference: response.data.data.reference,
-        currency: currency,
-        hasAffiliate: !!metadata.affiliateCode,
-        url: response.data.data.authorization_url
-      });
-
+      console.error('❌ Failed to get currency options:', error);
       return {
-        success: true,
-        data: {
-          authorizationUrl: response.data.data.authorization_url,
-          reference: response.data.data.reference,
-          purchaseId: purchase._id,
-          paymentMethod: 'paystack',
-          currency: currency,
-          ebook: {
-            _id: ebook._id,
-            title: ebook.title,
-            price: ebook.price
-          }
-        },
+        success: false,
+        error: 'Failed to get currency options'
       };
-    } catch (error) {
-      winston.error('🔥 Paystack initialization error:', error);
-      purchase.status = 'failed';
-      await purchase.save();
-      return { 
-        success: false, 
-        error: 'Failed to initialize Paystack payment',
-        details: error.response?.data?.message || error.message 
-      };
-    }
-  },
-
-  /**
-   * Verify Payment (Paystack)
-   */
-  async verifyPayment(reference) {
-    try {
-      winston.info('🔍 Verifying payment with reference:', reference);
-      
-      if (!reference) {
-        return { success: false, error: 'Payment reference is required' };
-      }
-      
-      const purchase = await Purchase.findOne({ 
-        $or: [
-          { paystackReference: reference },
-          { transactionReference: reference }
-        ]
-      }).populate('ebook').populate('user');
-      
-      if (!purchase) {
-        return { success: false, error: 'Purchase not found' };
-      }
-
-      if (purchase.status === 'completed') {
-        const existingAccessCode = await AccessCode.findOne({ purchase: purchase._id });
-        return {
-          success: true,
-          data: {
-            purchase: {
-              _id: purchase._id,
-              amount: purchase.amount,
-              currency: purchase.currency,
-              status: purchase.status,
-              paidAt: purchase.paidAt,
-              ebook: purchase.ebook,
-              user: purchase.user
-            },
-            paymentStatus: purchase.status,
-            accessCode: existingAccessCode?.code,
-            alreadyVerified: true
-          },
-        };
-      }
-
-      // Verify with Paystack
-      const response = await axios.get(
-        `${PAYSTACK_BASE_URL}/transaction/verify/${reference}`, 
-        {
-          headers: { Authorization: `Bearer ${PAYSTACK_SECRET_KEY}` },
-        }
-      );
-
-      if (!response.data.status || response.data.data.status !== 'success') {
-        purchase.status = 'failed';
-        await purchase.save();
-        return { success: false, error: 'Payment verification failed' };
-      }
-
-      // Prepare payment details from Paystack
-      const paymentDetails = {
-        authorizationCode: response.data.data.authorization?.authorization_code,
-        cardType: response.data.data.authorization?.card_type,
-        last4: response.data.data.authorization?.last4,
-        bank: response.data.data.authorization?.bank,
-        channel: response.data.data.channel,
-        paidAt: new Date(response.data.data.paid_at),
-        reference: response.data.data.reference,
-      };
-
-      return await this.completeSuccessfulPayment(purchase, paymentDetails);
-      
-    } catch (error) {
-      winston.error('🔥 Paystack verification error:', error);
-      return { 
-        success: false, 
-        error: 'Failed to verify Paystack payment',
-        details: error.response?.data?.message || error.message 
-      };
-    }
-  },
-
-  /**
-   * Complete successful payment - FIXED VERSION
-   */
-  async completeSuccessfulPayment(purchase, paymentDetails) {
-    try {
-      console.log('🎯 ===== COMPLETING PAYMENT =====');
-      console.log('🎯 Purchase ID:', purchase._id);
-      console.log('🎯 Metadata:', purchase.metadata);
-      console.log('🎯 Affiliate code in metadata:', purchase.metadata?.affiliateCode);
-      
-      // Check if access code already exists
-      let accessCode = await AccessCode.findOne({ purchase: purchase._id });
-      
-      if (!accessCode) {
-        // Create new access code
-        accessCode = await AccessCode.create({
-          code: `SN-${Date.now().toString(36).toUpperCase()}-${crypto.randomBytes(3).toString('hex').toUpperCase()}`,
-          user: purchase.user._id,
-          ebook: purchase.ebook._id,
-          purchase: purchase._id,
-          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-          isActive: true,
-        });
-        console.log('🎯 Created new access code:', accessCode.code);
-      }
-
-      // Send email
-      console.log('📧 Sending access code email to:', purchase.user?.email);
-      const emailSent = await sendAccessCodeEmail(purchase, accessCode);
-
-      // Update purchase
-      purchase.status = 'completed';
-      purchase.paidAt = new Date();
-      purchase.accessCode = accessCode._id;
-      purchase.paymentDetails = paymentDetails;
-      purchase.completedAt = new Date();
-      await purchase.save();
-
-      // Update user's purchased ebooks
-      if (purchase.user) {
-        const user = await User.findById(purchase.user._id);
-        if (user) {
-          if (!user.purchasedEbooks) user.purchasedEbooks = [];
-          if (!user.purchasedEbooks.includes(purchase.ebook._id)) {
-            user.purchasedEbooks.push(purchase.ebook._id);
-            await user.save();
-          }
-        }
-      }
-
-      // Handle affiliate commission if applicable
-      const affiliateCodeInMetadata = purchase.metadata?.affiliateCode;
-      console.log('🎯 Checking for affiliate in metadata:', affiliateCodeInMetadata);
-      
-      if (affiliateCodeInMetadata) {
-        winston.info('🎯 Found affiliate code in metadata:', affiliateCodeInMetadata);
-        await handleAffiliateCommission(purchase);
-      } else {
-        winston.info('ℹ️ No affiliate code found in metadata for this purchase');
-      }
-
-      return {
-        success: true,
-        data: {
-          purchase: {
-            _id: purchase._id,
-            amount: purchase.amount,
-            currency: purchase.currency,
-            status: purchase.status,
-            paidAt: purchase.paidAt,
-            ebook: purchase.ebook,
-            user: purchase.user
-          },
-          paymentStatus: purchase.status,
-          accessCode: accessCode.code,
-          emailSent,
-        },
-      };
-    } catch (error) {
-      winston.error('🔥 Complete payment error:', error);
-      return { success: false, error: 'Failed to complete payment' };
-    }
-  },
-
-  /**
-   * Get all purchases for a user
-   */
-  async getUserPurchases(userId) {
-    try {
-      const purchases = await Purchase.find({ user: userId })
-        .populate('ebook')
-        .populate('accessCode')
-        .sort({ createdAt: -1 });
-      return { success: true, data: purchases };
-    } catch (error) {
-      winston.error('Get user purchases error:', error);
-      return { success: false, error: 'Failed to fetch purchases', details: error.message };
-    }
-  },
-
-  /**
-   * Get single purchase by ID
-   */
-  async getPurchaseById(purchaseId, userId) {
-    try {
-      const purchase = await Purchase.findOne({ _id: purchaseId, user: userId })
-        .populate('ebook')
-        .populate('accessCode');
-      if (!purchase) return { success: false, error: 'Purchase not found' };
-      return { success: true, data: purchase };
-    } catch (error) {
-      winston.error('Get purchase by ID error:', error);
-      return { success: false, error: 'Failed to fetch purchase', details: error.message };
     }
   },
 
   /**
    * Validate access code
    */
-  async validateAccessCode(code, ebookId) {
+  async validateAccessCode(code, ebookId = 'suicide-note-2026') {
     try {
-      const accessCode = await AccessCode.findOne({ 
-        code: code.toUpperCase(),
-        ebook: ebookId,
-        isActive: true 
-      }).populate('ebook');
+      const cleanCode = code.trim().toUpperCase();
+      console.log('🔑 Validating access code:', { code: cleanCode, ebookId });
       
-      if (!accessCode) {
-        return { success: false, error: 'Invalid access code' };
+      const response = await axios.post(`${API_BASE_URL}/payments/validate-access-code`, {
+        code: cleanCode,
+        ebookSlug: ebookId
+      });
+      
+      if (response.data.success) {
+        localStorage.setItem(`ebook_access_${ebookId}`, cleanCode);
       }
       
-      if (new Date() > accessCode.expiresAt) {
-        return { success: false, error: 'Access code has expired' };
-      }
-      
-      return { 
-        success: true, 
-        data: {
-          code: accessCode.code,
-          ebook: accessCode.ebook,
-          expiresAt: accessCode.expiresAt
-        } 
-      };
+      return response.data;
     } catch (error) {
-      winston.error('Validate access code error:', error);
-      return { success: false, error: 'Failed to validate access code' };
+      console.error('❌ Validation error:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || 'Failed to validate access code'
+      };
     }
   },
 
   /**
-   * Get currency options for frontend
+   * Get affiliate code from cookie
    */
-  getCurrencyOptions() {
-    return {
-      NGN: {
-        symbol: '₦',
-        code: 'NGN',
-        amount: EBOOK_PRICE_NGN,
-        displayAmount: '3,000',
-        paymentMethod: 'paystack',
-        icon: '🇳🇬',
-        description: 'Pay with Naira (Local cards, Bank Transfer, USSD)'
-      },
-      USD: {
-        symbol: '$',
-        code: 'USD',
-        amount: EBOOK_PRICE_USD,
-        displayAmount: '5.00',
-        paymentMethod: 'paystack',
-        icon: '🌍',
-        description: 'Pay with Dollars (International cards via Paystack)'
-      }
-    };
+  getAffiliateCodeFromCookie() {
+    return getCookie('affiliate_ref');
   },
+
+  /**
+   * Get campaign from cookie
+   */
+  getCampaignFromCookie() {
+    return getCookie('affiliate_campaign');
+  },
+
+  /**
+   * Initialize payment with currency support and affiliate tracking
+   */
+  async initializePayment(paymentData) {
+    try {
+      // Get affiliate code from cookie if not provided in paymentData
+      if (!paymentData.affiliateCode) {
+        paymentData.affiliateCode = this.getAffiliateCodeFromCookie();
+      }
+      
+      // Get campaign from cookie if not provided
+      if (!paymentData.campaignName) {
+        paymentData.campaignName = this.getCampaignFromCookie();
+      }
+      
+      console.log('📤 Sending payment request with affiliate:', {
+        affiliateCode: paymentData.affiliateCode,
+        campaignName: paymentData.campaignName
+      });
+      
+      const response = await axios.post(
+        `${API_BASE_URL}/payments/initialize`,
+        paymentData,
+        {
+          headers: { 
+            'Content-Type': 'application/json',
+            'Accept': 'application/json'
+          },
+          withCredentials: true,
+        }
+      );
+
+      console.log('✅ Backend response:', response.data);
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Payment initialization failed:', error.response?.data || error.message);
+      
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Payment initialization failed',
+        details: error.response?.data?.details,
+        status: error.response?.status
+      };
+    }
+  },
+
+  /**
+   * Verify payment
+   */
+  async verifyPayment(reference) {
+    try {
+      console.log('🔗 Verifying payment with reference:', reference);
+      
+      const response = await axios.post(
+        `${API_BASE_URL}/payments/verify`,
+        { reference },
+        {
+          headers: { 'Content-Type': 'application/json' },
+          withCredentials: true,
+        }
+      );
+      
+      console.log('✅ Verification response:', response.data);
+      
+      if (response.data.success && response.data.data?.accessCode) {
+        localStorage.setItem('ebook_access_suicide-note-2026', response.data.data.accessCode);
+      }
+      
+      return response.data;
+      
+    } catch (error) {
+      console.error('❌ Payment verification failed:', error);
+      return {
+        success: false,
+        error: error.response?.data?.error || error.message || 'Payment verification failed',
+      };
+    }
+  },
+
+  /**
+   * Get user purchases
+   */
+  async getUserPurchases() {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/payments/purchases`,
+        { withCredentials: true }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Get purchases failed:', error);
+      return { success: false, error: 'Failed to fetch purchases' };
+    }
+  },
+
+  /**
+   * Track affiliate click
+   */
+  async trackAffiliateClick(affiliateCode) {
+    try {
+      const response = await axios.get(
+        `${API_BASE_URL}/payments/track-click`,
+        { params: { affiliateCode }, withCredentials: true }
+      );
+      return response.data;
+    } catch (error) {
+      console.error('Track affiliate click failed:', error);
+      return { success: false, error: 'Failed to track affiliate click' };
+    }
+  },
+
+  /**
+   * Check if user already has access
+   */
+  hasExistingAccess(ebookId = 'suicide-note-2026') {
+    const storedCode = localStorage.getItem(`ebook_access_${ebookId}`);
+    if (storedCode) {
+      return {
+        hasAccess: false,
+        accessCode: storedCode,
+        needsRevalidation: true
+      };
+    }
+    return { hasAccess: false };
+  },
+
+  /**
+   * Clear all access codes
+   */
+  clearAllAccessCodes() {
+    const allKeys = Object.keys(localStorage);
+    allKeys.forEach(key => {
+      if (key.startsWith('ebook_access_')) {
+        localStorage.removeItem(key);
+      }
+    });
+    localStorage.removeItem('recent_purchase');
+    console.log('🧹 All local access codes cleared');
+    return { success: true };
+  }
 };
 
-export default paymentService;
+export default PaymentService;
