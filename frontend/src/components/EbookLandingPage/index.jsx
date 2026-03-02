@@ -405,6 +405,26 @@ const handleAffiliate = async () => {
   }
 };
 
+
+// Add this at the top of your component, right after useState declarations
+useEffect(() => {
+  // Check cookies immediately
+  console.log('🍪 All cookies on page load:', document.cookie);
+  
+  // Parse cookies to find affiliate_ref
+  const cookies = document.cookie.split(';').reduce((acc, cookie) => {
+    const [key, value] = cookie.trim().split('=');
+    acc[key] = value;
+    return acc;
+  }, {});
+  
+  console.log('🍪 Parsed cookies:', cookies);
+  console.log('🍪 affiliate_ref from cookies:', cookies.affiliate_ref);
+  
+  // Also check what PaymentService returns
+  const serviceCookie = PaymentService.getAffiliateCodeFromCookie?.();
+  console.log('🎯 PaymentService.getAffiliateCodeFromCookie():', serviceCookie);
+}, []);
   // Copy affiliate link to clipboard
   const copyAffiliateLink = () => {
     if (affiliateLink) {

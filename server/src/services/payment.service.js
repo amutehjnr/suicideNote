@@ -13,8 +13,8 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
 // Constants
-const EBOOK_PRICE_NGN = 30000; // ₦2,500 (in kobo)
-const EBOOK_PRICE_USD = 5000; // $5.00 (in cents)
+const EBOOK_PRICE_NGN = 3000; // ₦2,500 (in kobo)
+const EBOOK_PRICE_USD = 500; // $5.00 (in cents)
 
 // Helper function to send access code email - WITH EXTENSIVE LOGGING
 async function sendAccessCodeEmail(purchase, accessCode) {

@@ -186,6 +186,19 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Add this temporary debug endpoint
+app.get('/debug/cookie', (req, res) => {
+  console.log('🍪 Cookies in request:', req.cookies);
+  console.log('🍪 Raw cookie header:', req.headers.cookie);
+  
+  res.json({
+    cookies: req.cookies,
+    cookieHeader: req.headers.cookie,
+    hasAffiliateRef: !!req.cookies?.affiliate_ref,
+    affiliateRef: req.cookies?.affiliate_ref || null
+  });
+});
+
 // ================== DATABASE CONNECTION HANDLER ==================
 // Function to fix indexes
 const fixIndexes = async () => {

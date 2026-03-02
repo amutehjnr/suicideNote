@@ -84,6 +84,22 @@ const GuestCheckoutModal = ({
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+  // Add this useEffect to check what's in the cookie when modal opens
+useEffect(() => {
+  if (isOpen) {
+    const cookieRef = document.cookie
+      .split('; ')
+      .find(row => row.startsWith('affiliate_ref='));
+    
+    console.log('🍪 Raw cookies:', document.cookie);
+    console.log('🍪 Affiliate cookie found:', cookieRef);
+    
+    const cookieAffiliate = PaymentService.getAffiliateCodeFromCookie?.();
+    console.log('🎯 Affiliate code from cookie service:', cookieAffiliate);
+    console.log('🎯 Current affiliateCode state:', affiliateCode);
+  }
+}, [isOpen, affiliateCode]);
+
   const handleSubmit = async () => {
     console.log('🔴 AMOUNT BEING SENT:', {
       selectedCurrency: currency,

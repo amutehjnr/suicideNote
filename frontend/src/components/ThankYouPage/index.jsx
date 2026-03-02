@@ -334,6 +334,13 @@ const handleGenerateLink = async () => {
     return 'Paystack';
   };
 
+  // Add this useEffect at the top of your component
+useEffect(() => {
+  // Check cookies on every page load
+  console.log('🍪 All cookies:', document.cookie);
+  console.log('🍪 affiliate_ref:', document.cookie.replace(/(?:(?:^|.*;\s*)affiliate_ref\s*\=\s*([^;]*).*$)|^.*$/, "$1"));
+}, []);
+
   const handleStartReading = () => {
     if (!accessCode) {
       toast.error('Access code not available');
