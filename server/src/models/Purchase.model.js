@@ -72,6 +72,7 @@ const purchaseSchema = new mongoose.Schema({
     guestName: String,
     autoCreated: Boolean,
     campaignName: String,
+    affiliateCode: String, // 👈 ADDED THIS LINE
   },
   accessCode: {
     type: mongoose.Schema.Types.ObjectId,

@@ -13,37 +13,19 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
 // Constants
-const EBOOK_PRICE_NGN = 3000; // ₦2,500 (in kobo)
+const EBOOK_PRICE_NGN = 3000; // ₦3,000 (in kobo)
 const EBOOK_PRICE_USD = 500; // $5.00 (in cents)
 
-// Helper function to send access code email - WITH EXTENSIVE LOGGING
+// Helper function to send access code email
 async function sendAccessCodeEmail(purchase, accessCode) {
   try {
     console.log('📧 ===== SENDING ACCESS CODE EMAIL =====');
     console.log('📧 Purchase ID:', purchase._id);
-    console.log('📧 Purchase user object:', purchase.user);
-    console.log('📧 Purchase user email from purchase.user?.email:', purchase.user?.email);
+    console.log('📧 Purchase user email:', purchase.user?.email);
     console.log('📧 Purchase metadata:', purchase.metadata);
-    
-    // Check if this purchase has affiliate info
-    if (purchase.affiliate && purchase.affiliate.affiliateCode) {
-      console.log('📧 This purchase has affiliate code:', purchase.affiliate.affiliateCode);
-      
-      // Check if the email matches an affiliate
-      const possibleAffiliate = await Affiliate.findOne({ affiliateCode: purchase.affiliate.affiliateCode }).populate('user');
-      if (possibleAffiliate && possibleAffiliate.user) {
-        console.log('📧 Affiliate user email:', possibleAffiliate.user.email);
-        console.log('📧 COMPARISON: purchaser email vs affiliate email:', {
-          purchaserEmail: purchase.user?.email,
-          affiliateEmail: possibleAffiliate.user.email,
-          match: purchase.user?.email === possibleAffiliate.user.email
-        });
-      }
-    }
     
     if (!purchase.user || !purchase.user.email) {
       console.log('❌ CRITICAL: No user email found for purchase:', purchase._id);
-      console.log('❌ Full purchase object:', JSON.stringify(purchase, null, 2));
       return false;
     }
     
@@ -53,11 +35,11 @@ async function sendAccessCodeEmail(purchase, accessCode) {
                      purchase.user?.email?.split('@')[0] || 
                      'Valued Reader';
     
-    console.log('📧 FINAL DECISION - Sending to email:', purchase.user.email);
-    console.log('📧 User name resolved to:', userName);
+    console.log('📧 Sending to email:', purchase.user.email);
+    console.log('📧 User name:', userName);
     
     const result = await emailService.sendAccessCodeEmail(
-      purchase.user.email, // This MUST be the purchaser's email
+      purchase.user.email,
       userName,
       accessCode.code,
       purchase.ebook
@@ -67,38 +49,22 @@ async function sendAccessCodeEmail(purchase, accessCode) {
     return result;
   } catch (error) {
     console.error('🔥 Email helper error:', error.message);
-    console.error('🔥 Error stack:', error.stack);
     return false;
   }
 }
 
 /**
- * Handle affiliate commission when purchase is completed - FIXED VERSION
+ * Handle affiliate commission when purchase is completed
  */
 async function handleAffiliateCommission(purchase) {
   try {
     console.log('💰 ===== PROCESSING AFFILIATE COMMISSION =====');
     console.log('💰 Purchase ID:', purchase._id);
     console.log('💰 Purchase amount:', purchase.amount);
+    console.log('💰 Full purchase metadata:', purchase.metadata);
     
-    // Get affiliate code from the correct locations based on your schema
-    let affiliateCode = null;
-    
-    // Check in the affiliate object first (where it should be stored)
-    if (purchase.affiliate && purchase.affiliate.affiliateCode) {
-      affiliateCode = purchase.affiliate.affiliateCode;
-      console.log('💰 Found affiliateCode in purchase.affiliate:', affiliateCode);
-    }
-    // Then check in metadata as backup
-    else if (purchase.metadata?.affiliateCode) {
-      affiliateCode = purchase.metadata.affiliateCode;
-      console.log('💰 Found affiliateCode in metadata:', affiliateCode);
-    }
-    // Finally check if it was stored directly (legacy)
-    else if (purchase.affiliateCode) {
-      affiliateCode = purchase.affiliateCode;
-      console.log('💰 Found affiliateCode directly on purchase:', affiliateCode);
-    }
+    // Get affiliate code from metadata (now properly saved)
+    let affiliateCode = purchase.metadata?.affiliateCode;
     
     console.log('💰 Extracted affiliateCode:', affiliateCode);
     
@@ -118,16 +84,16 @@ async function handleAffiliateCommission(purchase) {
     }).populate('user');
     
     console.log('💰 Found affiliate:', affiliate ? 'Yes' : 'No');
-    if (affiliate) {
-      console.log('💰 Affiliate details:', {
-        code: affiliate.affiliateCode,
-        currentEarnings: affiliate.totalEarnings,
-        email: affiliate.user?.email
-      });
-    } else {
+    if (!affiliate) {
       console.log('💰 No affiliate found for code:', affiliateCode);
       return;
     }
+    
+    console.log('💰 Affiliate details:', {
+      code: affiliate.affiliateCode,
+      currentEarnings: affiliate.totalEarnings,
+      email: affiliate.user?.email
+    });
     
     // Calculate commission (50% of purchase amount)
     const commissionRate = 0.5;
@@ -192,7 +158,7 @@ async function handleAffiliateCommission(purchase) {
       totalReferrals: affiliate.totalReferrals
     });
     
-    // Update purchase with affiliate info (if not already set)
+    // Update purchase with affiliate info
     if (!purchase.affiliate) {
       purchase.affiliate = {};
     }
@@ -295,8 +261,8 @@ const paymentService = {
         affiliateCode: affiliateCode, // Store affiliate code in metadata
       };
       
-      // Create purchase - affiliateCode will be stored in metadata initially
-      // The affiliate.affiliateCode will be set during commission processing
+      console.log('📝 Saving purchase with affiliateCode:', affiliateCode);
+      
       const purchase = new Purchase({
         user: userId,
         ebook: ebook._id,
@@ -308,15 +274,15 @@ const paymentService = {
         metadata: enrichedMetadata,
       });
       
-      // If affiliate code exists, store it in metadata (already done above)
-      // We don't store it in purchase.affiliate yet because commission isn't processed
-      
       await purchase.save();
+      console.log('✅ Purchase saved with metadata:', purchase.metadata);
+      
       winston.info('✅ Purchase created:', { 
         purchaseId: purchase._id, 
         currency, 
         tempRef,
-        hasAffiliate: !!affiliateCode 
+        hasAffiliate: !!affiliateCode,
+        savedAffiliateCode: purchase.metadata?.affiliateCode
       });
       
       // Initialize Paystack payment
@@ -340,10 +306,6 @@ const paymentService = {
       const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
       const callbackUrl = `${frontendUrl}/thank-you`;
       
-      // Paystack expects amount in smallest currency unit
-      // For NGN: 2500 = ₦2,500 (kobo)
-      // For USD: 500 = $5.00 (cents)
-      
       const payload = {
         email: metadata.guestEmail || user.email,
         amount: amount,
@@ -358,7 +320,6 @@ const paymentService = {
           currency: currency,
           guestEmail: metadata.guestEmail,
           guestName: metadata.guestName,
-          ...metadata,
         },
         callback_url: callbackUrl,
       };
@@ -509,15 +470,14 @@ const paymentService = {
   },
 
   /**
-   * Complete successful payment - FIXED VERSION
+   * Complete successful payment
    */
   async completeSuccessfulPayment(purchase, paymentDetails) {
     try {
       console.log('🎯 ===== COMPLETING PAYMENT =====');
       console.log('🎯 Purchase ID:', purchase._id);
-      console.log('🎯 User email from purchase.user:', purchase.user?.email);
       console.log('🎯 Metadata:', purchase.metadata);
-      console.log('🎯 Metadata affiliateCode:', purchase.metadata?.affiliateCode);
+      console.log('🎯 Affiliate code in metadata:', purchase.metadata?.affiliateCode);
       
       // Check if access code already exists
       let accessCode = await AccessCode.findOne({ purchase: purchase._id });
@@ -535,8 +495,8 @@ const paymentService = {
         console.log('🎯 Created new access code:', accessCode.code);
       }
 
-      // Send email - with verification
-      console.log('📧 ABOUT TO CALL sendAccessCodeEmail with user email:', purchase.user?.email);
+      // Send email
+      console.log('📧 Sending access code email to:', purchase.user?.email);
       const emailSent = await sendAccessCodeEmail(purchase, accessCode);
 
       // Update purchase
@@ -560,15 +520,14 @@ const paymentService = {
       }
 
       // Handle affiliate commission if applicable
-      // Check for affiliate code in metadata (where it's stored before commission processing)
-      const hasAffiliate = purchase.metadata?.affiliateCode || 
-                           purchase.metadata?.affiliate;
+      const affiliateCodeInMetadata = purchase.metadata?.affiliateCode;
+      console.log('🎯 Checking for affiliate in metadata:', affiliateCodeInMetadata);
       
-      if (hasAffiliate) {
-        winston.info('🎯 Found affiliate for purchase, processing commission...');
+      if (affiliateCodeInMetadata) {
+        winston.info('🎯 Found affiliate code in metadata:', affiliateCodeInMetadata);
         await handleAffiliateCommission(purchase);
       } else {
-        winston.info('ℹ️ No affiliate found for this purchase');
+        winston.info('ℹ️ No affiliate code found in metadata for this purchase');
       }
 
       return {
