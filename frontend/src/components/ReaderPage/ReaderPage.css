@@ -524,4 +524,28 @@ body {
   text-align: center;
 }
 
-/* ... keep all your existing CSS styles ... */
+/* Add to ReaderPage.css */
+.pdf-container {
+  background: #525659;
+  padding: 20px 0;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  overflow-x: auto;
+}
+
+.pdf-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 400px;
+  color: #666;
+}
+
+.reading-area {
+  padding: 0;
+  background: #525659;
+}

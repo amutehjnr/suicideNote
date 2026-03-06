@@ -1,18 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Document, Page, pdfjs } from 'react-pdf';
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import './ReaderPage.css';
 
-/// Replace this line:
-pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
-
-// With this:
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.js',
-  import.meta.url
-).toString();
+// Set up PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/4.0.379/pdf.worker.min.js`;
 
 // Mock Payment Service
 const PaymentService = {
@@ -69,7 +63,6 @@ const ReaderPage = () => {
   const { ebookId = 'suicide-note-2026' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const viewerRef = useRef(null);
   
   // Constants
   const MIN_SCALE = 0.6;
@@ -83,20 +76,16 @@ const ReaderPage = () => {
   
   const [currentPage, setCurrentPage] = useState(() => {
     const saved = localStorage.getItem(`bookmark_${ebookId}`);
-    return saved ? parseInt(saved) : 8; // Start from Chapter 1 (page 8)
+    return saved ? parseInt(saved) : 1;
   });
   
   const [chapOpen, setChapOpen] = useState(false);
-  const [currentChapter, setCurrentChapter] = useState('Chapter One: The Note Begins');
+  const [currentChapter, setCurrentChapter] = useState('Cover');
   const [accessCode, setAccessCode] = useState('');
   const [isValidAccess, setIsValidAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [numPages, setNumPages] = useState(null);
-  const [bookmark, setBookmark] = useState(null);
   const [pdfError, setPdfError] = useState(false);
-
-  // Unique chapters for navigation
-  const uniqueChapters = PDF_CHAPTERS;
 
   // Initialize access
   useEffect(() => {
@@ -177,7 +166,6 @@ const ReaderPage = () => {
   useEffect(() => {
     if (isValidAccess && currentPage) {
       localStorage.setItem(`bookmark_${ebookId}`, currentPage.toString());
-      setBookmark(currentPage);
       updateChapterFromPage(currentPage);
     }
   }, [currentPage, ebookId, isValidAccess]);
@@ -185,7 +173,6 @@ const ReaderPage = () => {
   // Save scale
   useEffect(() => {
     localStorage.setItem('rdr_scale', scale.toString());
-    document.documentElement.style.setProperty('--scale', scale);
   }, [scale]);
 
   const onDocumentLoadSuccess = ({ numPages }) => {
@@ -216,26 +203,19 @@ const ReaderPage = () => {
   const handleChapterSelect = (chapter, pageNum) => {
     setCurrentPage(pageNum);
     setChapOpen(false);
-    if (viewerRef.current) {
-      viewerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1);
-      if (viewerRef.current) {
-        viewerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < PDF_TOTAL_PAGES) {
       setCurrentPage(prev => prev + 1);
-      if (viewerRef.current) {
-        viewerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -354,7 +334,7 @@ const ReaderPage = () => {
         </button>
 
         <div className={`chapter-list ${chapOpen ? 'open' : ''}`} id="chapterList" role="list">
-          {uniqueChapters.map((item, index) => (
+          {PDF_CHAPTERS.map((item, index) => (
             <button
               key={index}
               className={`chapter-item ${item.chapter === currentChapter ? 'current' : ''}`}
@@ -368,13 +348,8 @@ const ReaderPage = () => {
       </div>
 
       {/* PDF Viewer */}
-      <main className="reading-area" ref={viewerRef}>
-        <div className="pdf-container" style={{ 
-          display: 'flex', 
-          flexDirection: 'column', 
-          alignItems: 'center',
-          width: '100%'
-        }}>
+      <main className="reading-area">
+        <div className="pdf-container">
           <Document
             file={`/books/${ebookId}.pdf`}
             onLoadSuccess={onDocumentLoadSuccess}
@@ -391,7 +366,6 @@ const ReaderPage = () => {
               scale={scale}
               renderTextLayer={true}
               renderAnnotationLayer={true}
-              className="pdf-page"
             />
           </Document>
         </div>
