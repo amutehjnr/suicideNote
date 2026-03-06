@@ -354,7 +354,7 @@ const ReaderPage = () => {
       <main className="reading-area">
         <div className="pdf-container">
           <Document
-            file={`/books/${ebookId}.pdf`}
+            file={`${import.meta.env.BASE_URL}books/${ebookId}.pdf`}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
             loading={
