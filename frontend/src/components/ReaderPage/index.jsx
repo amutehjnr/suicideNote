@@ -1,12 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { 
-  BOOK_CONTENT, 
-  totalPages, 
-  readingTimeMinutes,
-  getUniqueChapters 
-} from './bookContent';
+import { Document, Page, pdfjs } from 'react-pdf';
+import "react-pdf/dist/Page/AnnotationLayer.css";
+import "react-pdf/dist/Page/TextLayer.css";
 import './ReaderPage.css';
+
+// Set up PDF.js worker
+pdfjs.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjs.version}/pdf.worker.min.js`;
 
 // Mock Payment Service
 const PaymentService = {
@@ -36,31 +36,61 @@ const PaymentService = {
   }
 };
 
+// PDF metadata (chapters with their starting pages)
+const PDF_CHAPTERS = [
+  { chapter: "Cover", page: 1 },
+  { chapter: "Important Mental Health Notice", page: 4 },
+  { chapter: "Fiction Disclaimer", page: 5 },
+  { chapter: "Crisis Support Resources", page: 6 },
+  { chapter: "CONTENTS", page: 7 },
+  { chapter: "Chapter One: The Note Begins", page: 8 },
+  { chapter: "Chapter Two: The Days After", page: 21 },
+  { chapter: "Chapter Three: One More Chance", page: 31 },
+  { chapter: "Chapter Four: Strangers Who Understand", page: 42 },
+  { chapter: "Chapter Five: The Facebook Confession", page: 54 },
+  { chapter: "Chapter Six: Learning to Reach", page: 65 },
+  { chapter: "Chapter Seven: The First Meeting", page: 79 },
+  { chapter: "Chapter Eight: Something Worth Fighting For", page: 90 },
+  { chapter: "Chapter Nine: Years Later", page: 105 },
+  { chapter: "Chapter Ten: What Was Always There", page: 116 },
+  { chapter: "Crisis Support Resources", page: 123 },
+  { chapter: "A Note From the Author", page: 124 }
+];
+
+const PDF_TOTAL_PAGES = 124;
+
 const ReaderPage = () => {
   const { ebookId = 'suicide-note-2026' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const viewerRef = useRef(null);
   
   // Constants
-  const MIN_FONT = 14;
-  const MAX_FONT = 24;
+  const MIN_SCALE = 0.6;
+  const MAX_SCALE = 2.0;
   
   // State
-  const [fontSize, setFontSize] = useState(() => {
-    const saved = localStorage.getItem('rdr_fontSize');
-    return saved ? parseInt(saved) : 16;
+  const [scale, setScale] = useState(() => {
+    const saved = localStorage.getItem('rdr_scale');
+    return saved ? parseFloat(saved) : 1.0;
   });
   
-  const [currentPage, setCurrentPage] = useState(4); // Start from Chapter 1
+  const [currentPage, setCurrentPage] = useState(() => {
+    const saved = localStorage.getItem(`bookmark_${ebookId}`);
+    return saved ? parseInt(saved) : 8; // Start from Chapter 1 (page 8)
+  });
+  
   const [chapOpen, setChapOpen] = useState(false);
   const [currentChapter, setCurrentChapter] = useState('Chapter One: The Note Begins');
   const [accessCode, setAccessCode] = useState('');
   const [isValidAccess, setIsValidAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [numPages, setNumPages] = useState(null);
   const [bookmark, setBookmark] = useState(null);
+  const [pdfError, setPdfError] = useState(false);
 
   // Unique chapters for navigation
-  const uniqueChapters = getUniqueChapters();
+  const uniqueChapters = PDF_CHAPTERS;
 
   // Initialize access
   useEffect(() => {
@@ -83,9 +113,9 @@ const ReaderPage = () => {
             const savedBookmark = localStorage.getItem(`bookmark_${ebookId}`);
             if (savedBookmark) {
               const page = parseInt(savedBookmark);
-              if (page > 0 && page <= BOOK_CONTENT.length) {
+              if (page > 0 && page <= PDF_TOTAL_PAGES) {
                 setCurrentPage(page);
-                setCurrentChapter(BOOK_CONTENT[page - 1].chapter);
+                updateChapterFromPage(page);
               }
             }
             
@@ -125,103 +155,52 @@ const ReaderPage = () => {
     initialize();
   }, [ebookId, location.search]);
 
+  // Update chapter based on current page
+  const updateChapterFromPage = (page) => {
+    let chapter = "Cover";
+    for (let i = PDF_CHAPTERS.length - 1; i >= 0; i--) {
+      if (page >= PDF_CHAPTERS[i].page) {
+        chapter = PDF_CHAPTERS[i].chapter;
+        break;
+      }
+    }
+    setCurrentChapter(chapter);
+  };
+
   // Save bookmark when page changes
   useEffect(() => {
     if (isValidAccess && currentPage) {
       localStorage.setItem(`bookmark_${ebookId}`, currentPage.toString());
       setBookmark(currentPage);
+      updateChapterFromPage(currentPage);
     }
   }, [currentPage, ebookId, isValidAccess]);
 
-  // Save font size
+  // Save scale
   useEffect(() => {
-    localStorage.setItem('rdr_fontSize', fontSize);
-    document.documentElement.style.setProperty('--font-size', `${fontSize}px`);
-  }, [fontSize]);
+    localStorage.setItem('rdr_scale', scale.toString());
+    document.documentElement.style.setProperty('--scale', scale);
+  }, [scale]);
 
-  // Update chapter when page changes
-  useEffect(() => {
-    const content = BOOK_CONTENT.find(page => page.page === currentPage);
-    if (content) {
-      setCurrentChapter(content.chapter);
-    }
-  }, [currentPage]);
-
-  // Format page content for display
-  // Format page content for display (using CSS classes)
-const formatPageContent = (content) => {
-  const paragraphs = content.split('\n\n');
-  
-  return paragraphs.map((para, index) => {
-    const trimmed = para.trim();
-    if (!trimmed) return null;
-    
-    // Check if this is a chapter heading
-    const isChapterHeading = 
-      trimmed.includes('CHAPTER') || 
-      trimmed === 'The Note Begins' ||
-      trimmed === 'The Days After' ||
-      trimmed === 'One More Chance' ||
-      trimmed === 'Strangers Who Understand' ||
-      trimmed === 'The Facebook Confession' ||
-      trimmed === 'Learning to Reach' ||
-      trimmed === 'The First Meeting' ||
-      trimmed === 'Something Worth Fighting For' ||
-      trimmed === 'Years Later' ||
-      trimmed === 'What Was Always There' ||
-      trimmed === 'Crisis Support Resources' ||
-      trimmed === 'A Note From the Author';
-    
-    const lines = trimmed.split('\n');
-    
-    if (lines.length > 1) {
-      return lines.map((line, lineIndex) => {
-        if (!line.trim()) return null;
-        
-        const isChapterTitle = 
-          line.includes('CHAPTER') || 
-          line === 'The Note Begins' ||
-          line === 'The Days After' ||
-          line === 'One More Chance' ||
-          line === 'Strangers Who Understand' ||
-          line === 'The Facebook Confession' ||
-          line === 'Learning to Reach' ||
-          line === 'The First Meeting' ||
-          line === 'Something Worth Fighting For' ||
-          line === 'Years Later' ||
-          line === 'What Was Always There' ||
-          line === 'Crisis Support Resources' ||
-          line === 'A Note From the Author';
-        
-        return (
-          <p 
-            key={`${index}-${lineIndex}`} 
-            className={isChapterTitle ? 'chapter-title' : ''}
-          >
-            {line.trim()}
-          </p>
-        );
-      });
-    }
-    
-    return (
-      <p 
-        key={index}
-        className={isChapterHeading ? 'chapter-title' : ''}
-      >
-        {trimmed}
-      </p>
-    );
-  });
-};
-
-  // Handlers
-  const handleFontDecrease = () => {
-    if (fontSize > MIN_FONT) setFontSize(prev => prev - 1);
+  const onDocumentLoadSuccess = ({ numPages }) => {
+    setNumPages(numPages);
+    setIsLoading(false);
+    setPdfError(false);
   };
 
-  const handleFontIncrease = () => {
-    if (fontSize < MAX_FONT) setFontSize(prev => prev + 1);
+  const onDocumentLoadError = (error) => {
+    console.error('PDF load error:', error);
+    setPdfError(true);
+    setIsLoading(false);
+  };
+
+  // Handlers
+  const handleZoomIn = () => {
+    setScale(prev => Math.min(prev + 0.2, MAX_SCALE));
+  };
+
+  const handleZoomOut = () => {
+    setScale(prev => Math.max(prev - 0.2, MIN_SCALE));
   };
 
   const handleChapterToggle = () => {
@@ -231,20 +210,26 @@ const formatPageContent = (content) => {
   const handleChapterSelect = (chapter, pageNum) => {
     setCurrentPage(pageNum);
     setChapOpen(false);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (viewerRef.current) {
+      viewerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (viewerRef.current) {
+        viewerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
 
   const handleNextPage = () => {
-    if (currentPage < totalPages) {
+    if (currentPage < PDF_TOTAL_PAGES) {
       setCurrentPage(prev => prev + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (viewerRef.current) {
+        viewerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
 
@@ -265,10 +250,7 @@ const formatPageContent = (content) => {
   }, [isValidAccess, currentPage]);
 
   // Progress percentage
-  const progressPercentage = (currentPage / totalPages) * 100;
-
-  // Current page content
-  const currentContent = BOOK_CONTENT.find(page => page.page === currentPage) || BOOK_CONTENT[3];
+  const progressPercentage = (currentPage / PDF_TOTAL_PAGES) * 100;
 
   if (isLoading) {
     return (
@@ -284,6 +266,18 @@ const formatPageContent = (content) => {
       <div className="access-denied">
         <h2>Access Denied</h2>
         <p>Please purchase the book to read the full content.</p>
+        <button onClick={() => navigate('/')} className="home-btn">
+          Go to Homepage
+        </button>
+      </div>
+    );
+  }
+
+  if (pdfError) {
+    return (
+      <div className="access-denied">
+        <h2>PDF Error</h2>
+        <p>Could not load the PDF file. Please contact support.</p>
         <button onClick={() => navigate('/')} className="home-btn">
           Go to Homepage
         </button>
@@ -307,21 +301,21 @@ const formatPageContent = (content) => {
           <div className="header-author">by Loba Yusuf</div>
         </div>
 
-        <div className="font-controls" role="group" aria-label="Font size controls">
+        <div className="font-controls" role="group" aria-label="Zoom controls">
           <button 
             className="font-btn" 
-            onClick={handleFontDecrease}
-            disabled={fontSize <= MIN_FONT}
-            aria-label="Decrease font size"
+            onClick={handleZoomOut}
+            disabled={scale <= MIN_SCALE}
+            aria-label="Zoom out"
           >
             −
           </button>
-          <span className="font-size-label">{fontSize}px</span>
+          <span className="font-size-label">{Math.round(scale * 100)}%</span>
           <button 
             className="font-btn" 
-            onClick={handleFontIncrease}
-            disabled={fontSize >= MAX_FONT}
-            aria-label="Increase font size"
+            onClick={handleZoomIn}
+            disabled={scale >= MAX_SCALE}
+            aria-label="Zoom in"
           >
             +
           </button>
@@ -334,7 +328,7 @@ const formatPageContent = (content) => {
         role="progressbar" 
         aria-valuenow={currentPage} 
         aria-valuemin="1" 
-        aria-valuemax={totalPages} 
+        aria-valuemax={PDF_TOTAL_PAGES} 
         aria-label="Reading progress"
       >
         <div className="progress-bar-fill" style={{ width: `${progressPercentage}%` }}></div>
@@ -367,11 +361,34 @@ const formatPageContent = (content) => {
         </div>
       </div>
 
-      {/* Reading Content */}
-      <main className="reading-area">
-        <article className="reading-text">
-          {formatPageContent(currentContent.content)}
-        </article>
+      {/* PDF Viewer */}
+      <main className="reading-area" ref={viewerRef}>
+        <div className="pdf-container" style={{ 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center',
+          width: '100%'
+        }}>
+          <Document
+            file={`/books/${ebookId}.pdf`}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={
+              <div className="pdf-loading">
+                <div className="spinner"></div>
+                <p>Loading PDF...</p>
+              </div>
+            }
+          >
+            <Page 
+              pageNumber={currentPage} 
+              scale={scale}
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+              className="pdf-page"
+            />
+          </Document>
+        </div>
       </main>
 
       {/* Page Navigation */}
@@ -385,12 +402,12 @@ const formatPageContent = (content) => {
           Previous
         </button>
         <div className="page-indicator" aria-live="polite">
-          Page {currentPage} of {totalPages}
+          Page {currentPage} of {PDF_TOTAL_PAGES}
         </div>
         <button 
           className="nav-btn" 
           onClick={handleNextPage}
-          disabled={currentPage >= totalPages}
+          disabled={currentPage >= PDF_TOTAL_PAGES}
           aria-label="Next page"
         >
           Next →
@@ -427,7 +444,7 @@ const formatPageContent = (content) => {
         </div>
 
         <div className="footer-meta">
-          Reading time: ~{readingTimeMinutes} min &nbsp;·&nbsp; {totalPages} pages total
+          Reading time: ~{Math.ceil(PDF_TOTAL_PAGES / 2)} min &nbsp;·&nbsp; {PDF_TOTAL_PAGES} pages total
         </div>
       </footer>
     </div>

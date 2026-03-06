@@ -28,19 +28,6 @@ Lagos Emergency Lines: 767 or 112`,
     wordCount: 120
   },
   {
-    page: 3,
-    chapter: "Dedication",
-    content: `For everyone who has ever felt alone in a crowd,
-For every soul that has whispered, "I can't do this anymore,"
-For the fighters who wake up each morning and try again,
-And for those who couldn't—may your memory inspire us to be kinder.
-
-This is for Lagos, with all its chaos and beauty.
-This is for Nigeria, with all its contradictions.
-This is for humanity, in all its broken, beautiful glory.`,
-    wordCount: 85
-  },
-  {
     page: 4,
     chapter: "CONTENTS",
     content: `CONTENTS
@@ -1227,111 +1214,95 @@ But it's close.`,
     content: `CHAPTER FIVE
 The Facebook Confession
 
-Three weeks pass.
+The rest of the week passes differently.
 
-Not quickly. Depression doesn't make time move quickly. Each day still drags, still requires effort just to get through. But the days are... different now.
+Not better, exactly. I still wake up at 5 AM feeling like I'm dragging myself out of quicksand. Still commute two hours through Lagos traffic that makes me understand why people believe in hell. 
 
-I have routines that aren't just survival. Monday through Friday: warehouse, lunch with Ibrahim, evening on the Facebook group. Weekends: Mummy's Sunday call, messages with Dinma, reading posts, occasionally commenting.
+Still scan inventory in a warehouse that smells like cardboard and broken dreams.
 
-It's not much. But it's structure. It's connection. It's something other than just existing.
+But there are... interruptions. Small breaks in the monotony.
 
-It's a Tuesday morning in early December when Ibrahim asks me something different.
+Tuesday, Ibrahim invites me to lunch again. I say yes. We eat at the same buka, talk about his family, about football (I don't follow football, but I listen), 
 
-We're at the buka, eating jollof rice that's too spicy but somehow perfect. He's telling me about his son learning to ride a bicycle—well, not a bicycle exactly, one of those small tricycles. He's showing me a video on his phone, and I'm actually watching, actually smiling at this little boy who looks exactly like Ibrahim, wobbling on the tricycle and laughing.
+about the price of everything going up. Normal conversation. The kind I forgot I could have.
 
-"He's going to fall," I say.
+Wednesday, Ngozi at the front desk says "Good morning!" and I actually look at her when I respond. Really look. She's
 
-"I know. He go fall many times. But he go learn. That's how life is." Ibrahim puts his phone away. "Speaking of falling and learning—I defy go to this thing on Saturday. The youth for my church organize one small gathering. Nothing serious, just people wey dey worship together, eating, gisting. You fit come if you want."
+younger than I thought—maybe twenty-four, twenty-five. She has her nails painted bright pink. There's a small photo of what looks like her family taped to her desk.
 
-I freeze mid-bite. "Church thing?"
+She notices me noticing. "You like my nails? I just did them yesterday."
 
-"Yeah, but no be like service. Just people gathering. Some of us dey far from family, so we dey try make our own family here for Lagos. You go like am. Good food, good people."
+"They're nice," I manage.
 
-"I don't know..."
+She beams like I just gave her the biggest compliment. "Thank you! You know, I was thinking—"
 
-"No pressure, bros. I just say make I invite you. If you come, good. If you no come, we still dey cool." He shrugs. "But I think e go do you good. You too dey lock yourself for house. Sometimes you need to just dey around people, you know?"
+Mr. Chen's voice cuts through: "Ngozi! Where is the delivery report?"
 
-The thought of being around strangers at a church gathering gives me anxiety. Small talk. Pretending to be okay. Someone asking why I don't go to church anymore. Having to explain or lie or both.
-
-But I think about the Facebook group. About how scared I was to post, and how it ended up being one of the best things I've done. About Dinma's message: You're not hard to see. You just needed the right people looking.
-
-"Maybe," I hear myself say. "I'll think about it."
-
-Ibrahim's face lights up. "That's all I ask. Just think about am."`,
+"Coming, sir!" She gives me an apologetic smile and rushes off.`,
     wordCount: 340
   },
   {
     page: 46,
     chapter: "Chapter Five: The Facebook Confession (Continued)",
-    content: `That evening, I message Dinma about it.
+    content: `But the moment stays with me.
 
-"Ibrahim invited me to a church gathering on Saturday. I don't know if I should go."
+Her smile. The fact that she wanted to tell me something. The fact that I actually engaged instead of mumbling and walking away.
 
-She responds within minutes: "Do you want to go?"
+Small thing. But it feels like something.
 
-"I don't know. The idea of being around people exhausts me. But also... I'm tired of being alone all the time."
+Every night, I'm on the Facebook group.
 
-"That's fair. What's the worst that could happen?"
+I learn the rhythms. Morning posts tend to be people checking
+in, saying they made it through the night. Afternoon posts are
+work stress, frustration, exhaustion. Evening posts are deeper—
+reflections, confessions, people admitting the hard stuff when
+the day is done and they're alone with their thoughts.
 
-I think about that. "Awkward conversation. People asking questions I don't want to answer. Feeling out of place. Wanting to leave but being stuck there."
+I start reacting to more posts. Commenting occasionally.
+Nothing profound, just "I feel this" or "Thank you for sharing" or
+"You're not alone." Small contributions. But each time I hit "post," I feel a little less invisible.
 
-"Okay. And the best that could happen?"
+Seun posts memes almost daily. He's funny, self-deprecating,
+uses humor to cope. One day he posts a photo of his
+medication with the caption:
+"My daily cocktail 💊 Glamorous life
+of a creative in Lagos."
 
-I haven't thought about that. "I don't know. Maybe it's nice? Maybe I meet people who are cool?"
+I comment: "Same. Dif erent pills, same struggle."
 
-"So worst case, you're uncomfortable for a few hours. Best case, it's actually good. And if it's terrible, you leave. You're an adult. You can just go."
+He replies immediately: "Guy! Welcome to the medicated club 😂 What you dey take?"
 
-She makes it sound simple. Maybe it is simple and I'm making it complicated.
+I panic slightly. I'm not actually on medication. I lied. Why did I lie?
 
-"When's the last time you did something social?" she asks.
+I type: "Actually, I'm not on anything yet. I don't even know where to start with that."
 
-"I eat lunch with Ibrahim every day now."
+His response: "No wahala. If you need recommendations for therapists in Lagos, I fit help. Therapy + meds changed my life. Not cured—but manageable. DM me if you want info."
 
-"That's huge! But I mean something outside work. Something just for you."
-
-"Never? I don't know. Not since university, maybe."
-
-"Eli, that's years. Don't you think it's time to try?"
-
-I stare at her message. She's right. I've been isolating for years. And yes, it's safe. But it's also killing me slowly.
-
-"Maybe you're right."
-
-"I'm definitely right. Go to the church thing. If it's terrible, leave. But at least try. For me?"
-
-"For you?"
-
-"Yes. I'm invested in your recovery now. You're my friend. I want you to do things that might help."
-
-Friend. She called me her friend.
-
-When's the last time I had a friend? When's the last time someone claimed me like that?
-
-"Okay. I'll go. Just for a little bit."
-
-"Proud of you! Report back after. I want to hear everything."`,
+Just like that. No judgment. Just offering help.`,
     wordCount: 300
   },
   {
     page: 47,
     chapter: "Chapter Five: The Facebook Confession (Continued)",
-    content: `Saturday arrives too quickly.
+    content: `Dinma and I message every day now.
 
-I spend the morning anxious. Change my outfit three times. A t-shirt feels too casual. A button-up feels like I'm trying too hard. I settle on a polo shirt—the one I save for non-work occasions, slightly faded but clean.
+Not long conversations just check-ins. How was your day. What did you eat. Did NEPA
+take light. The small talk of two people learning each other.
 
-Ibrahim told me the gathering is at someone's house in Ogba. I take a danfo there, arriving around 2 PM. The house is a small bungalow in a compound, music already playing—gospel, but the kind with drums and energy, not the kind with slow pace.
+Thursday evening, she sends: "Rough day at work. My manager is doing my head. How do you deal with workplace stress?"
 
-I stand outside for a full two minutes, debating whether to go in or turn around and go home.
+I think about Mr. Chen yelling at me last week. About the shame, the worthlessness, the feeling that I can't even do this
+simple job right.
 
-Then I see Ibrahim at the gate. "Bros! You come! I defy happy o! Come, come."
+I type: "I don't deal with it. I just... endure it. Wait for 4 PM. Go home. Try not to think about it."
 
-He practically pulls me inside. The compound is full of people—maybe twenty, thirty—sitting on benches, on the ground, standing in groups. Kids running around. Someone grilling suya by the corner. The smell of jollof rice and fried chicken coming from inside the house.
+"That sounds exhausting."
 
-"Make I introduce you," Ibrahim says, leading me to a group of people near the grill.
+"It is."
 
-"This na my guy from work, Eli. Eli, this na my people—Chidi, Blessing, Pastor Jude, Sister Amaka..."
+"Do you like your job?"
 
-Names blur together. People smile, say "welcome," ask how I am. I mumble responses, feeling overwhelmed already.
+No one's asked me that in years. Not even myself.
 
 "You want drink? Coke? Fanta?" Ibrahim asks.
 
@@ -2848,9 +2819,9 @@ If you are outside Nigeria, please contact your local emergency number or a suic
     chapter: "A Note From the Author",
     content: `A Note From the Author
 
-If this story meant something to you—and you know someone who might need it—you are welcome to share it.
+If this story meant something to you and you know someone who might need it—you are welcome to share it.
 
-I've set up a small supporter program for readers who would like to help share Suicide Note. Details are optional and can be found at:
+Stories like this travel best through people who believe in them. Because of that, I've created a small supporter program for readers who would like to help share Suicide Note. Details are optional and can be found at:
 
 suicidenotebook.com/share
 
