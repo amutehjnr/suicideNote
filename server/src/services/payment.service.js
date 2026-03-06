@@ -308,7 +308,7 @@ const paymentService = {
       
       const payload = {
         email: metadata.guestEmail || user.email,
-        amount: amount,
+        amount: amount * 100,
         currency: currency,
         metadata: {
           purchaseId: purchase._id.toString(),
