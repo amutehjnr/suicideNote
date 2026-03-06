@@ -148,23 +148,72 @@ const ReaderPage = () => {
   }, [currentPage]);
 
   // Format page content for display
-  const formatPageContent = (content) => {
-    const paragraphs = content.split('\n\n');
-    return paragraphs.map((para, index) => {
-      const trimmed = para.trim();
-      if (!trimmed) return null;
-      
-      const lines = trimmed.split('\n');
-      if (lines.length > 1) {
-        return lines.map((line, lineIndex) => {
-          if (!line.trim()) return null;
-          return <p key={`${index}-${lineIndex}`}>{line.trim()}</p>;
-        });
-      }
-      
-      return <p key={index}>{trimmed}</p>;
-    });
-  };
+  // Format page content for display (using CSS classes)
+const formatPageContent = (content) => {
+  const paragraphs = content.split('\n\n');
+  
+  return paragraphs.map((para, index) => {
+    const trimmed = para.trim();
+    if (!trimmed) return null;
+    
+    // Check if this is a chapter heading
+    const isChapterHeading = 
+      trimmed.includes('CHAPTER') || 
+      trimmed === 'The Note Begins' ||
+      trimmed === 'The Days After' ||
+      trimmed === 'One More Chance' ||
+      trimmed === 'Strangers Who Understand' ||
+      trimmed === 'The Facebook Confession' ||
+      trimmed === 'Learning to Reach' ||
+      trimmed === 'The First Meeting' ||
+      trimmed === 'Something Worth Fighting For' ||
+      trimmed === 'Years Later' ||
+      trimmed === 'What Was Always There' ||
+      trimmed === 'Crisis Support Resources' ||
+      trimmed === 'A Note From the Author';
+    
+    const lines = trimmed.split('\n');
+    
+    if (lines.length > 1) {
+      return lines.map((line, lineIndex) => {
+        if (!line.trim()) return null;
+        
+        const isChapterTitle = 
+          line.includes('CHAPTER') || 
+          line === 'The Note Begins' ||
+          line === 'The Days After' ||
+          line === 'One More Chance' ||
+          line === 'Strangers Who Understand' ||
+          line === 'The Facebook Confession' ||
+          line === 'Learning to Reach' ||
+          line === 'The First Meeting' ||
+          line === 'Something Worth Fighting For' ||
+          line === 'Years Later' ||
+          line === 'What Was Always There' ||
+          line === 'Crisis Support Resources' ||
+          line === 'A Note From the Author';
+        
+        return (
+          <p 
+            key={`${index}-${lineIndex}`} 
+            className={isChapterTitle ? 'chapter-title' : ''}
+          >
+            {line.trim()}
+          </p>
+        );
+      });
+    }
+    
+    return (
+      <p 
+        key={index}
+        className={isChapterHeading ? 'chapter-title' : ''}
+      >
+        {trimmed}
+      </p>
+    );
+  });
+};
 
   // Handlers
   const handleFontDecrease = () => {
