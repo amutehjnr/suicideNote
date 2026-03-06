@@ -13,7 +13,7 @@ const PaymentService = {
   validateAccessCode: async (code, ebookId) => {
     return new Promise(resolve => {
       setTimeout(() => {
-        if (code && code.startsWith('SN-')) {
+        if (code && (code.startsWith('SN-') || code.startsWith('FREE-'))) {
           resolve({ success: true });
         } else {
           resolve({ success: false });
