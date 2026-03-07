@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Document, Page, pdfjs } from 'react-pdf';
 import "react-pdf/dist/Page/AnnotationLayer.css";
@@ -60,9 +60,6 @@ const PDF_CHAPTERS = [
 
 const PDF_TOTAL_PAGES = 124;
 
-// Preload nearby pages for smoother navigation
-const PAGES_TO_PRELOAD = 2;
-
 const ReaderPage = () => {
   const { ebookId = 'suicide-note-2026' } = useParams();
   const navigate = useNavigate();
@@ -94,15 +91,6 @@ const ReaderPage = () => {
   const [numPages, setNumPages] = useState(null);
   const [pdfError, setPdfError] = useState(false);
   const [pageWidth, setPageWidth] = useState(window.innerWidth - 40);
-  const [loadError, setLoadError] = useState(null);
-  const [pdfData, setPdfData] = useState(null);
-
-  // Memoize PDF URL to prevent unnecessary re-renders
-  const pdfUrl = useMemo(() => {
-    return isValidAccess && accessCode 
-      ? `/api/v1/ebooks/${ebookId}/pdf?code=${accessCode}`
-      : null;
-  }, [ebookId, accessCode, isValidAccess]);
 
   // Handle window resize for responsive PDF
   useEffect(() => {
@@ -185,7 +173,7 @@ const ReaderPage = () => {
   }, [ebookId, location.search]);
 
   // Update chapter based on current page
-  const updateChapterFromPage = useCallback((page) => {
+  const updateChapterFromPage = (page) => {
     let chapter = "Cover";
     for (let i = PDF_CHAPTERS.length - 1; i >= 0; i--) {
       if (page >= PDF_CHAPTERS[i].page) {
@@ -194,7 +182,7 @@ const ReaderPage = () => {
       }
     }
     setCurrentChapter(chapter);
-  }, []);
+  };
 
   // Save bookmark when page changes
   useEffect(() => {
@@ -202,59 +190,56 @@ const ReaderPage = () => {
       localStorage.setItem(`bookmark_${ebookId}`, currentPage.toString());
       updateChapterFromPage(currentPage);
     }
-  }, [currentPage, ebookId, isValidAccess, updateChapterFromPage]);
+  }, [currentPage, ebookId, isValidAccess]);
 
   // Save scale
   useEffect(() => {
     localStorage.setItem('rdr_scale', scale.toString());
   }, [scale]);
 
-  // Memoize callbacks to prevent unnecessary re-renders
-  const onDocumentLoadSuccess = useCallback(({ numPages }) => {
+  const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
     setIsPdfLoading(false);
     setPdfError(false);
-    setLoadError(null);
-  }, []);
+  };
 
-  const onDocumentLoadError = useCallback((error) => {
+  const onDocumentLoadError = (error) => {
     console.error('PDF load error:', error);
     setPdfError(true);
     setIsPdfLoading(false);
     setIsLoading(false);
-    setLoadError(error.message);
-  }, []);
+  };
 
-  const onDocumentLoadStart = useCallback(() => {
+  const onDocumentLoadStart = () => {
     setIsPdfLoading(true);
-  }, []);
+  };
 
-  const onPageLoadStart = useCallback(() => {
+  const onPageLoadStart = () => {
     setIsPageLoading(true);
-  }, []);
+  };
 
-  const onPageLoadSuccess = useCallback(() => {
+  const onPageLoadSuccess = () => {
     setIsPageLoading(false);
-  }, []);
+  };
 
   // Handlers
-  const handleZoomIn = useCallback(() => {
+  const handleZoomIn = () => {
     setScale(prev => Math.min(prev + 0.2, MAX_SCALE));
-  }, []);
+  };
 
-  const handleZoomOut = useCallback(() => {
+  const handleZoomOut = () => {
     setScale(prev => Math.max(prev - 0.2, MIN_SCALE));
-  }, []);
+  };
 
-  const handleResetZoom = useCallback(() => {
+  const handleResetZoom = () => {
     setScale(1.0);
-  }, []);
+  };
 
-  const handleChapterToggle = useCallback(() => {
-    setChapOpen(prev => !prev);
-  }, []);
+  const handleChapterToggle = () => {
+    setChapOpen(!chapOpen);
+  };
 
-  const handleChapterSelect = useCallback((chapter, pageNum) => {
+  const handleChapterSelect = (chapter, pageNum) => {
     setCurrentPage(pageNum);
     setChapOpen(false);
     setIsPageLoading(true);
@@ -263,9 +248,9 @@ const ReaderPage = () => {
         containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }, 100);
-  }, []);
+  };
 
-  const handlePrevPage = useCallback(() => {
+  const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1);
       setIsPageLoading(true);
@@ -273,9 +258,9 @@ const ReaderPage = () => {
         containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  }, [currentPage]);
+  };
 
-  const handleNextPage = useCallback(() => {
+  const handleNextPage = () => {
     if (currentPage < PDF_TOTAL_PAGES) {
       setCurrentPage(prev => prev + 1);
       setIsPageLoading(true);
@@ -283,7 +268,7 @@ const ReaderPage = () => {
         containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     }
-  }, [currentPage]);
+  };
 
   // Keyboard navigation
   useEffect(() => {
@@ -299,23 +284,10 @@ const ReaderPage = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [isValidAccess, currentPage, handlePrevPage, handleNextPage]);
+  }, [isValidAccess, currentPage]);
 
   // Progress percentage
-  const progressPercentage = useMemo(() => 
-    (currentPage / PDF_TOTAL_PAGES) * 100, [currentPage]);
-
-  // Determine which pages to preload
-  const pagesToPreload = useMemo(() => {
-    const pages = [];
-    for (let i = Math.max(1, currentPage - PAGES_TO_PRELOAD); 
-         i <= Math.min(PDF_TOTAL_PAGES, currentPage + PAGES_TO_PRELOAD); i++) {
-      if (i !== currentPage) {
-        pages.push(i);
-      }
-    }
-    return pages;
-  }, [currentPage]);
+  const progressPercentage = (currentPage / PDF_TOTAL_PAGES) * 100;
 
   if (isLoading) {
     return (
@@ -343,7 +315,6 @@ const ReaderPage = () => {
       <div className="access-denied">
         <h2>PDF Error</h2>
         <p>Could not load the PDF file. Please contact support.</p>
-        <p className="error-details">{loadError}</p>
         <button onClick={() => navigate('/')} className="home-btn">
           Go to Homepage
         </button>
@@ -436,72 +407,48 @@ const ReaderPage = () => {
       {/* PDF Viewer */}
       <main className="reading-area" ref={containerRef}>
         <div className="pdf-container">
-          {isPdfLoading && !pdfData && (
+          {isPdfLoading && (
             <div className="pdf-loading-overlay">
               <div className="spinner"></div>
               <p>Loading PDF document...</p>
             </div>
           )}
           
-          {pdfUrl && (
-            <Document
-              file={pdfUrl}
-              onLoadStart={onDocumentLoadStart}
-              onLoadSuccess={onDocumentLoadSuccess}
-              onLoadError={onDocumentLoadError}
+          <Document
+            file={`/api/v1/ebooks/${ebookId}/pdf?code=${accessCode}`}
+            onLoadStart={onDocumentLoadStart}
+            onLoadSuccess={onDocumentLoadSuccess}
+            onLoadError={onDocumentLoadError}
+            loading={
+              <div className="pdf-loading">
+                <div className="spinner"></div>
+                <p>Loading PDF...</p>
+              </div>
+            }
+          >
+            {isPageLoading && (
+              <div className="page-loading-overlay">
+                <div className="spinner small"></div>
+                <p>Loading page {currentPage}...</p>
+              </div>
+            )}
+            
+            <Page 
+              pageNumber={currentPage} 
+              scale={scale}
+              width={pageWidth}
+              renderTextLayer={true}
+              renderAnnotationLayer={true}
+              onLoadStart={onPageLoadStart}
+              onLoadSuccess={onPageLoadSuccess}
               loading={
-                <div className="pdf-loading">
+                <div className="page-loading">
                   <div className="spinner"></div>
-                  <p>Loading PDF...</p>
-                </div>
-              }
-              options={{
-                cMapUrl: 'cmaps/',
-                cMapPacked: true,
-                standardFontDataUrl: 'standard_fonts/',
-              }}
-            >
-              {isPageLoading && (
-                <div className="page-loading-overlay">
-                  <div className="spinner small"></div>
                   <p>Loading page {currentPage}...</p>
                 </div>
-              )}
-              
-              {/* Current page */}
-              <Page 
-                key={`page-${currentPage}`}
-                pageNumber={currentPage} 
-                scale={scale}
-                width={pageWidth}
-                renderTextLayer={true}
-                renderAnnotationLayer={true}
-                onLoadStart={onPageLoadStart}
-                onLoadSuccess={onPageLoadSuccess}
-                loading={
-                  <div className="page-loading">
-                    <div className="spinner"></div>
-                    <p>Loading page {currentPage}...</p>
-                  </div>
-                }
-              />
-              
-              {/* Preload nearby pages for smoother navigation (hidden) */}
-              <div style={{ display: 'none' }}>
-                {pagesToPreload.map(pageNum => (
-                  <Page
-                    key={`preload-${pageNum}`}
-                    pageNumber={pageNum}
-                    scale={scale}
-                    width={pageWidth}
-                    renderTextLayer={false}
-                    renderAnnotationLayer={false}
-                    loading={() => null}
-                  />
-                ))}
-              </div>
-            </Document>
-          )}
+              }
+            />
+          </Document>
         </div>
       </main>
 
