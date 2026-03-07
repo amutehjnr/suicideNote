@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Document, Page, pdfjs } from 'react-pdf';
 import "react-pdf/dist/Page/AnnotationLayer.css";
 import "react-pdf/dist/Page/TextLayer.css";
 import './ReaderPage.css';
 import pdfWorker from "pdfjs-dist/build/pdf.worker.min.mjs?url";
+
 // Set up PDF.js worker
 pdfjs.GlobalWorkerOptions.workerSrc = pdfWorker;
+
 // Mock Payment Service
 const PaymentService = {
   validateAccessCode: async (code, ebookId) => {
@@ -62,9 +64,10 @@ const ReaderPage = () => {
   const { ebookId = 'suicide-note-2026' } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+  const containerRef = useRef(null);
   
   // Constants
-  const MIN_SCALE = 0.6;
+  const MIN_SCALE = 0.5;
   const MAX_SCALE = 2.0;
   
   // State
@@ -83,8 +86,28 @@ const ReaderPage = () => {
   const [accessCode, setAccessCode] = useState('');
   const [isValidAccess, setIsValidAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPdfLoading, setIsPdfLoading] = useState(false);
+  const [isPageLoading, setIsPageLoading] = useState(false);
   const [numPages, setNumPages] = useState(null);
   const [pdfError, setPdfError] = useState(false);
+  const [pageWidth, setPageWidth] = useState(window.innerWidth - 40);
+
+  // Handle window resize for responsive PDF
+  useEffect(() => {
+    const handleResize = () => {
+      setPageWidth(window.innerWidth - 40);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Calculate optimal scale for mobile
+  useEffect(() => {
+    if (window.innerWidth < 768 && scale > 1.0) {
+      setScale(1.0);
+    }
+  }, []);
 
   // Initialize access
   useEffect(() => {
@@ -176,14 +199,27 @@ const ReaderPage = () => {
 
   const onDocumentLoadSuccess = ({ numPages }) => {
     setNumPages(numPages);
-    setIsLoading(false);
+    setIsPdfLoading(false);
     setPdfError(false);
   };
 
   const onDocumentLoadError = (error) => {
     console.error('PDF load error:', error);
     setPdfError(true);
+    setIsPdfLoading(false);
     setIsLoading(false);
+  };
+
+  const onDocumentLoadStart = () => {
+    setIsPdfLoading(true);
+  };
+
+  const onPageLoadStart = () => {
+    setIsPageLoading(true);
+  };
+
+  const onPageLoadSuccess = () => {
+    setIsPageLoading(false);
   };
 
   // Handlers
@@ -195,6 +231,10 @@ const ReaderPage = () => {
     setScale(prev => Math.max(prev - 0.2, MIN_SCALE));
   };
 
+  const handleResetZoom = () => {
+    setScale(1.0);
+  };
+
   const handleChapterToggle = () => {
     setChapOpen(!chapOpen);
   };
@@ -202,19 +242,31 @@ const ReaderPage = () => {
   const handleChapterSelect = (chapter, pageNum) => {
     setCurrentPage(pageNum);
     setChapOpen(false);
+    setIsPageLoading(true);
+    setTimeout(() => {
+      if (containerRef.current) {
+        containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
   };
 
   const handlePrevPage = () => {
     if (currentPage > 1) {
       setCurrentPage(prev => prev - 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setIsPageLoading(true);
+      if (containerRef.current) {
+        containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
 
   const handleNextPage = () => {
     if (currentPage < PDF_TOTAL_PAGES) {
       setCurrentPage(prev => prev + 1);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      setIsPageLoading(true);
+      if (containerRef.current) {
+        containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     }
   };
 
@@ -278,7 +330,7 @@ const ReaderPage = () => {
           <svg width="9" height="15" viewBox="0 0 9 15" fill="none" aria-hidden="true">
             <path d="M8 1L1 7.5L8 14" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
-          Back
+          <span className="back-text">Back</span>
         </button>
 
         <div className="header-center">
@@ -295,7 +347,13 @@ const ReaderPage = () => {
           >
             −
           </button>
-          <span className="font-size-label">{Math.round(scale * 100)}%</span>
+          <button 
+            className="font-btn reset-zoom" 
+            onClick={handleResetZoom}
+            aria-label="Reset zoom"
+          >
+            {Math.round(scale * 100)}%
+          </button>
           <button 
             className="font-btn" 
             onClick={handleZoomIn}
@@ -347,18 +405,48 @@ const ReaderPage = () => {
       </div>
 
       {/* PDF Viewer */}
-      <main className="reading-area">
+      <main className="reading-area" ref={containerRef}>
         <div className="pdf-container">
+          {isPdfLoading && (
+            <div className="pdf-loading-overlay">
+              <div className="spinner"></div>
+              <p>Loading PDF document...</p>
+            </div>
+          )}
+          
           <Document
             file={`/api/v1/ebooks/${ebookId}/pdf?code=${accessCode}`}
+            onLoadStart={onDocumentLoadStart}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
+            loading={
+              <div className="pdf-loading">
+                <div className="spinner"></div>
+                <p>Loading PDF...</p>
+              </div>
+            }
           >
+            {isPageLoading && (
+              <div className="page-loading-overlay">
+                <div className="spinner small"></div>
+                <p>Loading page {currentPage}...</p>
+              </div>
+            )}
+            
             <Page 
               pageNumber={currentPage} 
               scale={scale}
+              width={pageWidth}
               renderTextLayer={true}
               renderAnnotationLayer={true}
+              onLoadStart={onPageLoadStart}
+              onLoadSuccess={onPageLoadSuccess}
+              loading={
+                <div className="page-loading">
+                  <div className="spinner"></div>
+                  <p>Loading page {currentPage}...</p>
+                </div>
+              }
             />
           </Document>
         </div>
@@ -369,18 +457,20 @@ const ReaderPage = () => {
         <button 
           className="nav-btn" 
           onClick={handlePrevPage}
-          disabled={currentPage <= 1}
+          disabled={currentPage <= 1 || isPageLoading}
           aria-label="Previous page"
         >
-          Previous
+          ← Prev
         </button>
         <div className="page-indicator" aria-live="polite">
-          Page {currentPage} of {PDF_TOTAL_PAGES}
+          <span className="page-current">{currentPage}</span>
+          <span className="page-separator">/</span>
+          <span className="page-total">{PDF_TOTAL_PAGES}</span>
         </div>
         <button 
           className="nav-btn" 
           onClick={handleNextPage}
-          disabled={currentPage >= PDF_TOTAL_PAGES}
+          disabled={currentPage >= PDF_TOTAL_PAGES || isPageLoading}
           aria-label="Next page"
         >
           Next →
@@ -417,7 +507,7 @@ const ReaderPage = () => {
         </div>
 
         <div className="footer-meta">
-          Reading time: ~{Math.ceil(PDF_TOTAL_PAGES / 2)} min &nbsp;·&nbsp; {PDF_TOTAL_PAGES} pages total
+          Reading time: ~{Math.ceil(PDF_TOTAL_PAGES / 2)} min · {PDF_TOTAL_PAGES} pages
         </div>
       </footer>
     </div>
