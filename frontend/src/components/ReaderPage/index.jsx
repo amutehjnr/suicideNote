@@ -350,7 +350,7 @@ const ReaderPage = () => {
       <main className="reading-area">
         <div className="pdf-container">
           <Document
-            file={`/api/ebooks/${ebook.slug}/pdf?code=${ebook.accessCode || ''}`}
+            file={`/api/ebooks/${ebookId}/pdf?code=${accessCode}`}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
           >
