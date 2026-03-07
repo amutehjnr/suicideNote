@@ -356,7 +356,7 @@ async sendAffiliateWelcomeEmail(to, name, affiliate, includeDashboardLink = fals
           <ul>
             <li><strong>Affiliate Code:</strong> ${affiliate.affiliateCode}</li>
             <li><strong>Commission Rate:</strong> ${(affiliate.commissionRate * 100)}%</li>
-            <li><strong>Commission per Sale:</strong> ₦1,250</li>
+            <li><strong>Commission per Sale:</strong> ₦1,500</li>
           </ul>
           
           <h3>Your Unique Affiliate Link:</h3>
