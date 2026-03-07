@@ -14,11 +14,25 @@ async serveEbookPDF(req, res) {
     const { id } = req.params;
     const { code } = req.query;
 
-    console.log('📄 Serving PDF for:', id);
+    console.log('📄 Serving PDF for:', id, 'with code:', code);
     
-    // For demo purposes, allow access with valid code
-    if (id === 'suicide-note-2026' && code && code.startsWith('SN-')) {
-      console.log('✅ Demo access granted');
+    // Check if this is the demo ebook
+    if (id === 'suicide-note-2026') {
+      // Check if code is provided
+      if (!code) {
+        console.log('❌ No access code provided');
+        return res.status(403).json({ success: false, error: 'Access code required' });
+      }
+      
+      // Check if code is valid (either SN- or FREE-)
+      const isValidCode = code.startsWith('SN-') || code.startsWith('FREE-');
+      
+      if (!isValidCode) {
+        console.log('❌ Invalid code format:', code);
+        return res.status(403).json({ success: false, error: 'Invalid access code format' });
+      }
+      
+      console.log('✅ Access granted for code:', code);
       
       // Try multiple possible PDF locations
       const possiblePaths = [
@@ -58,28 +72,49 @@ async serveEbookPDF(req, res) {
       return;
     }
     
-    // For real database access (fallback)
+    // For real database access
     const ebook = await Ebook.findOne({ slug: id });
     if (!ebook) return res.status(404).json({ success: false, error: 'Ebook not found' });
 
     // Check access
     let hasAccess = false;
+    
+    // Check if user has purchased
     if (req.user && req.user.hasPurchased && req.user.hasPurchased(ebook._id)) {
       hasAccess = true;
+      console.log('✅ User has purchased');
     }
+    
+    // Check access code if provided
     if (!hasAccess && code) {
       const accessCode = await AccessCode.findOne({ 
         code: code.toUpperCase(), 
         ebook: ebook._id, 
         isActive: true 
       });
-      if (accessCode && accessCode.isValid()) hasAccess = true;
+      
+      if (accessCode) {
+        // Check if code is valid (not expired)
+        const now = new Date();
+        if (now <= accessCode.expiresAt) {
+          hasAccess = true;
+          console.log('✅ Valid access code:', code);
+        } else {
+          console.log('❌ Access code expired:', code);
+        }
+      } else {
+        console.log('❌ Access code not found in database:', code);
+      }
     }
     
-    if (!hasAccess) return res.status(403).json({ success: false, error: 'Access denied' });
+    if (!hasAccess) {
+      console.log('❌ Access denied for:', id);
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
 
     const pdfPath = path.join(process.cwd(), 'protected-pdfs', `${id}.pdf`);
     if (!fs.existsSync(pdfPath)) {
+      console.log('❌ PDF not found at:', pdfPath);
       return res.status(404).json({ success: false, error: 'PDF not found' });
     }
 
@@ -98,7 +133,6 @@ async serveEbookPDF(req, res) {
     res.status(500).json({ success: false, error: 'Failed to serve PDF' });
   }
 },
-
   // Get all ebooks (with pagination and filtering)
   async getAllEbooks(req, res) {
     try {
