@@ -97,7 +97,7 @@ async serveEbookPDF(req, res) {
     console.error('🔥 PDF serve error:', error);
     res.status(500).json({ success: false, error: 'Failed to serve PDF' });
   }
-}
+},
 
   // Get all ebooks (with pagination and filtering)
   async getAllEbooks(req, res) {
