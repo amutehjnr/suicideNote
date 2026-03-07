@@ -3,6 +3,8 @@ const User = require('../models/User.model');
 const AccessCode = require('../models/AccessCode.model');
 const winston = require('winston');
 const mongoose = require('mongoose');
+const fs = require('fs');
+const path = require('path');
 
 const ebookController = {
 
@@ -41,7 +43,7 @@ const ebookController = {
       return res.status(500).json({ success: false, error: 'Failed to serve ebook PDF' });
     }
   },
-  
+
   // Get all ebooks (with pagination and filtering)
   async getAllEbooks(req, res) {
     try {
