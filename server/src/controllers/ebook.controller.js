@@ -5,6 +5,43 @@ const winston = require('winston');
 const mongoose = require('mongoose');
 
 const ebookController = {
+
+  // Serve PDF securely
+  async serveEbookPDF(req, res) {
+    try {
+      const { id } = req.params;
+      const { code } = req.query;
+
+      const ebook = await Ebook.findOne({ slug: id });
+      if (!ebook) return res.status(404).json({ success: false, error: 'Ebook not found' });
+
+      let hasAccess = false;
+
+      if (req.user && req.user.hasPurchased && req.user.hasPurchased(ebook._id)) {
+        hasAccess = true;
+      }
+
+      if (!hasAccess && code) {
+        const accessCode = await AccessCode.findOne({ code: code.toUpperCase(), ebook: ebook._id, isActive: true });
+        if (accessCode && accessCode.isValid()) hasAccess = true;
+      }
+
+      if (!hasAccess) return res.status(403).json({ success: false, error: 'Access denied' });
+
+      const pdfPath = path.join(process.cwd(), 'protected-pdfs', `${id}.pdf`);
+      if (!fs.existsSync(pdfPath)) return res.status(404).json({ success: false, error: 'PDF not found' });
+
+      res.setHeader('Content-Type', 'application/pdf');
+      res.setHeader('Content-Disposition', `inline; filename=${ebook.slug}.pdf`);
+
+      const fileStream = fs.createReadStream(pdfPath);
+      fileStream.pipe(res);
+    } catch (error) {
+      console.error('Serve PDF error:', error);
+      return res.status(500).json({ success: false, error: 'Failed to serve ebook PDF' });
+    }
+  },
+  
   // Get all ebooks (with pagination and filtering)
   async getAllEbooks(req, res) {
     try {

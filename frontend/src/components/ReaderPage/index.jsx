@@ -350,15 +350,9 @@ const ReaderPage = () => {
       <main className="reading-area">
         <div className="pdf-container">
           <Document
-            file={`${import.meta.env.BASE_URL}books/${ebookId}.pdf`}
+            file={`/api/ebooks/${ebook.slug}/pdf?code=${ebook.accessCode || ''}`}
             onLoadSuccess={onDocumentLoadSuccess}
             onLoadError={onDocumentLoadError}
-            loading={
-              <div className="pdf-loading">
-                <div className="spinner"></div>
-                <p>Loading PDF...</p>
-              </div>
-            }
           >
             <Page 
               pageNumber={currentPage} 

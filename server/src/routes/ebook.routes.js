@@ -19,6 +19,9 @@ router.post('/:id/reviews', authMiddleware.protect, ebookController.addReview);
 router.post('/:id/reviews/:reviewId/helpful', authMiddleware.protect, ebookController.markHelpfulReview);
 router.post('/:id/reviews/:reviewId/report', authMiddleware.protect, ebookController.reportReview);
 
+// === PDF ROUTES ===
+router.get('/:id/pdf', authMiddleware.optional, ebookController.serveEbookPDF);
+
 router.post('/:id/progress', authMiddleware.protect, ebookController.saveReadingProgress);
 router.get('/:id/progress', authMiddleware.protect, ebookController.getReadingProgress);
 
