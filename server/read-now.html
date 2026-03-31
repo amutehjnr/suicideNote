@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Suicide Note — A Story</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;1,300;1,400&family=Lato:wght@300;400&display=swap" rel="stylesheet">
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0d0c0b;
+  --surface: #141210;
+  --ink: #e8e0d4;
+  --ink-muted: #9a9088;
+  --ink-faint: #5a5450;
+  --accent: #c9a96e;
+  --accent-dim: rgba(201, 169, 110, 0.15);
+  --border: rgba(201, 169, 110, 0.12);
+  --serif: 'Cormorant Garamond', Georgia, serif;
+  --sans: 'Lato', sans-serif;
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  background-color: var(--bg);
+  color: var(--ink);
+  font-family: var(--serif);
+  font-size: 18px;
+  line-height: 1.8;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ── NOISE OVERLAY ── */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.6;
+}
+
+/* ── LAYOUT ── */
+.container {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+section { padding: 72px 0; }
+section + section { border-top: 1px solid var(--border); }
+
+/* ── HERO ── */
+.hero {
+  padding: 80px 0 64px;
+  text-align: center;
+}
+
+.hero-cover-wrap {
+  display: inline-block;
+  position: relative;
+  margin-bottom: 40px;
+  animation: fadeUp 1.2s ease both;
+}
+
+.cover-genre-label {
+  font-family: var(--serif);
+  font-size: 0.68rem;
+  font-weight: 400;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 18px;
+  text-align: center;
+  animation: fadeUp 1.2s ease both;
+}
+
+.hero-cover-wrap::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border: 1px solid var(--border);
+  pointer-events: none;
+}
+
+.hero-cover {
+  display: block;
+  width: 220px;
+  height: auto;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.7), 0 0 0 1px rgba(255,255,255,0.04);
+}
+
+.hero-title {
+  font-size: clamp(2.6rem, 8vw, 3.8rem);
+  font-weight: 300;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink);
+  line-height: 1.1;
+  animation: fadeUp 1.2s 0.2s ease both;
+}
+
+.hero-sub {
+  margin-top: 20px;
+  font-size: clamp(1.15rem, 4vw, 1.35rem);
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-muted);
+  line-height: 1.6;
+  animation: fadeUp 1.2s 0.4s ease both;
+}
+
+.hero-hook {
+  margin-top: 28px;
+  font-size: clamp(0.95rem, 3vw, 1.05rem);
+  color: var(--ink-faint);
+  font-family: var(--sans);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  animation: fadeUp 1.2s 0.6s ease both;
+}
+
+.divider {
+  display: block;
+  width: 48px;
+  height: 1px;
+  background: var(--accent);
+  margin: 40px auto 0;
+  opacity: 0.5;
+  animation: fadeUp 1.2s 0.8s ease both;
+}
+
+/* ── CHAPTER PREVIEW ── */
+.chapter-label {
+  font-family: var(--sans);
+  font-size: 0.7rem;
+  font-weight: 400;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+
+.chapter-title {
+  font-size: clamp(1.6rem, 5vw, 2.2rem);
+  font-weight: 300;
+  color: var(--ink);
+  margin-bottom: 40px;
+}
+
+.chapter-body {
+  font-size: clamp(1rem, 3.2vw, 1.12rem);
+  color: #c8c0b4;
+  line-height: 2;
+  font-weight: 300;
+}
+
+.chapter-body p {
+  margin-bottom: 1.6em;
+}
+
+.chapter-body p:first-child::first-letter {
+  font-size: 3.2em;
+  font-weight: 400;
+  line-height: 0.8;
+  float: left;
+  margin-right: 8px;
+  margin-top: 6px;
+  color: var(--accent);
+}
+
+/* Fade overlay */
+.chapter-fade-wrap {
+  position: relative;
+}
+
+.chapter-fade-wrap::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 200px;
+  background: linear-gradient(to bottom, transparent, var(--bg));
+  pointer-events: none;
+}
+
+.chapter-continues {
+  text-align: center;
+  margin-top: 12px;
+  font-style: italic;
+  color: var(--ink-faint);
+  font-size: 0.95rem;
+  letter-spacing: 0.06em;
+}
+
+/* ── CTA ── */
+.cta-section { text-align: center; }
+
+.cta-lead {
+  font-size: clamp(1.2rem, 4vw, 1.5rem);
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-muted);
+  margin-bottom: 10px;
+}
+
+.cta-secondary {
+  font-size: clamp(0.95rem, 3vw, 1.05rem);
+  color: var(--ink-faint);
+  margin-bottom: 40px;
+  font-family: var(--sans);
+  font-weight: 300;
+}
+
+.btn-primary {
+  display: inline-block;
+  background: var(--accent);
+  color: #0d0c0b;
+  font-family: var(--sans);
+  font-size: 0.9rem;
+  font-weight: 400;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 18px 40px;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: 0 8px 32px rgba(201, 169, 110, 0.25);
+}
+
+.btn-primary:hover {
+  background: #d9bc84;
+  transform: translateY(-2px);
+  box-shadow: 0 12px 40px rgba(201, 169, 110, 0.35);
+}
+
+.btn-primary:active { transform: translateY(0); }
+
+.instant-note {
+  margin-top: 14px;
+  font-size: 0.82rem;
+  color: var(--ink-faint);
+  font-family: var(--sans);
+  letter-spacing: 0.05em;
+}
+
+/* ── BENEFITS ── */
+.benefits-title {
+  font-size: clamp(1.4rem, 4.5vw, 1.8rem);
+  font-weight: 300;
+  color: var(--ink);
+  margin-bottom: 36px;
+}
+
+.benefits-list {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.benefits-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  font-size: clamp(0.95rem, 3vw, 1.05rem);
+  color: #b8b0a4;
+  font-weight: 300;
+  line-height: 1.7;
+}
+
+.benefits-list li::before {
+  content: '---';
+  color: var(--accent);
+  font-size: 1rem;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* ── HUMAN TOUCH ── */
+.human-touch {
+  background: var(--accent-dim);
+  border: 1px solid var(--border);
+  padding: 36px 32px;
+  text-align: center;
+}
+
+.human-touch p {
+  font-size: clamp(1rem, 3.2vw, 1.1rem);
+  font-style: italic;
+  font-weight: 300;
+  color: var(--ink-muted);
+  line-height: 1.8;
+}
+
+.human-touch p strong {
+  color: var(--ink);
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* ── WHATSAPP ── */
+.whatsapp-section { text-align: center; }
+
+.btn-whatsapp {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  font-weight: 400;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 16px 32px;
+  text-decoration: none;
+  transition: border-color 0.2s ease, color 0.2s ease, background 0.2s ease;
+}
+
+.btn-whatsapp:hover {
+  border-color: rgba(201, 169, 110, 0.4);
+  color: var(--ink);
+  background: var(--accent-dim);
+}
+
+.wa-icon {
+  width: 18px;
+  height: 18px;
+  fill: #4db85c;
+  flex-shrink: 0;
+}
+
+/* ── FOOTER ── */
+footer {
+  padding: 40px 0;
+  text-align: center;
+  border-top: 1px solid var(--border);
+}
+
+footer p {
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-weight: 300;
+  color: var(--ink-faint);
+  letter-spacing: 0.06em;
+}
+
+/* ── ANIMATIONS ── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(24px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── PAYSTACK MODAL ── */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.82);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal {
+  background: #1a1714;
+  border: 1px solid var(--border);
+  max-width: 420px;
+  width: 100%;
+  padding: 48px 40px 40px;
+  position: relative;
+  animation: fadeUp 0.35s ease both;
+}
+
+.modal-close {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: var(--ink-faint);
+  font-size: 1.4rem;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+  font-family: var(--sans);
+}
+
+.modal-close:hover { color: var(--ink); }
+
+.modal-eyebrow {
+  font-family: var(--sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--accent);
+  margin-bottom: 12px;
+}
+
+.modal-title {
+  font-size: clamp(1.6rem, 5vw, 2rem);
+  font-weight: 300;
+  color: var(--ink);
+  margin-bottom: 6px;
+  letter-spacing: 0.06em;
+}
+
+.modal-price {
+  font-family: var(--sans);
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+  margin-bottom: 32px;
+  letter-spacing: 0.04em;
+}
+
+.modal-price span {
+  color: var(--accent);
+  font-size: 1rem;
+  font-weight: 400;
+}
+
+.form-field {
+  margin-bottom: 20px;
+}
+
+.form-field label {
+  display: block;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  margin-bottom: 8px;
+}
+
+.form-field input {
+  width: 100%;
+  background: #0d0c0b;
+  border: 1px solid rgba(201, 169, 110, 0.18);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 300;
+  padding: 14px 16px;
+  outline: none;
+  transition: border-color 0.2s;
+  -webkit-appearance: none;
+}
+
+.form-field input:focus {
+  border-color: rgba(201, 169, 110, 0.5);
+}
+
+.form-field input::placeholder {
+  color: var(--ink-faint);
+}
+
+.btn-pay {
+  display: block;
+  width: 100%;
+  background: var(--accent);
+  color: #0d0c0b;
+  font-family: var(--sans);
+  font-size: 0.88rem;
+  font-weight: 400;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  padding: 17px 24px;
+  border: none;
+  cursor: pointer;
+  margin-top: 28px;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.btn-pay:hover:not(:disabled) {
+  background: #d9bc84;
+  transform: translateY(-1px);
+}
+
+.btn-pay:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.modal-secure {
+  margin-top: 16px;
+  font-family: var(--sans);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  text-align: center;
+  letter-spacing: 0.05em;
+}
+
+.modal-secure svg {
+  display: inline;
+  vertical-align: middle;
+  margin-right: 4px;
+  opacity: 0.5;
+}
+
+/* spinner */
+.spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgba(13,12,11,0.3);
+  border-top-color: #0d0c0b;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin-right: 8px;
+  vertical-align: middle;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-msg {
+  font-family: var(--sans);
+  font-size: 0.78rem;
+  color: #e07070;
+  margin-top: 10px;
+  display: none;
+  letter-spacing: 0.04em;
+}
+</style>
+</head>
+
+<body>
+
+<!-- ═══════════════ HERO ═══════════════ -->
+<section class="hero">
+  <div class="container">
+    <p class="cover-genre-label">A Short Psychological Narrative</p>
+    <div class="hero-cover-wrap">
+      <img class="hero-cover"
+        src="https://i.ibb.co/B5N8SMDS/1000044923.png"
+        alt="Suicide Note — Book Cover" />
+    </div>
+    <h1 class="hero-title">Suicide Note</h1>
+    <p class="hero-sub">
+      I didn't know loneliness could feel like this...<br>until I wrote it down.
+    </p>
+    <p class="hero-hook">
+      A story for everyone who has felt invisible<br>
+      and couldn't find the words to explain it.
+    </p>
+    <span class="divider"></span>
+  </div>
+</section>
+
+<!-- ═══════════════ CHAPTER 1 ═══════════════ -->
+<section>
+  <div class="container">
+    <p class="chapter-label reveal" style="text-align:center;">Chapter One</p>
+    <h2 class="chapter-title reveal" style="text-align:center;">The Note Begins</h2>
+
+    <div class="chapter-fade-wrap">
+      <div class="chapter-body">
+        <p>
+          I'm writing this because I need someone to understand. Not my mother, who will cry and ask what she did wrong. Not my father, who will wonder where he failed as a man. Not Tola, too busy with her husband and children to notice I've been disappearing for years. Not Deji, who has exams next week and a future that shouldn't be shadowed by this.
+        </p>
+        <p>Someone. Anyone. Maybe no one.</p>
+        <p>
+          I'm using loose sheets torn from an old exercise book that I used in my final year at LASU, pages still blank after the semester ended. I told myself I'd use them for something eventually. Grocery lists, maybe. Or tracking my Clash of Clans progress. But they've sat in that wardrobe for two years, and tonight, I finally know what they're for.
+        </p>
+        <p>
+          It's Friday, November 15, 2024. 11:47 PM. NEPA took light around nine — unusual, because they normally let us have power until at least ten on weekends. I'm sitting at the small table in my self-contain, writing by the light of my phone's flashlight propped against the wall. The battery is at 23%. When it dies, I'll have to stop, but by then this should be finished.
+        </p>
+        <p>
+          My name is Eliora Oluwafemi Adetayo. Eliora means <em>my God is light</em>, Oluwafemi — <em>God loves me</em>, and Adetayo — <em>the crown meets joy</em>. My parents named me like I was supposed to be something. Like these names would protect me or guide me or make me into a relevant person.
+        </p>
+        <p>
+          I am twenty-six years old. I have a degree in Business Administration from Lagos State University, Second Class Lower. I work as a warehouse associate for a Chinese import company in Apapa, scanning inventory and recording stock numbers. I make ₦65,000 a month. After transport, food, and rent — which my parents helped pay this year because I couldn't manage it alone — I have maybe ₦8,000 left for everything else. I live in Ojuelegba in a room so small I can touch opposite walls if I spread my arms wide enough.
+        </p>
+        <p>This is my life. This has been my life for two and a half years, and I can't see how it will ever be different.</p>
+        <p>
+          I should start at the beginning, give context, explain the journey, make it make sense, right? But I don't know where the beginning is. When I graduated and couldn't find work? When I took this warehouse job "temporarily" and got stuck? When my university friends scattered across Lagos, Abuja, abroad, and our group chat went silent? When I realized I could go weeks without anyone saying my name out loud?
+        </p>
+        <p>Maybe there is no beginning. Maybe this has always been here, waiting.</p>
+        <p>
+          The thing about Lagos is, you can be surrounded by twenty million people and still drown in loneliness. I learned that slowly, the way you learn anything that kills you — one day at a time, so gradually you don't notice until you're already gone.
+        </p>
+        <p>
+          I wake up at 5 AM every day because my commute takes two hours. Danfo from Ojuelegba to CMS, then another from CMS to Apapa. The conductors shout the same routes in the same rhythm — "CMS! CMS! One chance! Enter, we dey go!" — and I squeeze into seats meant for three people but holding four, my body pressed against strangers who smell like sweat and heat and the same exhaustion I feel.
+        </p>
+        <p>No one looks at anyone. That's the rule of Lagos transport. You stare at your phone or out the window or at nothing, because eye contact is an invitation, and we're all too tired for invitations.</p>
+        <p>
+          I clock in at 7 AM. Mr. Chen, my manager, barely looks up from his clipboard. I don't think he knows my full name. He calls me "You" or "Hey" or sometimes just points. The warehouse is concrete floors and fluorescent lights that make these annoying buzz sounds. Metal shelves stretch up to the ceiling, rows and rows of boxes with codes I've memorized without meaning to: 3847B, rechargeable fans. 4729C, phone chargers. 6012A, plastic basins.
+        </p>
+        <p>I scan items. I record numbers in the computer. I stack boxes. I move to the next section. The beep of the scanner becomes the only rhythm in my day.</p>
+        <p>
+          Ibrahim tries to talk to me sometimes. He's from Kano, been here four years, always inviting me to lunch: "Bros, come chop na." I tell him I'm not hungry or I brought food or maybe later. After six months, he stopped asking. He still greets me every morning — "Bros, how far?" — and I nod or say "I dey" and that's it. He's not unkind. I'm just not much of a talker.
+        </p>
+        <p>Ngozi at the front desk says "Good morning!" every day with this bright smile like she means it. She waves. She tries. I mumble something back. She deserves better than my mumbling, but I don't have better to give.</p>
+        <p>
+          At 4 PM, I clock out. Two hours back to Ojuelegba. By the time I get home, it's past six and I'm so tired I can feel it in my bones. Not tired from physical work — the warehouse isn't hard labor, just mindless repetition. Tired from existing. Tired from pretending I'm fine when Mr. Chen yells about working faster. Tired from sitting in traffic watching the sun set behind buildings I'll never afford to live in. Tired from being invisible.
+        </p>
+        <p>I eat — usually bread and eggs or indomie if I'm too drained to cook — and then I open my laptop.</p>
+        <p>This is the only part of the day that feels like anything.</p>
+        <p>
+          I play Clash of Clans. My username is SilentKing047. Town Hall Level 11, working toward 12. My clan is called Naija Warriors, mostly Nigerians living abroad — London, Texas, Toronto — people who left and made something of themselves. They don't know I'm a warehouse worker living in a self-contain in Ojuelegba. They think I'm a student, I think, or maybe they don't think about me at all except when I attack in clan wars.
+        </p>
+        <p>
+          I'm good at it. I know troop combinations, attack strategies, when to use spells and when to save them. I can three-star bases that should be too strong for my level. In the clan chat, people say "Nice hit, Silent" or "Clutch attack, bro." For those few seconds, I feel like I did something that mattered.
+        </p>
+        <p>But when I close the app, nothing has changed. My room is still small. My bank account is still nearly empty. I'm still twenty-six with a business degree and a job that doesn't require one. The progress isn't real. It's pixels on a screen. And I know this, but I keep playing because at least it's something.</p>
+        <p style="color: var(--ink-faint); font-style: italic;">
+          Tired of the danfo commute. Tired of Mr. Chen's yelling. Tired of pretending to my parents that everything is fine. Tired of scrolling through Instagram seeing everyone else's lives moving forward. Tired of being invisible. Tired of being heavy. Tired of being
+        </p>
+      </div>
+    </div>
+
+    <p class="chapter-continues reveal">. . .</p>
+  </div>
+</section>
+
+<!-- ═══════════════ CTA ═══════════════ -->
+<section class="cta-section">
+  <div class="container">
+    <p class="cta-lead reveal">If this felt familiar, then you already know this story doesn't end here.</p>
+    <p class="cta-secondary reveal">
+      It goes deeper. Much deeper.
+    </p>
+    <div class="reveal">
+      <button onclick="openPayModal()" class="btn-primary">
+        👉 Unlock Full Book for ₦2,000
+      </button>
+      <p class="instant-note">Instant access after payment.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ BENEFITS ═══════════════ -->
+<section>
+  <div class="container">
+    <h2 class="benefits-title reveal">What You'll Feel After Reading</h2>
+    <ul class="benefits-list">
+      <li class="reveal">You'll feel seen — maybe for the first time in a long time.</li>
+      <li class="reveal">You'll understand your own emotions in ways you couldn't name before.</li>
+      <li class="reveal">You'll find clarity where there was only fog and confusion.</li>
+      <li class="reveal">You'll realise you were never as alone as you thought.</li>
+      <li class="reveal">You may even find your way out of the place you've been stuck in.</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════ HUMAN TOUCH ═══════════════ -->
+<section style="padding: 48px 0;">
+  <div class="container">
+    <div class="human-touch reveal">
+      <p>
+        <strong>One more thing —</strong><br><br>
+        If you truly can't afford it right now, message me.
+        I'll still give it to you.<br><br>
+        This story was written for people who need it.
+        Money was never supposed to be the reason someone doesn't get to read it.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ WHATSAPP ═══════════════ -->
+<section class="whatsapp-section" style="padding: 48px 0 64px;">
+  <div class="container">
+    <p class="reveal" style="font-family: var(--sans); font-size: 0.82rem; font-weight: 300; color: var(--ink-faint); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 24px;">
+      Still unsure? That's okay.
+    </p>
+    <div class="reveal">
+      <a href="https://wa.me/2348131699259" class="btn-whatsapp" target="_blank" rel="noopener">
+        <svg class="wa-icon" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+        </svg>
+        Chat me on WhatsApp
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════ FOOTER ═══════════════ -->
+<footer>
+  <div class="container">
+    <p>© Suicide Note · All rights reserved · suicidenotebook.com</p>
+  </div>
+</footer>
+
+
+<!-- ═══════════════ PAYSTACK MODAL ═══════════════ -->
+<div class="modal-overlay" id="payModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+  <div class="modal">
+    <button class="modal-close" onclick="closePayModal()" aria-label="Close">&times;</button>
+
+    <p class="modal-eyebrow">Complete your purchase</p>
+    <h2 class="modal-title" id="modalTitle">Suicide Note</h2>
+    <p class="modal-price">Full book access &nbsp;·&nbsp; <span>₦2,000</span></p>
+
+    <div class="form-field">
+      <label for="buyer-email">Email address</label>
+      <input
+        type="email"
+        id="buyer-email"
+        placeholder="you@example.com"
+        autocomplete="email"
+        required
+      />
+    </div>
+
+    <div class="form-field">
+      <label for="buyer-name">Your name <span style="color:var(--ink-faint);font-size:0.65rem;">(optional)</span></label>
+      <input
+        type="text"
+        id="buyer-name"
+        placeholder="Eliora Adetayo"
+        autocomplete="name"
+      />
+    </div>
+
+    <p class="error-msg" id="pay-error"></p>
+
+    <button class="btn-pay" id="pay-btn" onclick="startPayment()">
+      Pay ₦2,000 — Unlock Book
+    </button>
+
+    <p class="modal-secure">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0110 0v4"/>
+      </svg>
+      Secured by Paystack · SSL encrypted
+    </p>
+  </div>
+</div>
+
+
+<script>
+  // ── Scroll reveal ──
+  const reveals = document.querySelectorAll('.reveal');
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+        observer.unobserve(e.target);
+      }
+    });
+  }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+  reveals.forEach(el => observer.observe(el));
+
+  // ── Modal ──
+  function openPayModal() {
+    document.getElementById('payModal').classList.add('open');
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('buyer-email').focus(), 100);
+  }
+
+  function closePayModal() {
+    document.getElementById('payModal').classList.remove('open');
+    document.body.style.overflow = '';
+    document.getElementById('pay-error').style.display = 'none';
+  }
+
+  // Close on overlay click
+  document.getElementById('payModal').addEventListener('click', function(e) {
+    if (e.target === this) closePayModal();
+  });
+
+  // Close on Escape
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') closePayModal();
+  });
+
+  // ── Paystack ──
+  // IMPORTANT: Replace 'YOUR_PAYSTACK_PUBLIC_KEY' with your actual key, e.g. 'pk_live_xxx'
+  const PAYSTACK_PUBLIC_KEY = 'YOUR_PAYSTACK_PUBLIC_KEY';
+
+  function startPayment() {
+    const email = document.getElementById('buyer-email').value.trim();
+    const name  = document.getElementById('buyer-name').value.trim();
+    const errEl = document.getElementById('pay-error');
+    const btn   = document.getElementById('pay-btn');
+
+    errEl.style.display = 'none';
+
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      errEl.textContent = 'Please enter a valid email address.';
+      errEl.style.display = 'block';
+      document.getElementById('buyer-email').focus();
+      return;
+    }
+
+    // Disable button and show spinner
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span>Processing…';
+
+    // Load Paystack inline script if not already loaded
+    if (typeof PaystackPop === 'undefined') {
+      const script = document.createElement('script');
+      script.src = 'https://js.paystack.co/v1/inline.js';
+      script.onload = () => launchPaystack(email, name, btn, errEl);
+      script.onerror = () => {
+        btn.disabled = false;
+        btn.textContent = 'Pay ₦2,000 — Unlock Book';
+        errEl.textContent = 'Could not load payment. Check your connection and try again.';
+        errEl.style.display = 'block';
+      };
+      document.head.appendChild(script);
+    } else {
+      launchPaystack(email, name, btn, errEl);
+    }
+  }
+
+  function launchPaystack(email, name, btn, errEl) {
+    const handler = PaystackPop.setup({
+      key: PAYSTACK_PUBLIC_KEY,
+      email: email,
+      amount: 200000,          // ₦2,000 in kobo
+      currency: 'NGN',
+      metadata: {
+        custom_fields: [
+          { display_name: 'Customer Name', variable_name: 'customer_name', value: name || 'Reader' },
+          { display_name: 'Product',       variable_name: 'product',       value: 'Suicide Note — Full Book' }
+        ]
+      },
+      callback: function(response) {
+        // Payment successful — hand off to your backend verify endpoint
+        closePayModal();
+        handleSuccess(response.reference, email, name);
+      },
+      onClose: function() {
+        btn.disabled = false;
+        btn.textContent = 'Pay ₦2,000 — Unlock Book';
+      }
+    });
+
+    handler.openIframe();
+  }
+
+  function handleSuccess(reference, email, name) {
+    // ── Option A: redirect to your existing /thank-you flow ──
+    // The thank-you page already handles verifyPayment() from URL params.
+    // Paystack will redirect to the callback_url you configure in your dashboard,
+    // OR you can redirect here manually:
+    const params = new URLSearchParams({ reference, trxref: reference });
+    window.location.href = 'https://suicidenote.onrender.com/thank-you?' + params.toString();
+
+    // ── Option B (alternative): call your own verify endpoint first ──
+    // fetch('https://suicidenote.onrender.com/api/v1/payments/verify', {
+    //   method: 'POST',
+    //   headers: { 'Content-Type': 'application/json' },
+    //   body: JSON.stringify({ reference })
+    // })
+    // .then(r => r.json())
+    // .then(data => {
+    //   if (data.success) {
+    //     window.location.href = 'https://suicidenote.onrender.com/thank-you?reference=' + reference;
+    //   }
+    // });
+  }
+</script>
+
+</body>
+</html>

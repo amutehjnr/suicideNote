@@ -153,6 +153,10 @@ app.get('/health', (req, res) => {
 });
 
 // ================== ✅ FRONTEND STATIC FILES ==================
+app.get('/read-now', (req, res) => {
+  res.sendFile(path.join(__dirname, '../read-now.html'));
+});
+
 app.use(express.static(distPath));
 
 // ================== ✅ SPA FALLBACK - AFTER ALL OTHER ROUTES ==================
