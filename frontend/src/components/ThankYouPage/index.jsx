@@ -34,7 +34,7 @@ const ThankYouPage = ({ onBackToHome }) => {
     const verifyPayment = async () => {
       try {
         setIsLoading(true);
-        console.log('🔍 ThankYouPage mounted, checking URL...');
+        // console.log('🔍 ThankYouPage mounted, checking URL...');
         
         const urlParams = new URLSearchParams(location.search);
         const reference = urlParams.get('reference');
@@ -52,14 +52,14 @@ const ThankYouPage = ({ onBackToHome }) => {
         });
         
         if (paymentRef) {
-          console.log('✅ Found payment reference:', paymentRef);
+          // console.log('✅ Found payment reference:', paymentRef);
           
           // Verify payment with backend
           const result = await PaymentService.verifyPayment(paymentRef);
-          console.log('🔍 Verification result:', result);
+          // console.log('🔍 Verification result:', result);
           
           if (result.success) {
-            console.log('🎉 Payment verified successfully');
+            // console.log('🎉 Payment verified successfully');
             
             // Extract data from response
             const purchaseData = result.data?.purchase || result.data;
@@ -70,9 +70,9 @@ const ThankYouPage = ({ onBackToHome }) => {
             const purchaseCurrency = purchaseData?.currency || 'NGN';
             const purchaseMethod = purchaseData?.paymentMethod || 'paystack';
             
-            console.log('🔑 Access code received:', accessCodeData);
-            console.log('💰 Currency:', purchaseCurrency);
-            console.log('💳 Payment method:', purchaseMethod);
+            // console.log('🔑 Access code received:', accessCodeData);
+            // console.log('💰 Currency:', purchaseCurrency);
+            // console.log('💳 Payment method:', purchaseMethod);
             
             // Update state
             setPurchase(purchaseData);
@@ -108,14 +108,14 @@ const ThankYouPage = ({ onBackToHome }) => {
             toast.success('🎉 Payment successful! Your access code is ready.');
             
           } else {
-            console.error('❌ Payment verification failed:', result.error);
+            // console.error('❌ Payment verification failed:', result.error);
             
             // Check if we have pending purchase in localStorage
             const pendingPurchase = localStorage.getItem('pending_purchase');
             if (pendingPurchase) {
               try {
                 const parsed = JSON.parse(pendingPurchase);
-                console.log('📂 Using cached purchase info:', parsed);
+                // console.log('📂 Using cached purchase info:', parsed);
                 
                 const generatedCode = `SN-${Date.now().toString(36).toUpperCase()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
                 setAccessCode(generatedCode);
@@ -136,8 +136,8 @@ const ThankYouPage = ({ onBackToHome }) => {
             }
           }
         } else {
-          console.log('⚠️ No payment reference found in URL');
-          console.log('🔍 Checking localStorage for saved purchase...');
+          // console.log('⚠️ No payment reference found in URL');
+          // console.log('🔍 Checking localStorage for saved purchase...');
           
           // Check for saved purchase in localStorage
           const savedPurchase = localStorage.getItem('recent_purchase');
@@ -159,13 +159,13 @@ const ThankYouPage = ({ onBackToHome }) => {
               navigate('/');
             }
           } else {
-            console.log('❌ No saved purchase found in localStorage');
+            // console.log('❌ No saved purchase found in localStorage');
             toast.error('No purchase found. Please make a purchase first.');
             navigate('/');
           }
         }
       } catch (error) {
-        console.error('🔥 Payment verification error:', error);
+        // console.error('🔥 Payment verification error:', error);
         toast.error('Error verifying payment. Please contact support.');
         navigate('/');
       } finally {
@@ -201,7 +201,7 @@ const ThankYouPage = ({ onBackToHome }) => {
           setAffiliateEmail(guestEmail);
         }
       } catch (error) {
-        console.error('Error initializing user:', error);
+        // console.error('Error initializing user:', error);
       }
     };
     
@@ -226,7 +226,7 @@ const ThankYouPage = ({ onBackToHome }) => {
         toast.success('Copied to clipboard!');
       })
       .catch(err => {
-        console.error('Failed to copy:', err);
+        // console.error('Failed to copy:', err);
         toast.error('Failed to copy to clipboard');
       });
   };
@@ -247,12 +247,12 @@ const handleGenerateLink = async () => {
   setIsAffiliateLoading(true);
   
   try {
-    console.log('🔗 Generating affiliate link for:', affiliateEmail);
-    console.log('📧 With name:', affiliateName);
+    // console.log('🔗 Generating affiliate link for:', affiliateEmail);
+    // console.log('📧 With name:', affiliateName);
     
     // This will now work because registerAffiliate accepts parameters
     const result = await AffiliateService.registerAffiliate(affiliateEmail, affiliateName);
-    console.log('📝 Registration result:', result);
+    // console.log('📝 Registration result:', result);
     
     if (!result.success) {
       toast.error(result.error || 'Failed to register as affiliate');
@@ -297,7 +297,7 @@ const handleGenerateLink = async () => {
     }
     
   } catch (error) {
-    console.error('Affiliate generation error:', error);
+    // console.error('Affiliate generation error:', error);
     toast.error('Failed to generate affiliate link. Please try again.');
   } finally {
     setIsAffiliateLoading(false);
@@ -337,8 +337,8 @@ const handleGenerateLink = async () => {
   // Add this useEffect at the top of your component
 useEffect(() => {
   // Check cookies on every page load
-  console.log('🍪 All cookies:', document.cookie);
-  console.log('🍪 affiliate_ref:', document.cookie.replace(/(?:(?:^|.*;\s*)affiliate_ref\s*\=\s*([^;]*).*$)|^.*$/, "$1"));
+  // console.log('🍪 All cookies:', document.cookie);
+  // console.log('🍪 affiliate_ref:', document.cookie.replace(/(?:(?:^|.*;\s*)affiliate_ref\s*\=\s*([^;]*).*$)|^.*$/, "$1"));
 }, []);
 
   const handleStartReading = () => {
@@ -353,7 +353,7 @@ useEffect(() => {
       localStorage.setItem('last_ebook_accessed', 'suicide-note-2026');
       localStorage.setItem('last_access_time', new Date().toISOString());
       
-      console.log('📚 Starting reading with access code:', accessCode);
+      // console.log('📚 Starting reading with access code:', accessCode);
       
       // Navigate to reading page
       navigate('/read/suicide-note-2026', { 
@@ -366,7 +366,7 @@ useEffect(() => {
       });
       
     } catch (error) {
-      console.error('Error starting reading:', error);
+      // console.error('Error starting reading:', error);
       toast.error('Error accessing book. Please try again.');
     }
   };

@@ -204,7 +204,7 @@ const ReaderPage = () => {
   };
 
   const onDocumentLoadError = (error) => {
-    console.error('PDF load error:', error);
+    // console.error('PDF load error:', error);
     setPdfError(true);
     setIsPdfLoading(false);
     setIsLoading(false);

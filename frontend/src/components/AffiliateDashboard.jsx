@@ -65,14 +65,14 @@ const AffiliateDashboard = () => {
       AffiliateService.getBankDetails()
     ]);
 
-    console.log('Dashboard response:', dashboardRes);
-    console.log('Earnings response:', earningsRes);
-    console.log('Referrals response:', referralsRes);
+    // console.log('Dashboard response:', dashboardRes);
+    // console.log('Earnings response:', earningsRes);
+    // console.log('Referrals response:', referralsRes);
     
     // ADD THIS DEBUG LOGGING
     if (referralsRes.success && referralsRes.data?.referrals) {
-      console.log('🔍 First referral details:', referralsRes.data.referrals[0]);
-      console.log('🔍 All referrals:', referralsRes.data.referrals);
+      // console.log('🔍 First referral details:', referralsRes.data.referrals[0]);
+      // console.log('🔍 All referrals:', referralsRes.data.referrals);
     }
 
     if (dashboardRes.success) setDashboardData(dashboardRes.data);
@@ -85,7 +85,7 @@ const AffiliateDashboard = () => {
     }
     
   } catch (error) {
-    console.error('Error loading dashboard:', error);
+    // console.error('Error loading dashboard:', error);
     toast.error('Failed to load dashboard data');
     
     // If token is invalid, redirect to home

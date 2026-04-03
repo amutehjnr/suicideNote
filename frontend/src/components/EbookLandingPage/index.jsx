@@ -274,7 +274,7 @@ const EbookLandingPage = () => {
             // Add small delay to ensure localStorage is saved
             setTimeout(() => {
               // ⚠️ ALWAYS redirect to production, no matter what
-              window.location.href = '/thank-you';
+              window.location.href = 'https://suicidenotebook.com/thank-you';
             }, 300);
             
             return;
@@ -282,7 +282,7 @@ const EbookLandingPage = () => {
             toast.error('Payment verification failed. Please contact support.');
           }
         } catch (error) {
-          console.error('Payment verification error:', error);
+          // console.error('Payment verification error:', error);
           toast.error('Failed to verify payment. Please try again.');
         } finally {
           toast.dismiss();
@@ -309,12 +309,12 @@ const EbookLandingPage = () => {
     
     try {
       const ebookResponse = await ebookAPI.getById(ebookId);
-      console.log('🔍 API Response:', ebookResponse.data);
+      // console.log('🔍 API Response:', ebookResponse.data);
       
       if (ebookResponse.data?.success) {
         const ebook = ebookResponse.data.data.ebook || ebookResponse.data.data;
-        console.log('📦 Ebook data:', ebook);
-        console.log('💰 Price from API:', ebook.price);
+        // console.log('📦 Ebook data:', ebook);
+        // console.log('💰 Price from API:', ebook.price);
         
         // Update stats with real data
         if (ebook.price || ebook.salesCount || ebook.ratings) {
@@ -333,7 +333,7 @@ const EbookLandingPage = () => {
         }
       }
     } catch (error) {
-      console.log('Using default data');
+      // console.log('Using default data');
     }
   };
 
@@ -360,7 +360,7 @@ const EbookLandingPage = () => {
       }
       
     } catch (error) {
-      console.error('Payment processing error:', error);
+      // console.error('Payment processing error:', error);
       toast.error('Payment processing failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -374,30 +374,30 @@ const EbookLandingPage = () => {
       return;
     }
     
-    console.log('🎬 handleAccessCode started with code:', accessCode);
+    // console.log('🎬 handleAccessCode started with code:', accessCode);
     
     setIsLoading(true);
     
     try {
       const result = await PaymentService.validateAccessCode(accessCode, 'suicide-note-2026');
-      console.log('🔑 Validation result:', result);
+      // console.log('🔑 Validation result:', result);
       
       if (result.success) {
-        console.log('✅ Access granted!');
+        // console.log('✅ Access granted!');
         
         const cleanCode = accessCode.trim().toUpperCase();
         localStorage.setItem(`ebook_access_suicide-note-2026`, cleanCode);
         
         // ⚠️ CRITICAL: Try multiple navigation methods
-        console.log('🧭 Attempting navigation methods...');
+        // console.log('🧭 Attempting navigation methods...');
         
         // Method 1: Direct URL (always works)
-        console.log('Method 1: Direct URL redirect');
+        // console.log('Method 1: Direct URL redirect');
         window.location.href = `/read/suicide-note-2026?accessCode=${cleanCode}&validated=true`;
         
         // Method 2: navigate with state (fallback)
         setTimeout(() => {
-          console.log('Method 2: Using navigate()');
+          // console.log('Method 2: Using navigate()');
           navigate(`/read/suicide-note-2026`, {
             state: {
               accessCode: cleanCode,
@@ -410,7 +410,7 @@ const EbookLandingPage = () => {
         
         // Method 3: Programmatic navigation
         setTimeout(() => {
-          console.log('Method 3: History API');
+          // console.log('Method 3: History API');
           window.history.pushState(
             { accessCode: cleanCode },
             '',
@@ -422,12 +422,12 @@ const EbookLandingPage = () => {
         toast.success('Access granted! Redirecting...');
         
       } else {
-        console.error('❌ Access denied:', result.error);
+        // console.error('❌ Access denied:', result.error);
         toast.error(result.error || 'Invalid access code');
         setAccessCode('');
       }
     } catch (error) {
-      console.error('🔥 Validation error:', error);
+      // console.error('🔥 Validation error:', error);
       toast.error('Failed to validate access code');
     } finally {
       setIsLoading(false);
@@ -449,11 +449,11 @@ const EbookLandingPage = () => {
     setIsAffiliateLoading(true);
     
     try {
-      console.log('🔗 Generating affiliate link for:', affiliateEmail);
-      console.log('📧 With name:', affiliateName);
+      // console.log('🔗 Generating affiliate link for:', affiliateEmail);
+      // console.log('📧 With name:', affiliateName);
       
       const result = await AffiliateService.registerAffiliate(affiliateEmail, affiliateName);
-      console.log('📝 Registration result:', result);
+      // console.log('📝 Registration result:', result);
       
       if (!result.success) {
         toast.error(result.error || 'Failed to register as affiliate');
@@ -497,7 +497,7 @@ const EbookLandingPage = () => {
       }
       
     } catch (error) {
-      console.error('❌ Affiliate generation error:', error);
+      // console.error('❌ Affiliate generation error:', error);
       toast.error('Failed to generate affiliate link. Please try again.');
     } finally {
       setIsAffiliateLoading(false);

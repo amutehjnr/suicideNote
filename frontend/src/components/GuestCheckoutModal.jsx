@@ -91,12 +91,12 @@ useEffect(() => {
       .split('; ')
       .find(row => row.startsWith('affiliate_ref='));
     
-    console.log('🍪 Raw cookies:', document.cookie);
-    console.log('🍪 Affiliate cookie found:', cookieRef);
+    // console.log('🍪 Raw cookies:', document.cookie);
+    // console.log('🍪 Affiliate cookie found:', cookieRef);
     
     const cookieAffiliate = PaymentService.getAffiliateCodeFromCookie?.();
-    console.log('🎯 Affiliate code from cookie service:', cookieAffiliate);
-    console.log('🎯 Current affiliateCode state:', affiliateCode);
+    // console.log('🎯 Affiliate code from cookie service:', cookieAffiliate);
+    // console.log('🎯 Current affiliateCode state:', affiliateCode);
   }
 }, [isOpen, affiliateCode]);
 
@@ -138,28 +138,28 @@ useEffect(() => {
       // ✅ CRITICAL: Add affiliate code to payment data if available
       if (affiliateCode && affiliateCode.trim() !== '') {
         paymentData.affiliateCode = String(affiliateCode).trim();
-        console.log('🎯 Adding affiliate code to payment:', affiliateCode);
+        // console.log('🎯 Adding affiliate code to payment:', affiliateCode);
       } else {
-        console.log('ℹ️ No affiliate code found for this payment');
+        // console.log('ℹ️ No affiliate code found for this payment');
       }
       
       // Add campaign name if available
       paymentData.campaignName = campaignName?.trim() || 'direct-purchase';
 
-      console.log('📤 Sending payment data with affiliate:', {
-        ...paymentData,
-        hasAffiliate: !!paymentData.affiliateCode
-      });
+      // console.log('📤 Sending payment data with affiliate:', {
+      //   ...paymentData,
+      //   hasAffiliate: !!paymentData.affiliateCode
+      // });
 
       const result = await PaymentService.initializePayment(paymentData);
 
-      console.log('✅ Payment initialization result:', result);
+      // console.log('✅ Payment initialization result:', result);
 
       if (result?.success) {
         const authUrl = result.data?.authorizationUrl || result.data?.authorization_url;
         
         if (authUrl) {
-          console.log(`🔗 Redirecting to Paystack (${currency}) with affiliate:`, affiliateCode || 'none');
+          // console.log(`🔗 Redirecting to Paystack (${currency}) with affiliate:`, affiliateCode || 'none');
           
           // Store pending purchase with affiliate info
           const pendingPurchase = {
@@ -172,19 +172,19 @@ useEffect(() => {
           };
           
           localStorage.setItem('pending_purchase', JSON.stringify(pendingPurchase));
-          console.log('💾 Saved pending purchase with affiliate:', pendingPurchase);
+          // console.log('💾 Saved pending purchase with affiliate:', pendingPurchase);
           
           window.location.href = authUrl;
         } else {
-          console.error('❌ No authorization URL in response:', result);
+          // console.error('❌ No authorization URL in response:', result);
           toast.error('Payment initialization failed - no payment link generated');
         }
       } else {
-        console.error('❌ Payment initialization failed:', result);
+        // console.error('❌ Payment initialization failed:', result);
         toast.error(result?.error || 'Payment initialization failed');
       }
     } catch (error) {
-      console.error('❌ Payment failed:', error);
+      // console.error('❌ Payment failed:', error);
       toast.error(error?.message || 'Payment failed');
     } finally {
       setIsLoading(false);
