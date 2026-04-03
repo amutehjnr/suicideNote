@@ -274,7 +274,7 @@ const EbookLandingPage = () => {
             // Add small delay to ensure localStorage is saved
             setTimeout(() => {
               // ⚠️ ALWAYS redirect to production, no matter what
-              window.location.href = 'https://suicidenote.onrender.com/thank-you';
+              window.location.href = '/thank-you';
             }, 300);
             
             return;

@@ -860,20 +860,15 @@ footer p {
     document.getElementById('pay-error').style.display = 'none';
   }
 
-  // Close on overlay click
   document.getElementById('payModal').addEventListener('click', function(e) {
     if (e.target === this) closePayModal();
   });
 
-  // Close on Escape
   document.addEventListener('keydown', function(e) {
     if (e.key === 'Escape') closePayModal();
   });
 
-  // ── Paystack ──
-  // IMPORTANT: Replace 'YOUR_PAYSTACK_PUBLIC_KEY' with your actual key, e.g. 'pk_live_xxx'
-  const PAYSTACK_PUBLIC_KEY = 'pk_live_7e4d437bdae966e71101dc40aa406b6f485417d0';
-
+  // ── Payment ──
   function startPayment() {
     const email = document.getElementById('buyer-email').value.trim();
     const name  = document.getElementById('buyer-name').value.trim();
@@ -889,73 +884,44 @@ footer p {
       return;
     }
 
-    // Disable button and show spinner
     btn.disabled = true;
     btn.innerHTML = '<span class="spinner"></span>Processing…';
 
-    // Load Paystack inline script if not already loaded
-    if (typeof PaystackPop === 'undefined') {
-      const script = document.createElement('script');
-      script.src = 'https://js.paystack.co/v1/inline.js';
-      script.onload = () => launchPaystack(email, name, btn, errEl);
-      script.onerror = () => {
-        btn.disabled = false;
-        btn.textContent = 'Pay ₦2,000 — Unlock Book';
-        errEl.textContent = 'Could not load payment. Check your connection and try again.';
-        errEl.style.display = 'block';
-      };
-      document.head.appendChild(script);
-    } else {
-      launchPaystack(email, name, btn, errEl);
-    }
-  }
-
-  function launchPaystack(email, name, btn, errEl) {
-    const handler = PaystackPop.setup({
-      key: PAYSTACK_PUBLIC_KEY,
-      email: email,
-      amount: 200000,          // ₦2,000 in kobo
-      currency: 'NGN',
-      metadata: {
-        custom_fields: [
-          { display_name: 'Customer Name', variable_name: 'customer_name', value: name || 'Reader' },
-          { display_name: 'Product',       variable_name: 'product',       value: 'Suicide Note — Full Book' }
-        ]
-      },
-      callback: function(response) {
-        // Payment successful — hand off to your backend verify endpoint
-        closePayModal();
-        handleSuccess(response.reference, email, name);
-      },
-      onClose: function() {
-        btn.disabled = false;
-        btn.textContent = 'Pay ₦2,000 — Unlock Book';
+    // Step 1: Call your backend to initialize the payment.
+    // This creates the Purchase record in the database so that
+    // the /thank-you page can verify it properly.
+    fetch('/api/v1/payments/initialize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({
+        ebookId:  'suicide-note-2026',
+        email:    email,
+        name:     name || email.split('@')[0],
+        amount:   2000,
+        currency: 'NGN'
+      })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if (!data.success) {
+        throw new Error(data.error || 'Failed to initialise payment.');
       }
+
+      // Step 2: Redirect to the Paystack-hosted checkout page.
+      // After payment, Paystack sends the user back to /thank-you
+      // (the callback_url set in your Paystack dashboard), where
+      // your existing verifyPayment() logic takes over.
+      const authUrl = data.data.authorizationUrl;
+      if (!authUrl) throw new Error('No authorization URL received.');
+      window.location.href = authUrl;
+    })
+    .catch(err => {
+      btn.disabled = false;
+      btn.textContent = 'Pay ₦2,000 — Unlock Book';
+      errEl.textContent = err.message || 'Something went wrong. Please try again.';
+      errEl.style.display = 'block';
     });
-
-    handler.openIframe();
-  }
-
-  function handleSuccess(reference, email, name) {
-    // ── Option A: redirect to your existing /thank-you flow ──
-    // The thank-you page already handles verifyPayment() from URL params.
-    // Paystack will redirect to the callback_url you configure in your dashboard,
-    // OR you can redirect here manually:
-    const params = new URLSearchParams({ reference, trxref: reference });
-    window.location.href = 'https://suicidenote.onrender.com/thank-you?' + params.toString();
-
-    // ── Option B (alternative): call your own verify endpoint first ──
-    // fetch('https://suicidenote.onrender.com/api/v1/payments/verify', {
-    //   method: 'POST',
-    //   headers: { 'Content-Type': 'application/json' },
-    //   body: JSON.stringify({ reference })
-    // })
-    // .then(r => r.json())
-    // .then(data => {
-    //   if (data.success) {
-    //     window.location.href = 'https://suicidenote.onrender.com/thank-you?reference=' + reference;
-    //   }
-    // });
   }
 </script>
 
