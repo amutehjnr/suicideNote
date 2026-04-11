@@ -153,7 +153,7 @@ app.get('/health', (req, res) => {
 });
 
 // ================== ✅ FRONTEND STATIC FILES ==================
-app.get('/read-now', (req, res) => {
+app.get('/readnow', (req, res) => {
   res.sendFile(path.join(__dirname, '../read-now.html'));
 });
 
