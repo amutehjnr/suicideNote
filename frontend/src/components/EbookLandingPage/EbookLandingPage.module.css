@@ -1259,3 +1259,165 @@
     flex-direction: column-reverse;
   }
 }
+
+/* EbookLandingPage.module.css - Add or update these styles */
+
+/* Hero Section */
+.hero {
+  padding-top: 8rem;
+  padding-bottom: 5rem;
+  background: linear-gradient(135deg, var(--color-red-light) 0%, var(--color-white) 100%);
+}
+
+.heroGrid {
+  display: grid;
+  gap: 3rem;
+}
+
+/* For mobile screens - reorder so image appears first */
+@media (max-width: 767px) {
+  .heroGrid {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  /* Move book cover to the top */
+  .heroCard {
+    order: -1;
+    margin-bottom: 1rem;
+  }
+  
+  /* Ensure content comes after */
+  .heroContent {
+    order: 0;
+  }
+  
+  /* Adjust padding for hero section on mobile */
+  .hero {
+    padding-top: 6rem;
+    padding-bottom: 3rem;
+  }
+}
+
+/* For tablet and desktop - keep original side-by-side layout */
+@media (min-width: 768px) {
+  .heroGrid {
+    grid-template-columns: 1fr 1fr;
+    align-items: center;
+  }
+}
+
+/* Preview wrapper - prevents layout shifts */
+.previewWrapper {
+  position: relative;
+  background-color: var(--color-white);
+}
+
+.contentLine {
+  margin-bottom: 1rem;
+  line-height: 1.8;
+  transition: filter 0.15s ease-out, opacity 0.15s ease-out;
+  /* Prevent layout shifts */
+  min-height: 1.8em;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+
+/* Ensure empty lines maintain consistent height */
+.contentLine:empty,
+.contentLine:has(> :only-child:empty) {
+  min-height: 1.8em;
+}
+
+/* GPU acceleration for smoother blur rendering */
+.blurredLine {
+  will-change: filter;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.ebookContent {
+  background-color: var(--color-white);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 2rem;
+  position: relative;
+  min-height: 500px;
+  overflow-x: hidden;
+}
+
+/* Purchase overlay - fixed at bottom */
+.purchaseOverlay {
+  position: sticky;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: linear-gradient(to top, var(--color-white) 0%, var(--color-white) 70%, transparent 100%);
+  padding-top: 4rem;
+  padding-bottom: 2rem;
+  text-align: center;
+  z-index: 10;
+  margin-top: -3rem;
+  pointer-events: auto;
+}
+
+.purchaseBtn {
+  padding: 1rem 3rem;
+  font-size: 1.25rem;
+  font-weight: 800;
+  box-shadow: var(--shadow-lg);
+}
+
+.purchaseText {
+  margin-top: 1rem;
+  color: var(--color-gray-600);
+}
+
+.fullAccessText {
+  font-size: 0.875rem;
+  color: var(--color-gray-500);
+  margin-bottom: 2rem;
+  padding: 1rem;
+  background-color: var(--color-green-light);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.successMessage {
+  margin-top: 3rem;
+  padding: 1.5rem;
+  background-color: var(--color-green-light);
+  border-radius: var(--radius-lg);
+  text-align: center;
+}
+
+.successText {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #065f46;
+  margin-bottom: 0.5rem;
+}
+
+.successNote {
+  font-size: 0.875rem;
+  color: var(--color-gray-600);
+}
+
+/* Mobile optimization */
+@media (max-width: 768px) {
+  .contentLine {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    margin-bottom: 0.75rem;
+  }
+  
+  .purchaseBtn {
+    padding: 0.75rem 1.5rem;
+    font-size: 1rem;
+  }
+  
+  .purchaseOverlay {
+    padding-top: 3rem;
+    margin-top: -2rem;
+  }
+}

@@ -523,32 +523,39 @@ const EbookLandingPage = () => {
   const renderEbookContent = () => {
     if (!hasAccess) {
       const lines = PREVIEW_CONTENT.split('\n');
+      const totalLines = lines.length;
+      const blurStartLine = Math.floor(totalLines * 0.6);
+    
       return (
         <div className={styles.ebookContent}>
-          {lines.map((line, idx) => {
-            let blur = 0;
-            const totalLines = lines.length;
-            const blurStartLine = Math.floor(totalLines * 0.6);
+          <div className={styles.previewWrapper}>
+            {lines.map((line, idx) => {
+              // Calculate blur intensity based on position
+              let blur = 0;
+              let opacity = 1;
             
-            if (idx > blurStartLine) {
-              const blurProgress = (idx - blurStartLine) / (totalLines - blurStartLine);
-              blur = blurProgress * 10;
-            }
+              if (idx > blurStartLine) {
+                const blurProgress = Math.min(1, (idx - blurStartLine) / (totalLines - blurStartLine));
+                blur = blurProgress * 10;
+                opacity = 1 - (blurProgress * 0.3); // Slight fade for smoother transition
+              }
             
-            return (
-              <p 
-                key={idx} 
-                className={styles.contentLine}
-                style={{ 
-                  filter: blur > 0 ? `blur(${blur}px)` : 'none',
-                  userSelect: blur > 5 ? 'none' : 'auto'
-                }}
-              >
-                {line}
-              </p>
-            );
-          })}
-          
+              return (
+                <p 
+                  key={idx} 
+                  className={`${styles.contentLine} ${idx > blurStartLine ? styles.blurredLine : ''}`}
+                  style={{ 
+                    filter: blur > 0 ? `blur(${blur}px)` : 'none',
+                    opacity: opacity,
+                    userSelect: blur > 5 ? 'none' : 'auto'
+                  }}
+                >
+                  {line || '\u00A0'}
+                </p>
+              );
+            })}
+          </div>
+        
           <div className={styles.purchaseOverlay}>
             <button 
               onClick={handlePurchase} 
@@ -567,7 +574,7 @@ const EbookLandingPage = () => {
       <div className={styles.ebookContent}>
         <p className={styles.fullAccessText}>You have full access to this book. Thank you for your purchase!</p>
         {PREVIEW_CONTENT.split('\n').map((line, idx) => (
-          <p key={idx} className={styles.contentLine}>{line}</p>
+          <p key={idx} className={styles.contentLine}>{line || '\u00A0'}</p>
         ))}
         <div className={styles.successMessage}>
           <p className={styles.successText}>[Full book content continues for all chapters...]</p>
@@ -668,60 +675,61 @@ const EbookLandingPage = () => {
       <section className={styles.hero}>
         <div className="container">
           <div className={styles.heroGrid}>
-            <div className={styles.heroContent}>
-              <span className="badge badge-red">#1 Nigerian Mental Health Fiction</span>
-              <h1 className={styles.heroTitle}>A Story of Darkness, Hope, and Healing</h1>
-              <p className={styles.heroSubtitle}>
-                Follow Eliora's journey from the edge of despair to finding community, purpose, and reasons to live in Lagos, Nigeria.
-              </p>
-              
-              <div className="rating mb-6">
-                {[...Array(5)].map((_, i) => (
-                  <Icon key={i} name="Star" className="star" />
-                ))}
-                <span className={styles.ratingText}>{stats.rating.toFixed(1)}/5 from {stats.readers} readers</span>
-              </div>
-              
-              <div className={styles.ctaButtons}>
-                <button 
-                  onClick={handlePurchase} 
-                  className={`btn btn-primary ${styles.ctaButton}`}
-                  disabled={isLoading}
-                >
-                  {isLoading ? 'Processing...' : `Buy Now - ₦${stats.price.toLocaleString()}`}
-                </button>
-                <button 
-                  onClick={() => setShowReader(true)} 
-                  className={`btn btn-outline ${styles.ctaButton}`}
-                >
-                  Read Preview
-                </button>
-              </div>
-              
-              <p className={styles.instantAccess}>
-                Instant access • Read online • No downloads needed
-              </p>
-            </div>
-            
-            {/* Book Cover - Replacing the old heroCard */}
-            <div className={styles.heroCard}>
-              <div className={styles.bookCoverContainer}>
-                <img 
-                  src="/images/suicide-note-cover.jpeg" 
-                  alt="Suicide Note Book Cover" 
-                  className={styles.bookCover}
-                  onError={(e) => {
-                    e.target.onerror = null;
-                    e.target.src = 'https://via.placeholder.com/400x600?text=Suicide+Note+Cover';
-                  }}
-                />
-                <div className={styles.bookCoverBadge}>
-                  <span className={styles.bestsellerBadge}>#1 Bestseller</span>
+             {/* Book Cover Container - Will be first in DOM for mobile */}
+             <div className={styles.heroCard}>
+               <div className={styles.bookCoverContainer}>
+                 <img 
+                   src="/images/suicide-note-cover.jpeg" 
+                   alt="Suicide Note Book Cover" 
+                   className={styles.bookCover}
+                    onError={(e) => {
+                     e.target.onerror = null;
+                     e.target.src = 'https://via.placeholder.com/400x600?text=Suicide+Note+Cover';
+                    }}
+                  />
+                  <div className={styles.bookCoverBadge}>
+                    <span className={styles.bestsellerBadge}>#1 Bestseller</span>
+                  </div>
                 </div>
+              </div>
+
+              {/* Hero Content */}
+              <div className={styles.heroContent}>
+                <span className="badge badge-red">#1 Nigerian Mental Health Fiction</span>
+                <h1 className={styles.heroTitle}>A Story of Darkness, Hope, and Healing</h1>
+                <p className={styles.heroSubtitle}>
+                  Follow Eliora's journey from the edge of despair to finding community, purpose, and reasons to live in Lagos, Nigeria.
+                </p>
+        
+                <div className="rating mb-6">
+                  {[...Array(5)].map((_, i) => (
+                    <Icon key={i} name="Star" className="star" />
+                  ))}
+                  <span className={styles.ratingText}>{stats.rating.toFixed(1)}/5 from {stats.readers} readers</span>
+                </div>
+        
+                <div className={styles.ctaButtons}>
+                  <button 
+                    onClick={handlePurchase} 
+                    className={`btn btn-primary ${styles.ctaButton}`}
+                    disabled={isLoading}
+                  >
+                    {isLoading ? 'Processing...' : `Buy Now - ₦${stats.price.toLocaleString()}`}
+                  </button>
+                  <button 
+                    onClick={() => setShowReader(true)} 
+                    className={`btn btn-outline ${styles.ctaButton}`}
+                  >
+                    Read Preview
+                  </button>
+                </div>
+        
+                <p className={styles.instantAccess}>
+                  Instant access • Read online • No downloads needed
+                </p>
               </div>
             </div>
           </div>
-        </div>
       </section>
 
       {/* Preview Section */}
