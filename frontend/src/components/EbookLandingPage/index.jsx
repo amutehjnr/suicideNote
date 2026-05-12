@@ -487,7 +487,7 @@ const EbookLandingPage = () => {
         ))}
         <div className={styles.successMessage}>
           <p className={styles.successText}>[Full book content continues for all chapters...]</p>
-          <p className={styles.successNote}>In production, the complete book would load here after payment verification</p>
+          <p className={styles.successNote}>The complete book would load here after payment verification</p>
         </div>
       </div>
     );
