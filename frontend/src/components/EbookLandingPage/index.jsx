@@ -481,13 +481,13 @@ const EbookLandingPage = () => {
 
     return (
       <div className={styles.ebookContent}>
-        <p className={styles.fullAccessText}>You have full access to this book. Thank you for your purchase!</p>
+        {/* <p className={styles.fullAccessText}>You have full access to this book. Thank you for your purchase!</p> */}
         {PREVIEW_CONTENT.split('\n').map((line, idx) => (
           <p key={idx} className={styles.contentLine}>{line || '\u00A0'}</p>
         ))}
         <div className={styles.successMessage}>
-          <p className={styles.successText}>[Full book content continues for all chapters...]</p>
-          <p className={styles.successNote}>The complete book would load here after payment verification</p>
+          {/* <p className={styles.successText}>[Full book content continues for all chapters...]</p> */}
+          {/* <p className={styles.successNote}>The complete book would load here after payment verification</p> */}
         </div>
       </div>
     );
