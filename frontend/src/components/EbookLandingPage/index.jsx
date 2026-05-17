@@ -1010,7 +1010,7 @@ const EbookLandingPage = () => {
             
             <div className={styles.footerSection}>
               <h3 className={styles.footerTitle}>Connect</h3>
-              <p className={styles.footerText}>Email: support@suicidenote.com</p>
+              <p className={styles.footerText}>Email: support@suicidenotebook.com</p>
               <p className={styles.footerText}>Follow @loba_yusuf on X</p>
             </div>
           </div>
