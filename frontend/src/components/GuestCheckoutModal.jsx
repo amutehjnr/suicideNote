@@ -24,8 +24,8 @@ const GuestCheckoutModal = ({
     NGN: {
       symbol: '₦',
       code: 'NGN',
-      amount: 2500,
-      displayAmount: '2,500',
+      amount: 2000,
+      displayAmount: '2,000',
       paymentMethod: 'paystack',
       icon: '🇳🇬',
       description: 'Pay with Naira (Local cards, Bank Transfer, USSD)'
@@ -44,21 +44,17 @@ const GuestCheckoutModal = ({
   // Get affiliate code from cookie on mount if not provided in props
   useEffect(() => {
     const loadAffiliateData = async () => {
-      // If affiliate code not provided in props, try to get from cookie
       if (!propAffiliateCode) {
         const cookieAffiliate = PaymentService.getAffiliateCodeFromCookie?.();
         if (cookieAffiliate) {
           setAffiliateCode(cookieAffiliate);
-          console.log('🎯 Found affiliate code in cookie:', cookieAffiliate);
         }
       }
       
-      // If campaign name not provided in props, try to get from cookie
       if (!propCampaignName) {
         const cookieCampaign = PaymentService.getCampaignFromCookie?.();
         if (cookieCampaign) {
           setCampaignName(cookieCampaign);
-          console.log('📊 Found campaign in cookie:', cookieCampaign);
         }
       }
     };
@@ -84,43 +80,21 @@ const GuestCheckoutModal = ({
 
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
-  // Add this useEffect to check what's in the cookie when modal opens
-useEffect(() => {
-  if (isOpen) {
-    const cookieRef = document.cookie
-      .split('; ')
-      .find(row => row.startsWith('affiliate_ref='));
-    
-    // console.log('🍪 Raw cookies:', document.cookie);
-    // console.log('🍪 Affiliate cookie found:', cookieRef);
-    
-    const cookieAffiliate = PaymentService.getAffiliateCodeFromCookie?.();
-    // console.log('🎯 Affiliate code from cookie service:', cookieAffiliate);
-    // console.log('🎯 Current affiliateCode state:', affiliateCode);
-  }
-}, [isOpen, affiliateCode]);
+  useEffect(() => {
+    if (isOpen) {
+      const cookieRef = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('affiliate_ref='));
+      
+      const cookieAffiliate = PaymentService.getAffiliateCodeFromCookie?.();
+    }
+  }, [isOpen, affiliateCode]);
 
   const handleSubmit = async () => {
-    console.log('🔴 AMOUNT BEING SENT:', {
-      selectedCurrency: currency,
-      selectedOption: currencyOptions[currency],
-      amount: currencyOptions[currency].amount,
-      expectedDisplay: currency === 'NGN' ? '₦2,500' : '$5.00'
-    });
-    
     if (!validateEmail(email)) {
       toast.error('Please enter a valid email');
       return;
     }
-
-    console.log('📦 GuestCheckoutModal props:', {
-      ebookId,
-      ebookPrice,
-      ebookTitle,
-      affiliateCode,
-      campaignName,
-      currency
-    });
 
     setIsLoading(true);
 
@@ -135,56 +109,36 @@ useEffect(() => {
         currency: currency,
       };
 
-      // ✅ CRITICAL: Add affiliate code to payment data if available
       if (affiliateCode && affiliateCode.trim() !== '') {
         paymentData.affiliateCode = String(affiliateCode).trim();
-        // console.log('🎯 Adding affiliate code to payment:', affiliateCode);
-      } else {
-        // console.log('ℹ️ No affiliate code found for this payment');
       }
       
-      // Add campaign name if available
       paymentData.campaignName = campaignName?.trim() || 'direct-purchase';
 
-      // console.log('📤 Sending payment data with affiliate:', {
-      //   ...paymentData,
-      //   hasAffiliate: !!paymentData.affiliateCode
-      // });
-
       const result = await PaymentService.initializePayment(paymentData);
-
-      // console.log('✅ Payment initialization result:', result);
 
       if (result?.success) {
         const authUrl = result.data?.authorizationUrl || result.data?.authorization_url;
         
         if (authUrl) {
-          // console.log(`🔗 Redirecting to Paystack (${currency}) with affiliate:`, affiliateCode || 'none');
-          
-          // Store pending purchase with affiliate info
           const pendingPurchase = {
             reference: result.data.reference,
             ebookTitle: ebookTitle,
             amount: currency === 'USD' ? 5 : ebookPrice,
             currency: currency,
-            affiliateCode: affiliateCode, // Store affiliate code with pending purchase
+            affiliateCode: affiliateCode,
             timestamp: new Date().toISOString()
           };
           
           localStorage.setItem('pending_purchase', JSON.stringify(pendingPurchase));
-          // console.log('💾 Saved pending purchase with affiliate:', pendingPurchase);
-          
           window.location.href = authUrl;
         } else {
-          // console.error('❌ No authorization URL in response:', result);
           toast.error('Payment initialization failed - no payment link generated');
         }
       } else {
-        // console.error('❌ Payment initialization failed:', result);
         toast.error(result?.error || 'Payment initialization failed');
       }
     } catch (error) {
-      // console.error('❌ Payment failed:', error);
       toast.error(error?.message || 'Payment failed');
     } finally {
       setIsLoading(false);
@@ -196,24 +150,44 @@ useEffect(() => {
   const selectedOption = currencyOptions[currency];
 
   return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modalContainer}>
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modalContainer} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalContent}>
-          <div className={styles.modalHeader}>
-            <button onClick={onClose} className={styles.closeButton} disabled={isLoading}>
-              <Icon name="X" />
-            </button>
-            <h2 className={styles.modalTitle}>Complete Your Purchase</h2>
+          {/* Close Button */}
+          <button onClick={onClose} className={styles.closeButton} disabled={isLoading}>
+            ×
+          </button>
+
+          {/* Book Cover and Title */}
+          <div className={styles.bookHeader}>
+            <div className={styles.bookCoverWrapper}>
+              <img 
+                src="/images/suicide-note-cover.jpeg"
+                alt={`${ebookTitle} cover`}
+                className={styles.bookCoverImage}
+                onError={(e) => {
+                  e.target.onerror = null;
+                  e.target.src = 'https://via.placeholder.com/400x600?text=Suicide+Note';
+                }}
+              />
+            </div>
+            <div className={styles.bookInfo}>
+              <h3 className={styles.bookTitle}>{ebookTitle}</h3>
+              <p className={styles.bookPrice}>Full Book Access · {selectedOption.symbol}{selectedOption.displayAmount}</p>
+            </div>
           </div>
 
-          <div className={styles.priceSection}>
-            {affiliateCode && (
-              <div className={styles.affiliateBadge}>
-                <span className={styles.affiliateIcon}>🎯</span>
-                <span className={styles.affiliateText}>Referred by affiliate</span>
-              </div>
-            )}
-            
+          {/* Affiliate Badge */}
+          {affiliateCode && (
+            <div className={styles.affiliateBadge}>
+              <span className={styles.affiliateIcon}>🎯</span>
+              <span className={styles.affiliateText}>Referred by affiliate partner</span>
+            </div>
+          )}
+
+          {/* Currency Toggle */}
+          <div className={styles.currencyGroup}>
+            <label className={styles.fieldLabel}>Select Payment Currency</label>
             <div className={styles.currencyToggle}>
               <button
                 className={`${styles.currencyButton} ${currency === 'NGN' ? styles.active : ''}`}
@@ -221,9 +195,10 @@ useEffect(() => {
                 disabled={isLoading}
               >
                 <span className={styles.currencyIcon}>{currencyOptions.NGN.icon}</span>
-                <span className={styles.currencyCode}>NGN</span>
-                <span className={styles.currencyPrice}>{currencyOptions.NGN.symbol}{currencyOptions.NGN.displayAmount}</span>
-                <span className={styles.currencyMethod}>Paystack</span>
+                <div className={styles.currencyInfo}>
+                  <span className={styles.currencyCode}>NGN</span>
+                  <span className={styles.currencyPrice}>{currencyOptions.NGN.symbol}{currencyOptions.NGN.displayAmount}</span>
+                </div>
               </button>
               <button
                 className={`${styles.currencyButton} ${currency === 'USD' ? styles.active : ''}`}
@@ -231,86 +206,92 @@ useEffect(() => {
                 disabled={isLoading}
               >
                 <span className={styles.currencyIcon}>{currencyOptions.USD.icon}</span>
-                <span className={styles.currencyCode}>USD</span>
-                <span className={styles.currencyPrice}>{currencyOptions.USD.symbol}{currencyOptions.USD.displayAmount}</span>
-                <span className={styles.currencyMethod}>Paystack</span>
+                <div className={styles.currencyInfo}>
+                  <span className={styles.currencyCode}>USD</span>
+                  <span className={styles.currencyPrice}>{currencyOptions.USD.symbol}{currencyOptions.USD.displayAmount}</span>
+                </div>
               </button>
             </div>
-            
-            <p className={styles.priceDescription}>
-              {selectedOption.description}
-            </p>
+            <p className={styles.fieldHint}>{selectedOption.description}</p>
           </div>
 
-          <div className={styles.stepContent}>
-            <div className={styles.formGroup}>
-              <label>Email Address *</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                placeholder="you@example.com"
-                autoFocus
-              />
-            </div>
+          {/* Email Field */}
+          <div className={styles.formGroup}>
+            <label className={styles.fieldLabel}>
+              Email Address <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              disabled={isLoading}
+              placeholder="you@example.com"
+              className={styles.fieldInput}
+              autoFocus
+            />
+          </div>
 
-            <div className={styles.formGroup}>
-              <label>Your Name (Optional)</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={isLoading}
-                placeholder="Enter your name"
-              />
-            </div>
+          {/* Name Field */}
+          <div className={styles.formGroup}>
+            <label className={styles.fieldLabel}>
+              Your Name <span className={styles.optional}>(optional)</span>
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              disabled={isLoading}
+              placeholder="Enter your name"
+              className={styles.fieldInput}
+            />
+          </div>
 
-            <button 
-              onClick={handleSubmit} 
-              disabled={isLoading || !validateEmail(email)}
-              className={styles.submitButton}
-            >
-              {isLoading ? (
-                <>
-                  <span className={styles.spinner}></span>
-                  <span>Processing...</span>
-                </>
-              ) : (
-                <>
-                  <span>Pay {selectedOption.symbol}{selectedOption.displayAmount}</span>
-                  <span className={styles.arrow}>→</span>
-                </>
-              )}
-            </button>
-
-            {affiliateCode && (
-              <div className={styles.affiliateNote}>
-                <Icon name="Gift" className={styles.affiliateNoteIcon} />
-                <span>
-                  You were referred by an affiliate. They'll earn commission on your purchase.
-                </span>
-              </div>
+          {/* Submit Button */}
+          <button 
+            onClick={handleSubmit} 
+            disabled={isLoading || !validateEmail(email)}
+            className={styles.submitButton}
+          >
+            {isLoading ? (
+              <>
+                <span className={styles.spinner}></span>
+                <span>Processing...</span>
+              </>
+            ) : (
+              <>
+                <span>Pay {selectedOption.symbol}{selectedOption.displayAmount} — Unlock Book</span>
+              </>
             )}
+          </button>
 
-            <div className={styles.paymentFeatures}>
-              <div className={styles.featureItem}>
-                <Icon name="Shield" className={styles.featureIcon} />
-                <span>Secure Payment</span>
-              </div>
-              <div className={styles.featureItem}>
-                <Icon name="Lock" className={styles.featureIcon} />
-                <span>Encrypted Transaction</span>
-              </div>
-              <div className={styles.featureItem}>
-                <Icon name="CheckCircle" className={styles.featureIcon} />
-                <span>Instant Access</span>
-              </div>
-            </div>
+          {/* Security Note */}
+          <div className={styles.securityNote}>
+            <span className={styles.securityIcon}>🔒</span>
+            <span>SSL Encrypted · Secured by Paystack</span>
+          </div>
 
-            <div className={styles.paymentNote}>
-              <Icon name="Info" /> Powered by Paystack - Secure payments in {currency}
+          {/* Affiliate Note */}
+          {affiliateCode && (
+            <div className={styles.affiliateNote}>
+              <span className={styles.affiliateNoteIcon}>✨</span>
+              <span>
+                You were referred by an affiliate partner. They'll earn commission on your purchase.
+              </span>
             </div>
+          )}
+
+          {/* Mercy Note */}
+          <div className={styles.mercyNote}>
+            <p>
+              If you truly can't afford it right now —{' '}
+              <a href="https://wa.me/2348131699259" target="_blank" rel="noopener noreferrer">
+                message me on WhatsApp
+              </a>
+              .
+            </p>
+            <p className={styles.mercyText}>
+              This story was written for people who need it. Money was never supposed to be the barrier.
+            </p>
           </div>
         </div>
       </div>

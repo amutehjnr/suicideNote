@@ -1,80 +1,101 @@
-.modalOverlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+/* GuestCheckoutModal.module.css - Update the book cover styles */
+
+/* Book Cover - Updated to show actual image */
+.bookHeader {
   display: flex;
   align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  backdrop-filter: blur(4px);
-  animation: fadeIn 0.3s ease;
+  gap: 16px;
+  margin-bottom: 2rem;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-.modalContainer {
-  width: 100%;
-  max-width: 500px;
-  margin: 20px;
-  animation: slideUp 0.3s ease;
-}
-
-@keyframes slideUp {
-  from {
-    transform: translateY(20px);
-    opacity: 0;
-  }
-  to {
-    transform: translateY(0);
-    opacity: 1;
-  }
-}
-
-.modalContent {
-  background: white;
-  border-radius: 24px;
+.bookCoverWrapper {
+  width: 56px;
+  height: 83px;
+  border-radius: 2px;
+  flex-shrink: 0;
+  background: #1f1c19;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
   overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
 }
 
-.modalHeader {
-  padding: 20px 24px;
-  border-bottom: 1px solid #e0dbd4;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  background: #faf8f5;
+.bookCoverImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
 }
 
-.modalTitle {
-  font-size: 20px;
-  font-weight: 600;
-  color: #1a1a1a;
+.bookInfo {
+  flex: 1;
+}
+
+.bookTitle {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: 22px;
+  font-weight: 300;
+  line-height: 1.2;
+  color: #e4d9c8;
+  margin: 0 0 4px 0;
+}
+
+.bookPrice {
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  color: #c47c3a;
+  letter-spacing: 0.06em;
   margin: 0;
 }
 
-.closeButton {
-  background: none;
-  border: none;
-  cursor: pointer;
-  padding: 8px;
-  color: #666;
-  transition: all 0.2s;
-  border-radius: 8px;
+/* Rest of your existing CSS remains the same */
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.88);
+  z-index: 1000;
   display: flex;
   align-items: center;
   justify-content: center;
+  padding: 24px;
+  animation: fadeIn 0.3s ease;
 }
 
-.closeButton:hover {
-  background: #e0dbd4;
-  color: #1a1a1a;
+.modalContainer {
+  max-width: 420px;
+  width: 100%;
+  animation: slideUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modalContent {
+  background: #181614;
+  border-top: 3px solid #c47c3a;
+  border-radius: 4px;
+  padding: 40px 36px;
+  position: relative;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+/* Close Button */
+.closeButton {
+  position: absolute;
+  top: 16px;
+  right: 20px;
+  background: none;
+  border: none;
+  color: #9a8872;
+  font-size: 28px;
+  cursor: pointer;
+  line-height: 1;
+  transition: color 0.2s;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 300;
+}
+
+.closeButton:hover:not(:disabled) {
+  color: #e4d9c8;
 }
 
 .closeButton:disabled {
@@ -82,335 +103,328 @@
   cursor: not-allowed;
 }
 
-.priceSection {
-  padding: 24px;
-  background: linear-gradient(135deg, #f8f4f0, #f0e9e2);
-  border-bottom: 1px solid #e0dbd4;
-}
-
-.currencyToggle {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-}
-
-.currencyButton {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 16px 12px;
-  border: 2px solid #e0dbd4;
-  border-radius: 16px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s;
-  position: relative;
-  overflow: hidden;
-}
-
-.currencyButton:hover {
-  border-color: #8b1a1a;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(139, 26, 26, 0.1);
-}
-
-.currencyButton.active {
-  border-color: #8b1a1a;
-  background: #fff5f0;
-  box-shadow: 0 4px 12px rgba(139, 26, 26, 0.15);
-}
-
-.currencyButton.active::before {
-  content: '✓';
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  color: #8b1a1a;
-  font-weight: bold;
-}
-
-.currencyIcon {
-  font-size: 24px;
-  margin-bottom: 8px;
-}
-
-.currencyCode {
-  font-size: 16px;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin-bottom: 4px;
-}
-
-.currencyPrice {
-  font-size: 20px;
-  font-weight: 700;
-  color: #8b1a1a;
-  margin-bottom: 4px;
-}
-
-.currencyMethod {
-  font-size: 12px;
-  color: #666;
-  text-transform: capitalize;
-}
-
-.priceDescription {
-  text-align: center;
-  color: #4a4a4a;
-  font-size: 14px;
-  margin: 0;
-  padding-top: 8px;
-  border-top: 1px dashed #e0dbd4;
-}
-
-.stepContent {
-  padding: 24px;
-}
-
-.formGroup {
-  margin-bottom: 20px;
-}
-
-.formGroup label {
-  display: block;
-  font-size: 14px;
-  font-weight: 500;
-  color: #1a1a1a;
-  margin-bottom: 8px;
-}
-
-.formGroup input {
-  width: 100%;
-  padding: 14px 16px;
-  border: 2px solid #e0dbd4;
-  border-radius: 12px;
-  font-size: 16px;
-  transition: all 0.2s;
-  background: white;
-}
-
-.formGroup input:focus {
-  outline: none;
-  border-color: #8b1a1a;
-  box-shadow: 0 0 0 3px rgba(139, 26, 26, 0.1);
-}
-
-.formGroup input:disabled {
-  background: #f5f5f5;
-  cursor: not-allowed;
-}
-
-.formGroup input::placeholder {
-  color: #aaa;
-}
-
-.submitButton {
-  width: 100%;
-  background: #8b1a1a;
-  color: white;
-  border: none;
-  padding: 16px;
-  border-radius: 12px;
-  font-size: 18px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  margin-top: 24px;
-}
-
-.submitButton:hover:not(:disabled) {
-  background: #6b1313;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(139, 26, 26, 0.3);
-}
-
-.submitButton:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-  opacity: 0.7;
-}
-
-.arrow {
-  font-size: 20px;
-}
-
-.spinner {
-  width: 20px;
-  height: 20px;
-  border: 3px solid rgba(255, 255, 255, 0.3);
-  border-radius: 50%;
-  border-top-color: white;
-  animation: spin 1s linear infinite;
-  display: inline-block;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-.paymentFeatures {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  margin: 24px 0 16px;
-}
-
-.featureItem {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  font-size: 12px;
-  color: #666;
-}
-
-.featureIcon {
-  width: 16px;
-  height: 16px;
-  color: #059669;
-}
-
-.paymentNote {
-  background: #f0f7ff;
-  border-radius: 8px;
-  padding: 12px;
-  font-size: 13px;
-  color: #2563eb;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  margin-top: 16px;
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-  .currencyToggle {
-    flex-direction: column;
-  }
-  
-  .currencyButton {
-    flex-direction: row;
-    justify-content: space-between;
-    padding: 12px 16px;
-  }
-  
-  .currencyIcon {
-    margin-bottom: 0;
-    margin-right: 8px;
-  }
-  
-  .currencyCode {
-    margin-bottom: 0;
-    margin-right: auto;
-  }
-  
-  .currencyPrice {
-    margin-bottom: 0;
-    margin-right: 8px;
-  }
-  
-  .paymentFeatures {
-    flex-wrap: wrap;
-  }
-}
-
-/* Add to your existing GuestCheckoutModal.module.css */
-
+/* Affiliate Badge */
 .affiliateBadge {
+  background: rgba(196, 124, 58, 0.1);
+  border: 1px solid rgba(196, 124, 58, 0.3);
+  border-radius: 20px;
+  padding: 8px 16px;
+  margin-bottom: 1.5rem;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  background: linear-gradient(135deg, #f0f9ff 0%, #e6f7ff 100%);
-  border: 1px solid #7dd3fc;
-  border-radius: 30px;
-  padding: 8px 16px;
-  margin-bottom: 20px;
-  font-size: 14px;
-  color: #0369a1;
-  font-weight: 600;
+  justify-content: center;
 }
 
 .affiliateIcon {
-  font-size: 18px;
+  font-size: 14px;
 }
 
 .affiliateText {
-  color: #0369a1;
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: #c47c3a;
+  text-transform: uppercase;
 }
 
-.affiliateNote {
-  margin-top: 16px;
-  padding: 12px;
-  background: #f0fdf4;
-  border-left: 4px solid #22c55e;
-  border-radius: 8px;
-  font-size: 14px;
-  color: #166534;
-  display: flex;
-  align-items: center;
-  gap: 8px;
+/* Form Styles */
+.formGroup {
+  margin-bottom: 1.25rem;
 }
 
-.affiliateNoteIcon {
-  width: 18px;
-  height: 18px;
-  color: #22c55e;
-  flex-shrink: 0;
+.fieldLabel {
+  display: block;
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #9a8872;
+  margin-bottom: 8px;
 }
 
-.submitButton {
+.required {
+  color: #e07070;
+}
+
+.optional {
+  opacity: 0.5;
+  font-weight: normal;
+}
+
+.fieldInput {
   width: 100%;
-  padding: 14px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-size: 16px;
-  font-weight: 600;
+  background: #1f1c19;
+  border: 1px solid rgba(196, 124, 58, 0.25);
+  border-radius: 3px;
+  padding: 12px 14px;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 15px;
+  color: #e4d9c8;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.fieldInput:focus {
+  border-color: #c47c3a;
+}
+
+.fieldInput::placeholder {
+  color: #9a8872;
+  opacity: 0.5;
+}
+
+.fieldInput:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Currency Group */
+.currencyGroup {
+  margin-bottom: 1.5rem;
+}
+
+.currencyToggle {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.currencyButton {
+  background: #1f1c19;
+  border: 1px solid rgba(196, 124, 58, 0.25);
+  border-radius: 3px;
+  padding: 12px;
   cursor: pointer;
-  transition: all 0.3s ease;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
+  transition: all 0.2s;
 }
 
-.submitButton:hover:not(:disabled) {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+.currencyButton:hover:not(:disabled) {
+  border-color: #c47c3a;
+  background: rgba(196, 124, 58, 0.05);
 }
 
-.submitButton:disabled {
+.currencyButton.active {
+  border-color: #c47c3a;
+  background: rgba(196, 124, 58, 0.1);
+}
+
+.currencyButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;
 }
 
+.currencyIcon {
+  font-size: 20px;
+}
+
+.currencyInfo {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.currencyCode {
+  font-family: 'Jost', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: #e4d9c8;
+}
+
+.currencyPrice {
+  font-family: 'Jost', sans-serif;
+  font-size: 11px;
+  color: #c47c3a;
+}
+
+.fieldHint {
+  font-family: 'Lora', Georgia, serif;
+  font-size: 12px;
+  color: #9a8872;
+  margin: 6px 0 0 0;
+  line-height: 1.4;
+}
+
+/* Submit Button */
+.submitButton {
+  width: 100%;
+  background: #c47c3a;
+  color: #fff;
+  font-family: 'Jost', sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 16px;
+  border-radius: 3px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.15s;
+  margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #d48f50;
+  transform: scale(1.01);
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Spinner */
 .spinner {
-  display: inline-block;
   width: 16px;
   height: 16px;
   border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top-color: #fff;
   border-radius: 50%;
-  border-top-color: white;
-  animation: spin 1s ease-in-out infinite;
-  margin-right: 8px;
+  animation: spin 0.6s linear infinite;
+}
+
+/* Security Note */
+.securityNote {
+  text-align: center;
+  margin-top: 1.25rem;
+  font-family: 'Jost', sans-serif;
+  font-size: 10.5px;
+  letter-spacing: 0.1em;
+  color: #9a8872;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.securityIcon {
+  font-size: 10px;
+}
+
+/* Affiliate Note */
+.affiliateNote {
+  margin-top: 1rem;
+  padding: 10px 12px;
+  background: rgba(196, 124, 58, 0.05);
+  border-radius: 3px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: 'Lora', Georgia, serif;
+  font-size: 11px;
+  color: #9a8872;
+  line-height: 1.4;
+  text-align: left;
+}
+
+.affiliateNoteIcon {
+  font-size: 12px;
+  flex-shrink: 0;
+}
+
+/* Mercy Note */
+.mercyNote {
+  margin-top: 1.75rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(196, 124, 58, 0.25);
+  text-align: center;
+}
+
+.mercyNote p {
+  font-family: 'Lora', Georgia, serif;
+  font-style: italic;
+  font-size: 12px;
+  color: #9a8872;
+  line-height: 1.6;
+  margin: 0 0 6px 0;
+}
+
+.mercyNote a {
+  color: #c47c3a;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(196, 124, 58, 0.3);
+  transition: border-color 0.2s;
+}
+
+.mercyNote a:hover {
+  border-bottom-color: #c47c3a;
+}
+
+.mercyText {
+  font-size: 11px !important;
+  opacity: 0.8;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-.arrow {
-  margin-left: 4px;
-  transition: transform 0.3s ease;
+/* Responsive */
+@media (max-width: 600px) {
+  .modalOverlay {
+    padding: 16px;
+  }
+  
+  .modalContent {
+    padding: 32px 24px;
+  }
+  
+  .bookTitle {
+    font-size: 20px;
+  }
+  
+  .currencyButton {
+    padding: 10px;
+  }
+  
+  .submitButton {
+    padding: 14px;
+    font-size: 12px;
+  }
 }
 
-.submitButton:hover .arrow {
-  transform: translateX(4px);
+/* Additional touch targets for mobile */
+@media (max-width: 600px) {
+  .closeButton {
+    top: 10px;
+    right: 14px;
+  }
+  
+  .fieldInput {
+    padding: 10px 12px;
+  }
 }
