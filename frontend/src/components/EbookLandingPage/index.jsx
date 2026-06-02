@@ -1525,13 +1525,12 @@ const EbookLandingPage = () => {
         <div style={{ maxWidth: '660px', margin: '0 auto', padding: '0 28px' }}>
           <div className="reveal" style={{ opacity: 0, transform: 'translateY(22px)', transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
             <span style={{ fontFamily: "'Jost', sans-serif", fontSize: '10px', fontWeight: 500, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#c47c3a', display: 'block', marginBottom: '1.4rem' }}>The Author</span>
-            <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: '1.5px solid #c47c3a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', color: '#c47c3a', background: '#1f1c19', margin: '0 auto 1.8rem' }}><div className={styles.authorAvatar}>
+            <div style={{ width: '80px', height: '80px', borderRadius: '50%', border: '1.5px solid #c47c3a', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'Cormorant Garamond', serif", fontSize: '28px', color: '#c47c3a', background: '#1f1c19', margin: '0 auto 1.8rem', overflow: 'hidden' }}>
               <img 
-                src="/images/LobaYusuf.jpg" 
+                src="/images/LobaYusuf.jpeg" 
                 alt="Loba Yusuf"
                 style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }}
-              />
-              </div>
+              />            
             </div>
             <p style={{ fontSize: '16.5px', lineHeight: 1.9, maxWidth: '540px', margin: '0 auto', color: '#e4d9c8' }}>I'm a Nigerian writer passionate about telling raw, emotional stories that make people feel seen and understood. My debut novel, <em>Suicide Note</em>, explores themes of mental health, survival, loneliness, and hope through deeply human storytelling. Beyond writing, I'm building a personal brand around books, creativity, and meaningful conversations that connect with young readers.</p>
             <br />
