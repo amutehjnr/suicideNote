@@ -13,7 +13,7 @@ const PAYSTACK_SECRET_KEY = process.env.PAYSTACK_SECRET_KEY;
 const PAYSTACK_BASE_URL = 'https://api.paystack.co';
 
 // Constants
-const EBOOK_PRICE_NGN = 3000; // ₦3,000 (in kobo)
+const EBOOK_PRICE_NGN = 2000; // ₦2,000 (in kobo)
 const EBOOK_PRICE_USD = 500; // $5.00 (in cents)
 
 // Helper function to send access code email
@@ -627,7 +627,7 @@ const paymentService = {
         symbol: '₦',
         code: 'NGN',
         amount: EBOOK_PRICE_NGN,
-        displayAmount: '3,000',
+        displayAmount: '2,000',
         paymentMethod: 'paystack',
         icon: '🇳🇬',
         description: 'Pay with Naira (Local cards, Bank Transfer, USSD)'
