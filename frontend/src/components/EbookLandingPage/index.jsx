@@ -1398,7 +1398,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }} className="reveal"></div>
+      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
 
       {/* Synopsis Section */}
       <section style={{ padding: '80px 0', background: '#0d0c0b' }}>
@@ -1412,7 +1412,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }} className="reveal"></div>
+      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
 
       {/* Preview Section */}
       <section style={{ padding: '80px 0', background: '#0d0c0b' }}>
@@ -1471,7 +1471,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }} className="reveal"></div>
+      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
 
       {/* Experience Section */}
       <section style={{ padding: '80px 0', textAlign: 'center', background: '#0d0c0b' }}>
@@ -1485,7 +1485,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }} className="reveal"></div>
+      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
 
       {/* Reviews Section */}
       <section style={{ padding: '80px 0', background: '#0d0c0b' }}>
@@ -1518,7 +1518,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }} className="reveal"></div>
+      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
 
       {/* Author Section */}
       <section style={{ padding: '80px 0', textAlign: 'center', background: '#0d0c0b' }}>
