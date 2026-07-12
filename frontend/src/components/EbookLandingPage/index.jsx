@@ -1088,7 +1088,7 @@ const EbookLandingPage = () => {
   const [stats, setStats] = useState({
     readers: 1127,
     rating: 4.9,
-    price: 2000,
+    price: 3000,
     affiliateCommission: 1000,
     affiliateRate: 0.5
   });
@@ -1209,7 +1209,7 @@ const EbookLandingPage = () => {
         
         if (ebook.price || ebook.salesCount || ebook.ratings) {
           const apiPrice = ebook.price || ebook.currentPrice;
-          const finalPrice = apiPrice === 25 ? 2000 : (apiPrice || stats.price);
+          const finalPrice = apiPrice === 25 ? 3000 : (apiPrice || stats.price);
           
           setStats(prev => ({
             ...prev,
@@ -1398,7 +1398,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
+      <div style={{ background: '#0d0c0b', padding: 0, margin: 0 }}><div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '0 auto', opacity: 0.6 }}></div></div>
 
       {/* Synopsis Section */}
       <section style={{ padding: '80px 0', background: '#0d0c0b' }}>
@@ -1412,7 +1412,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
+      <div style={{ background: '#0d0c0b', padding: 0, margin: 0 }}><div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '0 auto', opacity: 0.6 }}></div></div>
 
       {/* Preview Section */}
       <section style={{ padding: '80px 0', background: '#0d0c0b' }}>
@@ -1471,7 +1471,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
+      <div style={{ background: '#0d0c0b', padding: 0, margin: 0 }}><div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '0 auto', opacity: 0.6 }}></div></div>
 
       {/* Experience Section */}
       <section style={{ padding: '80px 0', textAlign: 'center', background: '#0d0c0b' }}>
@@ -1485,7 +1485,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
+      <div style={{ background: '#0d0c0b', padding: 0, margin: 0 }}><div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '0 auto', opacity: 0.6 }}></div></div>
 
       {/* Reviews Section */}
       <section style={{ padding: '80px 0', background: '#0d0c0b' }}>
@@ -1518,7 +1518,7 @@ const EbookLandingPage = () => {
         </div>
       </section>
 
-      <div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '2rem auto', opacity: 0.6 }}></div>
+      <div style={{ background: '#0d0c0b', padding: 0, margin: 0 }}><div style={{ width: '48px', height: '1px', background: '#c47c3a', margin: '0 auto', opacity: 0.6 }}></div></div>
 
       {/* Author Section */}
       <section style={{ padding: '80px 0', textAlign: 'center', background: '#0d0c0b' }}>
