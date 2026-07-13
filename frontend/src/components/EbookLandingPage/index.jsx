@@ -1034,7 +1034,7 @@
 import React, { useState, useEffect } from 'react';
 import PaymentService from '../../services/PaymentService';
 import AffiliateService from '../../services/AffiliateService';
-import GuestCheckoutModal from '../../components/GuestCheckoutModal';
+// import GuestCheckoutModal from '../../components/GuestCheckoutModal';
 import { ebookAPI } from '../../services/api';
 import toast from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -1049,7 +1049,7 @@ const EbookLandingPage = () => {
   const [affiliateLink, setAffiliateLink] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isAffiliateLoading, setIsAffiliateLoading] = useState(false);
-  const [showGuestCheckout, setShowGuestCheckout] = useState(false);
+  // const [showGuestCheckout, setShowGuestCheckout] = useState(false);
   const [affiliateGenerated, setAffiliateGenerated] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [salesEstimate, setSalesEstimate] = useState(20);
@@ -1078,9 +1078,9 @@ const EbookLandingPage = () => {
   ]);
 
   const [faqs] = useState([
-    { q: "How do I access the book after payment?", a: "Once your payment is confirmed via Paystack, you'll receive instant access. You can read directly in your browser on any device — no downloads or apps needed." },
+    { q: "How do I access the book after payment?", a: "Once your payment is confirmed via Selar, you'll receive instant access. You can read directly in your browser on any device — no downloads or apps needed." },
     { q: "Is this fiction or a true story?", a: "Suicide Note is literary fiction — Eliora is a fictional character. However, the emotional experiences he goes through are drawn from real, deeply human feelings that many young Nigerians quietly carry." },
-    { q: "What if Paystack doesn't work for me?", a: "No stress — reach out on WhatsApp and we'll sort out an alternative payment method that works for you." },
+    { q: "What if Selar doesn't work for me?", a: "No stress — reach out on WhatsApp and we'll sort out an alternative payment method that works for you." },
     { q: "Is this book appropriate if I'm personally struggling?", a: "The book deals honestly with themes of depression and suicidal ideation. It is written with deep care and moves toward hope — but please be gentle with yourself." },
     { q: "Can I read it on my phone?", a: "Yes — the reading experience is fully optimised for mobile. You can read it anywhere, anytime, without needing to download anything." }
   ]);
@@ -1134,6 +1134,37 @@ const EbookLandingPage = () => {
     
     return () => observer.disconnect();
   }, []);
+
+  // Add this function to handle Selar checkout
+  const handleSelarCheckout = async () => {
+  try {
+    setIsLoading(true);
+    
+    // Get affiliate code if exists
+    const urlParams = new URLSearchParams(window.location.search);
+    const affiliateCode = urlParams.get('ref');
+    
+    // Get email from localStorage if available
+    const userEmail = localStorage.getItem('guest_email') || '';
+    const userName = localStorage.getItem('guest_name') || '';
+    
+    // Redirect to Selar via backend
+    const result = await PaymentService.redirectToSelarCheckout(
+      userEmail,
+      userName,
+      affiliateCode
+    );
+    
+    if (!result.success) {
+      toast.error(result.error || 'Failed to proceed to checkout');
+      setIsLoading(false);
+    }
+  } catch (error) {
+    console.error('Selar checkout error:', error);
+    toast.error('Failed to proceed to checkout. Please try again.');
+    setIsLoading(false);
+  }
+};
 
   // FAQ accordion
   useEffect(() => {
@@ -1357,7 +1388,7 @@ const EbookLandingPage = () => {
 
   return (
     <>
-      <GuestCheckoutModal
+      {/* <GuestCheckoutModal
         isOpen={showGuestCheckout}
         onClose={() => setShowGuestCheckout(false)}
         onSuccess={handleGuestCheckoutSuccess}
@@ -1365,7 +1396,7 @@ const EbookLandingPage = () => {
         ebookPrice={stats.price}
         ebookTitle="Suicide Note"
         affiliateCode={new URLSearchParams(window.location.search).get('ref')}
-      />
+      /> */}
       
       {/* Hero Section */}
       <section id="hero" style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', padding: '60px 28px', position: 'relative', background: '#0d0c0b' }}>
@@ -1406,7 +1437,7 @@ const EbookLandingPage = () => {
           <div className="reveal" style={{ opacity: 0, transform: 'translateY(22px)', transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
             <span style={{ fontFamily: "'Jost', sans-serif", fontSize: '10px', fontWeight: 500, letterSpacing: '0.22em', textTransform: 'uppercase', color: '#c47c3a', display: 'block', marginBottom: '1.4rem' }}>The Story</span>
             <p style={{ marginBottom: '1.3rem', fontSize: '17px', color: '#e4d9c8', lineHeight: 1.85 }}>Eliora Oluwafemi Adetayo is twenty-six years old. He has a degree he can't use, a warehouse job that doesn't require one, and a self-contain in Ojuelegba small enough to touch both walls with outstretched arms. In Lagos — a city of twenty million — he is completely alone.</p>
-            <p style={{ marginBottom: '1.3rem', fontSize: '17px', color: '#e4d9c8', lineHeight: 1.85 }}>On a Friday night in November, with NEPA taking the light and his phone battery at 23%, Eliora tears out the blank pages of an old exercise book and begins to write. Not a diary. Not a prayer. A suicide note. Because the silence has finally become too heavy to carry alone.</p>
+            <p style={{ marginBottom: '1.3rem', fontSize: '17px', color: '#e4d9c8', lineHeight: 1.85 }}>On a Friday night in November, with the power out and his phone battery at 23%, Eliora tears out the blank pages of an old exercise book and begins to write. Not a diary. Not a prayer. A suicide note. Because the silence has finally become too heavy to carry alone.</p>
             <p style={{ marginBottom: '1.3rem', fontSize: '17px', color: '#e4d9c8', lineHeight: 1.85 }}><em>Suicide Note</em> is a story about what happens in the space between despair and the next morning. About the invisible lives behind Lagos's noise. About loneliness so specific it feels like a fingerprint — and the unexpected places where healing finds its way in.</p>
           </div>
         </div>
@@ -1449,6 +1480,11 @@ const EbookLandingPage = () => {
                 <div style={{ textAlign: 'center', color: '#c47c3a', fontSize: '13px', letterSpacing: '0.2em', margin: '2rem 0', opacity: 0.6 }}>✦</div>
                 <div style={{ fontFamily: "'Lora', serif", fontSize: '16px', lineHeight: 1.95, color: '#e4d9c8' }}>
                   <p>My name is Eliora Oluwafemi Adetayo. Eliora means <em>my God is light</em>, Oluwafemi — <em>God loves me</em>, and Adetayo — <em>the crown meets joy</em>. My parents named me like I was supposed to be something. Like these names would protect me or guide me or make me into a relevant person.</p>
+                </div>
+                <div style={{ textAlign: 'center', color: '#c47c3a', fontSize: '13px', letterSpacing: '0.2em', margin: '2rem 0', opacity: 0.6 }}>✦</div>
+                <div style={{ fontFamily: "'Lora', serif", fontSize: '16px', lineHeight: 1.95, color: '#e4d9c8' }}>
+                  <p>If I were gone, honestly, would anyone really miss me? Mummy would cry. She'd blame herself, ask God why, light candles at church... But after the funeral, after seven days of mourning, after the initial shock, life would continue... The world would close over the space I left like water over a stone. In six months, maybe a year, I'd just be a sad story they occasionally remember: <em>'Remember Eli? So sad. He was always so quiet.'</em></p>
+                  <p>That's the truth, isn't it? I'm already gone. I've been gone for years. This would just make it official.</p>
                 </div>
                 <div style={{ textAlign: 'center', color: '#c47c3a', fontSize: '13px', letterSpacing: '0.2em', margin: '2rem 0', opacity: 0.6 }}>✦</div>
                 <div style={{ fontFamily: "'Lora', serif", fontSize: '16px', lineHeight: 1.95, color: '#e4d9c8' }}>
@@ -1545,9 +1581,9 @@ const EbookLandingPage = () => {
           <div className="reveal" style={{ opacity: 0, transform: 'translateY(22px)', transition: 'opacity 0.7s ease, transform 0.7s ease' }}>
             <img src="/images/suicide-note-cover.jpeg" alt="Suicide Note" style={{ width: '120px', borderRadius: '2px', boxShadow: '0 16px 40px rgba(0,0,0,0.5)', marginBottom: '1.6rem', background: '#181614' }} />
             <h2 style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '36px', fontWeight: 300, letterSpacing: '0.06em', marginBottom: '0.5rem', color: '#e4d9c8' }}>Suicide Note</h2>
-            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: '26px', fontWeight: 500, color: '#c47c3a', marginBottom: '2rem', letterSpacing: '0.04em' }}>₦{stats.price.toLocaleString()}</p>
-            <button onClick={handlePurchase} style={{ background: '#c47c3a', color: '#fff', fontFamily: "'Jost', sans-serif", fontSize: '14px', fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '16px 40px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Unlock the Full Book</button>
-            <p style={{ marginTop: '1.2rem', fontFamily: "'Jost', sans-serif", fontSize: '11.5px', letterSpacing: '0.1em', color: '#9a8872', textTransform: 'uppercase' }}>Instant access after payment · Secured by Paystack</p>
+            <p style={{ fontFamily: "'Jost', sans-serif", fontSize: '26px', fontWeight: 500, color: '#c47c3a', marginBottom: '2rem', letterSpacing: '0.04em' }}>$4.99 / ₦{stats.price.toLocaleString()}</p>
+            <button onClick={handleSelarCheckout} style={{ background: '#c47c3a', color: '#fff', fontFamily: "'Jost', sans-serif", fontSize: '14px', fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase', padding: '16px 40px', borderRadius: '3px', border: 'none', cursor: 'pointer' }}>Unlock the Full Book</button>
+            <p style={{ marginTop: '1.2rem', fontFamily: "'Jost', sans-serif", fontSize: '11.5px', letterSpacing: '0.1em', color: '#9a8872', textTransform: 'uppercase' }}>Instant access after payment · Secured by Selar</p>
             <div style={{ marginTop: '2.2rem', paddingTop: '1.8rem', borderTop: '1px solid rgba(196,124,58,0.25)', fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: '15.5px', color: '#9a8872', lineHeight: 1.8 }}>
               If you truly can't afford it right now — <a href="https://wa.me/2348131699259" target="_blank" rel="noopener" style={{ color: '#c47c3a', textDecoration: 'none', borderBottom: '1px solid rgba(196,124,58,0.3)' }}>message me on WhatsApp</a>.<br />
               <span style={{ fontSize: '14px' }}>This story was written for people who need it. Money was never supposed to be the barrier.</span>
@@ -1608,9 +1644,9 @@ const EbookLandingPage = () => {
       <div id="stickyBar" style={{ position: 'fixed', bottom: 0, left: 0, right: 0, background: '#181614', borderTop: '1px solid rgba(196,124,58,0.25)', padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', zIndex: 100, transform: 'translateY(100%)', transition: 'transform 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
         <div>
           <span style={{ fontFamily: "'Cormorant Garamond', serif", fontSize: '17px', color: '#e4d9c8' }}>Suicide Note</span>
-          <span style={{ fontFamily: "'Jost', sans-serif", fontSize: '12px', color: '#c47c3a', letterSpacing: '0.06em', display: 'block' }}>₦{stats.price.toLocaleString()} · Full Access</span>
+          <span style={{ fontFamily: "'Jost', sans-serif", fontSize: '12px', color: '#c47c3a', letterSpacing: '0.06em', display: 'block' }}>$4.99 / ₦{stats.price.toLocaleString()} · Full Access</span>
         </div>
-        <button onClick={handlePurchase} style={{ background: '#c47c3a', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '3px', cursor: 'pointer', fontFamily: "'Jost', sans-serif", fontSize: '12px', fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Unlock Book</button>
+        <button onClick={handleSelarCheckout} style={{ background: '#c47c3a', color: '#fff', border: 'none', padding: '12px 24px', borderRadius: '3px', cursor: 'pointer', fontFamily: "'Jost', sans-serif", fontSize: '12px', fontWeight: 500, letterSpacing: '0.14em', textTransform: 'uppercase' }}>Unlock Book</button>
       </div>
 
       <style>{`
